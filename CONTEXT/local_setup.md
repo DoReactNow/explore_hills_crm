@@ -618,7 +618,7 @@ npm run docker:local:up
 
 **Diagnostics shows the worker as `down`, or timeouts and reminders never happen.** The worker is not running. Start `npm run worker` (or the `worker` container) and check its log.
 
-**Live updates do not arrive (lists only change after a refresh).** Check the browser network tab for `/api/events/stream`. Behind a reverse proxy, turn response buffering off for that path. If the stream cannot connect, pages fall back to polling every few seconds.
+**Live updates do not arrive (lists only change after a refresh).** Check the browser network tab for `/api/events/stream`: it should stay open with `content-type: text/event-stream` and a `: keep-alive` line every 25 seconds. Behind a reverse proxy, turn response buffering off for that path (nginx: `proxy_buffering off;`; the stream also sends `X-Accel-Buffering: no`) and allow long-lived responses (nginx: `proxy_read_timeout` above 25 s). The diagnostics page shows `Live updates: live` when the stream is connected and `polling` when it has fallen back to re-fetching every 15 seconds.
 
 **The softphone cannot use the microphone.** Browsers allow the microphone only on secure pages: `https://`, or `http://127.0.0.1` locally. Check the browser's site permissions. With the `fake` provider no microphone is needed.
 

@@ -11,5 +11,6 @@ export {
   type WorkerState,
 } from "./system.types";
 export { getTestProbeRuns, resetTestProbeRuns, systemJobs, systemTestJobs } from "./system.jobs";
+export { systemEventTypes, systemTestEventTypes, workerStatusChangedEvent } from "./system.events";
 
 export const recordWorkerHeartbeat = systemService.recordHeartbeat;
