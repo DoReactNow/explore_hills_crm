@@ -1,0 +1,36 @@
+name: explorehills-local
+
+# W-010 part A: the Postgres container only. Part B adds the optional app and worker
+# services (profile "app") exactly as in CONTEXT/local_setup.md Section 4.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: explorehills_local_db
+    command: ["postgres", "-c", "timezone=UTC", "-c", "log_timezone=UTC"]
+    environment:
+      POSTGRES_USER: explorehills_user
+      POSTGRES_PASSWORD: explorehills_password
+      POSTGRES_DB: explorehills_dev
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - explorehills_local_pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U explorehills_user -d explorehills_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - explorehills_local_net
+
+volumes:
+  explorehills_local_pgdata:
+
+# Containers reach each other by service name (for example "db"); no fixed IP addresses (Decision 29).
+networks:
+  explorehills_local_net:
+    driver: bridge
