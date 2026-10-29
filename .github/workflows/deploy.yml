@@ -1,0 +1,60 @@
+# CD scaffold (Decision 12). After CI passes on main: build the production images, apply the
+# migrations and the RBAC sync with the migrator image BEFORE rollout, then deploy app and worker.
+# The rollout step is a TODO until the hosting target is chosen (Phase 12).
+#
+# To enable it: create the protected "production" environment, add the secret PRODUCTION_ENV
+# (the production env file in Docker --env-file format: KEY=value lines, no quotes) and set the
+# repository variable DEPLOY_ENABLED=true. Until then the job is skipped.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - name: Build production images
+        run: |
+          docker build -f docker/Dockerfile.prod --target migrator -t explorehills-migrator:${{ github.sha }} .
+          docker build -f docker/Dockerfile.prod --target runner -t explorehills-app:${{ github.sha }} .
+          docker build -f docker/Dockerfile.prod --target worker -t explorehills-worker:${{ github.sha }} .
+
+      - name: Write the production env file
+        env:
+          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+        run: |
+          umask 077
+          printf '%s\n' "$PRODUCTION_ENV" > "$RUNNER_TEMP/production.env"
+
+      # A failed migration stops the workflow here, so the new version is never rolled out.
+      - name: Apply migrations
+        run: docker run --rm --env-file "$RUNNER_TEMP/production.env" explorehills-migrator:${{ github.sha }} npx prisma migrate deploy
+
+      - name: Sync permissions and roles
+        run: docker run --rm --env-file "$RUNNER_TEMP/production.env" explorehills-migrator:${{ github.sha }} node dist/sync-rbac.js
+
+      - name: Deploy app and worker
+        run: |
+          echo "TODO: deploy step for the hosting target chosen in Phase 12 (push explorehills-app and explorehills-worker, then roll out)."
+
+      - name: Remove the env file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/production.env"

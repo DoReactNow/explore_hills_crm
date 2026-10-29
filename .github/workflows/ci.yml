@@ -1,0 +1,144 @@
+# CI (Decision 13): lint and typecheck in parallel, then build, then the three test tiers in
+# parallel. Each job runs its own npm script; the pipeline never calls ci:quality.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Forbidden files guard
+        run: npm run guard:files
+      - name: Lint
+        run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Typecheck
+        run: npm run typecheck
+
+  build:
+    needs: [lint, typecheck]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate
+      - name: Build
+        run: npm run build
+      - name: Build worker and tools
+        run: npm run build:worker && npm run build:tools
+      - uses: actions/upload-artifact@v7
+        with:
+          name: next-build
+          path: .next
+          include-hidden-files: true
+          retention-days: 1
+
+  test-unit:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate
+      - run: cp .env.test.example .env.test
+      - name: Unit tests
+        run: npm run test:unit
+
+  test-integration:
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: explorehills_user
+          POSTGRES_PASSWORD: explorehills_password
+          POSTGRES_DB: explorehills_test
+          TZ: UTC
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd="pg_isready -U explorehills_user -d explorehills_test"
+          --health-interval=5s --health-timeout=3s --health-retries=10
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate
+      - run: cp .env.test.example .env.test
+      - name: Apply migrations (test database)
+        run: npm run db:test:migrate
+      - name: Check migrations match schema
+        run: npm run db:migrate:check
+      - name: Integration tests
+        run: npm run test:integration
+
+  test-e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: explorehills_user
+          POSTGRES_PASSWORD: explorehills_password
+          POSTGRES_DB: explorehills_test
+          TZ: UTC
+        ports: ["54329:5432"]
+        options: >-
+          --health-cmd="pg_isready -U explorehills_user -d explorehills_test"
+          --health-interval=5s --health-timeout=3s --health-retries=10
+    steps:
+      - uses: actions/checkout@v7
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@v7
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run db:generate
+      - uses: actions/download-artifact@v8
+        with: { name: next-build, path: .next }
+      - run: cp .env.test.example .env.test
+      - name: Apply migrations (test database)
+        run: npm run db:test:migrate
+      - run: npx playwright install --with-deps chromium
+      - name: E2E tests
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
