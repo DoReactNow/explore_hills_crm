@@ -1,5 +1,5 @@
 // Prepares the TEST database: loads .env.test, runs the safety guards, applies migrations and
-// syncs permissions and roles. W-009 adds the test seed. Safe to run any number of times.
+// syncs permissions and roles, then runs the test seed. Safe to run any number of times.
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { loadTestEnv } from "../src/tests/setup/testEnv";
@@ -22,6 +22,9 @@ async function main(): Promise<void> {
   try {
     const summary = await syncRbac();
     console.log(`[prepare-test-db] rbac synced (${summary.rolesCreated.length} roles created)`);
+    const { runTestSeed } = await import("../prisma/seeds/testSeed");
+    await runTestSeed();
+    console.log("[prepare-test-db] test seed applied");
   } finally {
     await getPrisma().$disconnect();
   }

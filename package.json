@@ -36,7 +36,7 @@
     "db:test:migrate": "dotenv run -q --override -f .env.test -- prisma migrate deploy",
     "db:test:prepare": "tsx scripts/prepare-test-db.ts",
     "db:sync-rbac": "dotenv run -q --override -f .env -- tsx src/modules/identity/rbac/syncRbac.cli.ts",
-    "db:seed": "dotenv run -q --override -f .env -- tsx prisma/private/seed.ts",
+    "db:seed": "dotenv run -q --override -f .env -- tsx scripts/run-real-seed.ts",
     "db:seed:test": "dotenv run -q --override -f .env.test -- tsx prisma/seed-test.ts",
     "db:reset:dev": "tsx scripts/reset-db.ts .env",
     "db:reset:test": "tsx scripts/reset-db.ts .env.test",

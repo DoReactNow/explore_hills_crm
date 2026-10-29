@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008 part B done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -100,7 +100,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 | `db:test:migrate` | `dotenv run -q --override -f .env.test -- prisma migrate deploy` |
 | `db:test:prepare` | `tsx scripts/prepare-test-db.ts` (migrate, RBAC sync, test seed) |
 | `db:sync-rbac` | `dotenv run -q --override -f .env -- tsx src/modules/identity/rbac/syncRbac.cli.ts` |
-| `db:seed` | `dotenv run -q --override -f .env -- tsx prisma/private/seed.ts` |
+| `db:seed` | `dotenv run -q --override -f .env -- tsx scripts/run-real-seed.ts` (runs `prisma/private/seed.ts`, or explains how to create it) |
 | `db:seed:test` | `dotenv run -q --override -f .env.test -- tsx prisma/seed-test.ts` |
 | `db:reset:dev` / `db:reset:test` | Reset the DB then re-run migrations (destructive; guarded by env checks) |
 | `docker:db:up` / `docker:db:down` | Compose `db` service up / down |
@@ -309,7 +309,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 - [x] Part B: a test-principal factory in `src/tests/setup/` (including a Super Admin principal). Built in W-005 (`principals.ts`), because W-005's integration tests need it.
 - [x] Part A: `scripts/prepare-test-db.ts` loads `.env.test`, asserts guards, runs migrations. Idempotent.
 - [x] W-005 adds `syncRbac` to it.
-- [ ] W-009 adds the test seed to it.
+- [x] W-009 adds the test seed to it.
 - [x] `playwright.config.ts`: loads `.env.test`, reads the port from env (note: with `output: 'standalone'`, `next start` prints a warning; either accept it for E2E or start `.next/standalone/server.js` with `HOSTNAME`/`PORT`, and record the choice), `webServer` runs `npm run start:test` against the existing build, `reuseExistingServer` only outside CI, Chromium only, traces on first retry.
 - [x] Part B: `e2e/` spec for the forbidden message (`e2e/forbidden.e2e.ts`: manager refused, admin allowed, signed-out asked to sign in, on the new `/diagnostics` page). The health spec is in W-003; the not-found and server-error specs are in W-004 (Decisions 34 and 36).
 - [x] Test-only routes (diagnostics failure, test principal override) exist **only** when `APP_ENV=test`, and a unit test proves they are unreachable otherwise. The failure route is from W-004; the principal override is the test-only `eh_test_role` cookie resolver installed by `src/instrumentation.ts` (Decision 39).
@@ -329,19 +329,21 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-005, W-007, W-008.
 
 **RED tests**
-- [ ] Integration: `seed-test` run twice produces identical data (idempotent). In Phase 0 it seeds RBAC data only; Phase 1 extends it with the super admin, admin, manager and agent users from `.env.test`.
-- [ ] Unit: `seed-test` refuses to run when the database name does not end in `_test` or `APP_ENV` is not `test`.
-- [ ] Unit: the real seed template refuses a `_test` database and refuses missing or weak `SEED_SUPER_ADMIN_PASSWORD`. (Creating the first Super Admin, and doing nothing if one already exists, is added and tested in Phase 1 when `identity_users` exists.)
-- [ ] Script test: `guard:files` fails when a file under `prisma/private/`, or any real `.env*` file, is tracked (use a temporary tracked file, then remove).
-- [ ] Scan test: `prisma/seed-test.ts` contains no password literals (values come from env).
+- [x] Integration: `seed-test` run twice produces identical data (idempotent). In Phase 0 it seeds RBAC data only; Phase 1 extends it with the super admin, admin, manager and agent users from `.env.test`.
+- [x] Unit: `seed-test` refuses to run when the database name does not end in `_test` or `APP_ENV` is not `test`.
+- [x] Unit: the real seed template refuses a `_test` database and refuses missing or weak `SEED_SUPER_ADMIN_PASSWORD`. (Creating the first Super Admin, and doing nothing if one already exists, is added and tested in Phase 1 when `identity_users` exists.)
+- [x] Script test: `guard:files` fails when a file under `prisma/private/`, or any real `.env*` file, is tracked (use a temporary tracked file, then remove).
+- [x] Scan test: `prisma/seed-test.ts` contains no password literals (values come from env).
 
 **GREEN tasks**
-- [ ] `prisma/seed-test.ts` (committed) and `npm run db:seed:test`.
-- [ ] `prisma/seed.example.ts` (committed, placeholders only, reads `SEED_SUPER_ADMIN_*` from `.env`) and instructions to copy it to `prisma/private/seed.ts` (git-ignored). `npm run db:seed` runs the private file and fails with a helpful message if it is missing.
-- [ ] `scripts/check-forbidden-files.mjs` (`npm run guard:files`) using `git ls-files`.
-- [ ] `npm run db:sync-rbac` runs in every environment and contains no secrets.
+- [x] `prisma/seed-test.ts` (committed) and `npm run db:seed:test`.
+- [x] `prisma/seed.example.ts` (committed, placeholders only, reads `SEED_SUPER_ADMIN_*` from `.env`) and instructions to copy it to `prisma/private/seed.ts` (git-ignored). `npm run db:seed` runs the private file and fails with a helpful message if it is missing.
+- [x] `scripts/check-forbidden-files.mjs` (`npm run guard:files`) using `git ls-files`.
+- [x] `npm run db:sync-rbac` runs in every environment and contains no secrets.
 
 **Verification:** `lint`, `typecheck`, `test:unit`, `test:integration`, `guard:files`.
+
+> **Done 2026-10-30.** 12 new tests (seed targets, password and email policy, no password literals in committed seed files, forbidden-file rules, test seed idempotent). Commands checked by hand: `db:seed:test` twice, and refused against the dev database; `db:seed` without a private file prints how to create it; with the template copied it refuses the placeholder password and accepts a strong one (copy deleted afterwards); `guard:files` fails with force-added `.env.local` and `prisma/private/probe.ts`, then passes once they are removed. `prepare-test-db` now runs the test seed. 166 unit, 32 integration, 6 E2E passing. Details in Decision 40.
 
 ---
 

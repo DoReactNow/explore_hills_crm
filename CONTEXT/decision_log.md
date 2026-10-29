@@ -785,3 +785,16 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **E2E acts as a role with a test-only cookie,** `eh_test_role=<ROLE>`: the resolver builds that role's principal from its real grants in the test database. It is installed only when `APP_ENV=test`; installing it otherwise throws (unit-tested), and a development server ignores the cookie (checked by hand: 401 even for `SUPER_ADMIN`). Playwright sets the cookie directly, so there is no extra test-only API route.
 - **A `/diagnostics` page** (client component) reads `GET /api/diagnostics` through the shared API client, so the friendly 401/403 path is exercised end to end. Next.js's `forbidden()` / `unauthorized()` helpers are experimental (`authInterrupts`), so pages are not built on them for now; a refused page shows the catalog message inside the page.
 - **E2E locators** scope `role="alert"` to `<main>`, because Next.js adds its own route-announcer element with that role.
+
+---
+
+### Decision 40: Seed Details Settled in W-009
+
+**Date:** 2026-10-30
+**Status:** Accepted (implements Decision 11)
+
+#### Decision
+- **Layout:** shared seed code lives in `prisma/seeds/` (`testSeed.ts`, `realSeed.ts`) and is imported through the `@seeds/*` path alias, so the committed template `prisma/seed.example.ts` and its private copy `prisma/private/seed.ts` use the same import. `prisma/seed-test.ts` is the test-seed entry point.
+- **`npm run db:seed`** runs `scripts/run-real-seed.ts`, which explains how to create `prisma/private/seed.ts` when it is missing instead of failing with a module error.
+- **First Super Admin password policy** (checked before anything is written): at least 12 characters, at least three of lowercase, uppercase, digits and symbols, and no placeholder (`change-me`) or common word (`password`, the company name, `qwerty`, `123456`). The committed `.env.example` value is therefore refused on purpose. Errors never echo the password.
+- **`npm run guard:files`** also refuses tracked files under `storage/` (recordings and uploads), in addition to `prisma/private/` and real `.env*` files.

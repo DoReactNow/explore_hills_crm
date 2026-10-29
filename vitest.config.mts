@@ -2,11 +2,12 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 const srcDir = fileURLToPath(new URL("./src", import.meta.url));
+const seedsDir = fileURLToPath(new URL("./prisma/seeds", import.meta.url));
 
 // Three projects (Decision 9): "unit" (logic, node), "unit-dom" (React components, jsdom)
 // and "integration" (route handler to the real test database, run serially).
 export default defineConfig({
-  resolve: { alias: { "@": srcDir } },
+  resolve: { alias: { "@seeds": seedsDir, "@": srcDir } },
   test: {
     projects: [
       {

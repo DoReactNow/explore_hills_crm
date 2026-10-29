@@ -367,7 +367,7 @@ Migrations must be backward compatible with the previous app version (add column
 mkdir -p prisma/private
 cp prisma/seed.example.ts prisma/private/seed.ts
 ```
-Edit `prisma/private/seed.ts` if you need extra records, and set `SEED_SUPER_ADMIN_EMAIL` and `SEED_SUPER_ADMIN_PASSWORD` in `.env`. From Phase 1 (when user accounts exist) the seed creates the first Super Admin, and does nothing if an active Super Admin already exists. **Never commit this file or those values.** The whole `prisma/private/` folder is ignored by git, and CI fails if anything inside it is tracked.
+Edit `prisma/private/seed.ts` if you need extra records, and set `SEED_SUPER_ADMIN_EMAIL` and `SEED_SUPER_ADMIN_PASSWORD` in `.env`. The password must be at least 12 characters with three of lowercase, uppercase, digits and symbols, and no placeholder or common word; the `.env.example` value is refused on purpose (Decision 40). From Phase 1 (when user accounts exist) the seed creates the first Super Admin, and does nothing if an active Super Admin already exists. **Never commit this file or those values.** The whole `prisma/private/` folder is ignored by git, and CI fails if anything inside it is tracked.
 
 `prisma migrate reset` does **not** run any seed automatically. Run the seed commands yourself.
 

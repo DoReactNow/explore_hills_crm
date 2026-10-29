@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@seeds/*": ["./prisma/seeds/*"]
     }
   },
   "include": [
