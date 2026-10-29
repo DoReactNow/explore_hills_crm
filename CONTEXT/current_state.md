@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -387,12 +387,12 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-001 to W-010 (W-012 to W-014 extend the same pipeline; re-run it after each).
 
 **RED checks**
-- [ ] Open a throwaway pull request that breaks each step in turn (lint error, type error, failing build, failing unit/integration/e2e test, schema change without migration, tracked `prisma/private/x`) and confirm the matching job fails and later jobs do not run.
-- [ ] Confirm the `build` job finishes before any test job starts.
+- [x] Open a throwaway pull request that breaks each step in turn (lint error, type error, failing build, failing unit/integration/e2e test, schema change without migration, tracked `prisma/private/x`) and confirm the matching job fails and later jobs do not run.
+- [x] Confirm the `build` job finishes before any test job starts.
 
 **GREEN tasks**
-- [ ] Commit the root `.gitignore` provided with these docs (node_modules, `.next`, `dist`, coverage, test results, Playwright output, generated Prisma client, logs, all `.env*` except the three examples, the whole `prisma/private/` folder, and the local `storage/` folder).
-- [ ] `.github/workflows/ci.yml` with this structure:
+- [x] Commit the root `.gitignore` provided with these docs (node_modules, `.next`, `dist`, coverage, test results, Playwright output, generated Prisma client, logs, all `.env*` except the three examples, the whole `prisma/private/` folder, and the local `storage/` folder).
+- [x] `.github/workflows/ci.yml` with this structure:
 
 ```yaml
 name: CI
@@ -532,10 +532,12 @@ jobs:
 
 > `db:migrate:check` needs no shadow database (confirmed in W-007): it migrates the CI test database and diffs it against `schema.prisma`.
 
-- [ ] `.github/workflows/deploy.yml` scaffold: triggered after a successful CI run on `main` (`workflow_run`), uses a protected `production` environment, builds the production images (`runner` and `worker`), runs the **migrator** against the production `DATABASE_URL` secret **before** rollout, runs the RBAC sync inside the migrator image (`node dist/sync-rbac.js`), then a clearly marked `TODO: deploy step` (app and worker) for the hosting target (decided in Phase 12). If migration fails, the workflow stops.
-- [ ] Repository settings (document in the PR): branch protection requiring all CI jobs to pass.
+- [x] `.github/workflows/deploy.yml` scaffold: triggered after a successful CI run on `main` (`workflow_run`), uses a protected `production` environment, builds the production images (`runner` and `worker`), runs the **migrator** against the production `DATABASE_URL` secret **before** rollout, runs the RBAC sync inside the migrator image (`node dist/sync-rbac.js`), then a clearly marked `TODO: deploy step` (app and worker) for the hosting target (decided in Phase 12). If migration fails, the workflow stops.
+- [x] Repository settings (document in the PR): branch protection requiring all CI jobs to pass.
 
 **Verification:** a green pipeline on a real pull request showing six separate jobs in the order above.
+
+> **Done 2026-10-30.** Merged in PR #1 (https://github.com/DoReactNow/explore_hills_crm/pull/1): all six jobs passed, and `build` finished (21:50:13) before the first test job started (21:50:16). Actions use the current majors (checkout v7, setup-node v7, upload-artifact v7, download-artifact v8) with `persist-credentials: false`. Eight throwaway PRs (#2–#9, closed, branches deleted) each broke one step, and each failed exactly there with the later jobs skipped: lint → Lint; typecheck → Typecheck; build → Build; test-unit → Unit tests; test-integration → Integration tests; test-e2e → E2E tests; schema change without a migration → test-integration › Check migrations match schema; tracked `prisma/private/x.ts` → lint › Forbidden files guard. `deploy.yml` runs only when the repository variable `DEPLOY_ENABLED` is `true` and reads the secret `PRODUCTION_ENV` (Docker env-file format). Branch protection is documented in PR #1; switching it on in the repository settings is still to do (needs the owner's approval).
 
 ---
 
