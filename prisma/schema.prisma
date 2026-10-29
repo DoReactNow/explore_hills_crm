@@ -1,0 +1,72 @@
+// Explore Hills CRM: the Prisma schema. Target design: CONTEXT/database_schema.md.
+// Conventions (prisma/CONVENTIONS.md): instants are @db.Timestamptz(3), business dates are
+// @db.Date, IDs are UUID v7, tables are named <module>_<plural_noun>. Each phase adds only
+// its own models. Constraints Prisma cannot express live as raw SQL in the migrations.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// identity module
+// ---------------------------------------------------------------------------
+
+// Owner: identity. One row per code in src/shared/rbac/permissionRegistry.ts.
+model IdentityPermission {
+  id          String                   @id @default(uuid(7)) @db.Uuid
+  code        String                   @unique // e.g. "leads:assign"
+  label       String // human-readable name shown on the Roles & Permissions page
+  description String
+  module      String // owning module, for grouping on the Roles & Permissions page
+  isReserved  Boolean                  @default(false) // never grantable to any role (Decision 23)
+  createdAt   DateTime                 @default(now()) @db.Timestamptz(3)
+  roles       IdentityRolePermission[]
+
+  @@map("identity_permissions")
+}
+
+// Owner: identity. SUPER_ADMIN, ADMIN, MANAGER, AGENT, or a custom role.
+model IdentityRole {
+  id             String                   @id @default(uuid(7)) @db.Uuid
+  code           String                   @unique
+  name           String
+  description    String?
+  isSystem       Boolean                  @default(false) // system roles cannot be deleted
+  bypassesAccess Boolean                  @default(false) // true only for SUPER_ADMIN; at most one row
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                 @updatedAt @db.Timestamptz(3)
+  permissions    IdentityRolePermission[] // SUPER_ADMIN holds none: it bypasses every check
+
+  @@map("identity_roles")
+}
+
+// Owner: identity. Grants of permissions to roles.
+model IdentityRolePermission {
+  roleId       String             @db.Uuid
+  permissionId String             @db.Uuid
+  role         IdentityRole       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   IdentityPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("identity_role_permissions")
+}
+
+// ---------------------------------------------------------------------------
+// system module
+// ---------------------------------------------------------------------------
+
+// Owner: system. Written by the worker every few seconds; read by diagnostics.
+model SystemWorkerHeartbeat {
+  workerId   String   @id // hostname + process id
+  version    String // app version / git SHA
+  startedAt  DateTime @db.Timestamptz(3)
+  lastBeatAt DateTime @db.Timestamptz(3)
+
+  @@map("system_worker_heartbeats")
+}

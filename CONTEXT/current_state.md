@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -75,7 +75,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 | `dev` | `node scripts/run-next.mjs dev .env` |
 | `build` | `next build` |
 | `build:worker` | `esbuild src/worker/index.ts --bundle --platform=node --packages=external --outfile=dist/worker.js` (confirm flags for the installed esbuild) |
-| `worker` | `dotenv -e .env -- tsx watch src/worker/index.ts` (development worker) |
+| `worker` | `dotenv run -q --override -f .env -- tsx watch src/worker/index.ts` (development worker) |
 | `worker:start` | `node dist/worker.js` (environment comes from the process or container) |
 | `build:tools` | `esbuild src/modules/identity/rbac/syncRbac.cli.ts --bundle --platform=node --packages=external --outfile=dist/sync-rbac.js` (production RBAC sync, run inside the migrator image without `tsx` or `.env`) |
 | `start` | `node scripts/run-next.mjs start .env` |
@@ -94,14 +94,14 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 | `ci:quality` | `npm run lint && npm run typecheck && npm run build && npm run build:worker && npm run test:unit && npm run test:integration && npm run test:e2e` |
 | `guard:files` | `node scripts/check-forbidden-files.mjs` |
 | `db:generate` | `prisma generate` |
-| `db:migrate:dev` | `dotenv -e .env -- prisma migrate dev` |
-| `db:migrate:deploy` | `dotenv -e .env -- prisma migrate deploy` |
-| `db:migrate:check` | Drift check: migrations vs `schema.prisma` (exit code non-zero on drift) |
-| `db:test:migrate` | `dotenv -e .env.test -- prisma migrate deploy` |
+| `db:migrate:dev` | `dotenv run -q --override -f .env -- prisma migrate dev` |
+| `db:migrate:deploy` | `dotenv run -q --override -f .env -- prisma migrate deploy` |
+| `db:migrate:check` | Drift check: `db:test:migrate`, then `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code` against the test DB (exit code 2 on drift; no shadow DB needed) |
+| `db:test:migrate` | `dotenv run -q --override -f .env.test -- prisma migrate deploy` |
 | `db:test:prepare` | `tsx scripts/prepare-test-db.ts` (migrate, RBAC sync, test seed) |
-| `db:sync-rbac` | `dotenv -e .env -- tsx src/modules/identity/rbac/syncRbac.cli.ts` |
-| `db:seed` | `dotenv -e .env -- tsx prisma/private/seed.ts` |
-| `db:seed:test` | `dotenv -e .env.test -- tsx prisma/seed-test.ts` |
+| `db:sync-rbac` | `dotenv run -q --override -f .env -- tsx src/modules/identity/rbac/syncRbac.cli.ts` |
+| `db:seed` | `dotenv run -q --override -f .env -- tsx prisma/private/seed.ts` |
+| `db:seed:test` | `dotenv run -q --override -f .env.test -- tsx prisma/seed-test.ts` |
 | `db:reset:dev` / `db:reset:test` | Reset the DB then re-run migrations (destructive; guarded by env checks) |
 | `docker:db:up` / `docker:db:down` | Compose `db` service up / down |
 | `docker:db:create:dev` / `docker:db:create:test` | `docker exec ... psql ... CREATE DATABASE ...` |
@@ -261,21 +261,23 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-001, W-002, W-010 part A (local Postgres container).
 
 **RED checks**
-- [ ] `npm run db:test:migrate` on an empty test database applies cleanly; running it again is a no-op.
-- [ ] `npm run db:migrate:check` passes on a clean tree and **fails** after editing `schema.prisma` without a migration (prove, then revert).
-- [ ] Integration: after migration the expected tables exist and `_prisma_migrations` lists the baseline migration.
+- [x] `npm run db:test:migrate` on an empty test database applies cleanly; running it again is a no-op.
+- [x] `npm run db:migrate:check` passes on a clean tree and **fails** after editing `schema.prisma` without a migration (prove, then revert).
+- [x] Integration: after migration the expected tables exist and `_prisma_migrations` lists the baseline migration.
 
 **GREEN tasks**
-- [ ] Confirm the installed Prisma major version's setup. **Prisma 7** keeps the connection URL in `prisma.config.ts` (not in `schema.prisma`), uses the `prisma-client` generator with an explicit output folder (`src/generated/prisma`, git-ignored), and needs a driver adapter (`@prisma/adapter-pg`) in the client singleton. Follow the installed version's documentation and update these docs if it differs.
-- [ ] `prisma/schema.prisma` with the generator, datasource, and the first models exactly as in `database_schema.md` 3.1 and 3.6: `IdentityPermission`, `IdentityRole` (with `bypassesAccess`), `IdentityRolePermission`, `SystemWorkerHeartbeat`. Comment each model with its owning module. Cross-module foreign keys are allowed (Decision 22).
-- [ ] Raw SQL in the baseline migration for the `identity` constraints in `database_schema.md` Section 6 (bypass partial unique index, system-role and reserved-permission triggers).
-- [ ] Confirm `db:migrate:check` ignores the `pgboss` schema created by the worker (W-012).
-- [ ] Baseline migration `<timestamp>_init_identity_rbac_system`.
-- [ ] Prisma client generation output is git-ignored; `postinstall` or the CI step runs `db:generate`.
-- [ ] Do **not** configure Prisma's automatic seed hook (Decision 11).
-- [ ] Document the migration rules (naming, never edit applied, expand/contract) at the top of `prisma/CONVENTIONS.md`.
+- [x] Confirm the installed Prisma major version's setup. **Prisma 7** keeps the connection URL in `prisma.config.ts` (not in `schema.prisma`), uses the `prisma-client` generator with an explicit output folder (`src/generated/prisma`, git-ignored), and needs a driver adapter (`@prisma/adapter-pg`) in the client singleton. Follow the installed version's documentation and update these docs if it differs.
+- [x] `prisma/schema.prisma` with the generator, datasource, and the first models exactly as in `database_schema.md` 3.1 and 3.6: `IdentityPermission`, `IdentityRole` (with `bypassesAccess`), `IdentityRolePermission`, `SystemWorkerHeartbeat`. Comment each model with its owning module. Cross-module foreign keys are allowed (Decision 22).
+- [x] Raw SQL in the baseline migration for the `identity` constraints in `database_schema.md` Section 6 (bypass partial unique index, system-role and reserved-permission triggers).
+- [x] Confirm `db:migrate:check` ignores the `pgboss` schema created by the worker (W-012).
+- [x] Baseline migration `<timestamp>_init_identity_rbac_system`.
+- [x] Prisma client generation output is git-ignored; `postinstall` or the CI step runs `db:generate`.
+- [x] Do **not** configure Prisma's automatic seed hook (Decision 11).
+- [x] Document the migration rules (naming, never edit applied, expand/contract) at the top of `prisma/CONVENTIONS.md`.
 
 **Verification:** `lint`, `typecheck`, `build`, `test:integration`.
+
+> **Done 2026-10-30.** Prisma 7.10.1 with `@prisma/adapter-pg` 7.10.1 and `pg`; `prisma.config.ts` holds the URL (empty when unset, so `prisma generate` works without a database). Baseline `20261029195608_init_identity_rbac_system` (Prisma stamps migrations in UTC) with the bypass partial unique index and both triggers, each checked by hand in a rolled-back transaction (formal tests in W-005). Drift check proven: exit 0 on a clean tree, exit 2 after adding a field without a migration; a `pgboss` schema is ignored. Integration test `src/tests/db/migrations.int.test.ts` passes (3 tests) via a minimal integration project and `src/tests/setup/loadTestEnv.ts`; until W-008 part A adds `scripts/prepare-test-db.ts`, it runs with `vitest run --project integration` after `db:test:migrate`. `dotenv-cli` 11 syntax change recorded in Decision 33. `db:generate` runs in each CI job (no `postinstall`).
 
 ---
 
@@ -508,7 +510,7 @@ jobs:
           retention-days: 7
 ```
 
-> `db:migrate:check` may need a shadow database depending on the installed Prisma version. If so, create it in a CI step (for example `psql ... -c "CREATE DATABASE explorehills_shadow"`) and confirm the exact flags against the installed Prisma CLI before finalising.
+> `db:migrate:check` needs no shadow database (confirmed in W-007): it migrates the CI test database and diffs it against `schema.prisma`.
 
 - [ ] `.github/workflows/deploy.yml` scaffold: triggered after a successful CI run on `main` (`workflow_run`), uses a protected `production` environment, builds the production images (`runner` and `worker`), runs the **migrator** against the production `DATABASE_URL` secret **before** rollout, runs the RBAC sync inside the migrator image (`node dist/sync-rbac.js`), then a clearly marked `TODO: deploy step` (app and worker) for the hosting target (decided in Phase 12). If migration fails, the workflow stops.
 - [ ] Repository settings (document in the PR): branch protection requiring all CI jobs to pass.

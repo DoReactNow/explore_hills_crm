@@ -339,7 +339,8 @@ npm run db:migrate:deploy
 # Apply existing migrations to the TEST database
 npm run db:test:migrate
 
-# Check that schema.prisma and the migration history agree (used by CI)
+# Check that schema.prisma and the migration history agree (used by CI).
+# Applies the migrations to the TEST database first, then diffs it against schema.prisma.
 npm run db:migrate:check
 
 # Regenerate the Prisma client after schema changes

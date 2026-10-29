@@ -955,7 +955,7 @@ Cross-module foreign keys (dotted)
 
 **Rules enforced in the service, not the database:** at least one **active** Super Admin must always exist (deactivating, demoting or deleting the last one fails with `CONFLICT`); an Admin cannot create, edit or deactivate a Super Admin (Decision 23).
 
-**Drift check:** confirm in W-007 that these raw-SQL indexes, checks and triggers do not appear as drift in `db:migrate:check` (or as `DROP` statements in the next generated migration). If they do, record the workaround for the installed Prisma version here.
+**Drift check (confirmed in W-007, Prisma 7.10.1):** `db:migrate:check` applies the migrations to the test database and diffs it against `schema.prisma` (`migrate diff --from-config-datasource --to-schema --exit-code`). The raw-SQL partial index and triggers are not reported as drift, a `pgboss` schema is ignored, and the next `migrate dev` generates no `DROP` for them. No shadow database is needed. UUID v7 (`uuid(7)`) is accepted; Prisma Client generates the value, so the columns have no database default.
 
 ---
 
