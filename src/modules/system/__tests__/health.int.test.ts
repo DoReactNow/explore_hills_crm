@@ -16,7 +16,7 @@ describe("GET /api/health", () => {
     expect(result.body).toEqual({
       data: {
         status: "ok",
-        database: "up",
+        database: "deliberately-wrong",
         version: expect.any(String),
         time: expect.stringMatching(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/),
       },
