@@ -7,11 +7,13 @@ import { getPrisma } from "@/shared/db/prisma";
 import { createPgBoss, startJobWorkers } from "@/shared/jobs/pgBoss";
 import { logger } from "@/shared/logger";
 import { closePublisher, publishEvent } from "@/shared/realtime/publish";
+import { getFileStorage } from "@/shared/storage";
 import { startHeartbeat } from "./heartbeat";
 import { collectWorkerJobs } from "./workerJobs";
 
 async function main(): Promise<void> {
   const env = getEnv();
+  getFileStorage(); // fail at startup, not on the first recording, when the storage driver is wrong
   const workerId = `${hostname()}:${process.pid}`;
   const jobs = collectWorkerJobs(env.APP_ENV);
 

@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011, W-012, W-013 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011, W-012, W-013, W-014 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -611,18 +611,20 @@ jobs:
 **Data and time:** no tables. Files under `STORAGE_LOCAL_DIR` (`storage/` locally, git-ignored).
 
 **RED tests**
-- [ ] Contract suite (`src/shared/storage/__tests__/storageContract.ts`, reusable for every driver): `put` then `get` returns identical bytes; `exists` is true after `put` and false after `delete`; `delete` of a missing key is a no-op; a 5 MB file streams without being loaded fully into memory; keys containing `..`, a leading `/` or backslashes are rejected; `getTemporaryUrl` returns either a URL or `null`.
-- [ ] The `local` driver passes the contract suite against the test storage folder.
-- [ ] Unit: the registry returns the driver named by `STORAGE_DRIVER`; an unknown driver fails at startup with a clear (server-log) message.
-- [ ] Unit: `local` writes atomically (temporary file then rename), so a crash never leaves a half-written file under the final key.
-- [ ] `lint:arch` fails if a driver is imported outside `src/shared/storage/registry.ts`.
+- [x] Contract suite (`src/shared/storage/__tests__/storageContract.ts`, reusable for every driver): `put` then `get` returns identical bytes; `exists` is true after `put` and false after `delete`; `delete` of a missing key is a no-op; a 5 MB file streams without being loaded fully into memory; keys containing `..`, a leading `/` or backslashes are rejected; `getTemporaryUrl` returns either a URL or `null`.
+- [x] The `local` driver passes the contract suite against the test storage folder.
+- [x] Unit: the registry returns the driver named by `STORAGE_DRIVER`; an unknown driver fails at startup with a clear (server-log) message.
+- [x] Unit: `local` writes atomically (temporary file then rename), so a crash never leaves a half-written file under the final key.
+- [x] `lint:arch` fails if a driver is imported outside `src/shared/storage/registry.ts`.
 
 **GREEN tasks**
-- [ ] `src/shared/storage/`: `FileStorage` interface, `drivers/local.ts`, `registry.ts`, key helper (`buildKey(...)`) that never puts personal data in keys.
-- [ ] `storage/` added to `.gitignore` and `.dockerignore`; the production compose file mounts a `storage` volume (W-010).
-- [ ] The `s3` driver, `storage:copy` and the optional S3 contract run are built in Phase 7.
+- [x] `src/shared/storage/`: `FileStorage` interface, `drivers/local.ts`, `registry.ts`, key helper (`buildKey(...)`) that never puts personal data in keys.
+- [x] `storage/` added to `.gitignore` and `.dockerignore`; the production compose file mounts a `storage` volume (W-010).
+> Not part of Phase 0: the `s3` driver, `storage:copy` and the optional S3 contract run are built in Phase 7 (Phase 7 plan, step 6).
 
 **Verification:** `lint`, `typecheck`, `build`, `test:unit`, `test:integration`.
+
+> **Done 2026-10-30.** 22 new unit tests (keys, registry, atomic writes, instrumentation startup check) and the 13-case contract suite passing for the `local` driver against `storage/test`. Atomic write proven with a source that fails after 1 MB: no file under the key and no temporary file left, and an existing file survives a failed overwrite. The architecture rule was re-proven against the real driver file. Checked by hand: a file written through `getFileStorage()` with the development `.env` landed in `storage/uploads/2026/10/<uuid>.txt` and is git-ignored. The `s3` driver, `storage:copy` and the S3 contract run stay with Phase 7 (now a note in this item, since it is not Phase 0 work). Details in Decision 44.
 
 ---
 

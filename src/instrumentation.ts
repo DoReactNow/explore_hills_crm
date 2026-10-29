@@ -1,6 +1,6 @@
-// Next.js calls register() once when a server starts: the composition root for request identity.
-// Phase 0 installs only the test-only role cookie, and only when APP_ENV=test.
-// Phase 1 installs the session-based principal resolver here.
+// Next.js calls register() once when a server starts: the composition root for request identity
+// and the startup checks. Phase 0 installs only the test-only role cookie, and only when
+// APP_ENV=test. Phase 1 installs the session-based principal resolver here.
 export async function register(): Promise<void> {
   // NEXT_RUNTIME is set by Next.js itself and is not part of the app's environment schema.
   // eslint-disable-next-line no-restricted-properties
@@ -13,8 +13,12 @@ export async function register(): Promise<void> {
   } catch {
     return; // no runtime environment (for example during `next build`): nothing to install
   }
-  if (appEnv !== "test") return;
 
+  // Fail at startup, not on the first upload, when the storage driver is wrong.
+  const { getFileStorage } = await import("@/shared/storage");
+  getFileStorage();
+
+  if (appEnv !== "test") return;
   const { buildPrincipalForRole } = await import("@/modules/identity");
   const { installTestRoleCookieResolver } = await import("@/shared/rbac/testRoleCookie");
   installTestRoleCookieResolver(buildPrincipalForRole);
