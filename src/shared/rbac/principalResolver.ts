@@ -1,18 +1,32 @@
-// Who is making this request? Phase 0 has no sign-in, so it resolves nobody. Phase 1 replaces the
-// default with the session-based resolver. Tests may override it, but only when APP_ENV=test.
+// Who is making this request? The composition root (src/instrumentation.ts) configures the
+// resolver at server start: nothing in Phase 0 outside tests, the session resolver from Phase 1.
+// Integration tests may override it in-process, but only when APP_ENV=test.
 import { getEnv } from "@/shared/config/env";
 import type { Principal } from "./principal";
 
-export type PrincipalResolver = (request: Request) => Promise<Principal | null>;
-
-const noPrincipal: PrincipalResolver = async () => null;
-let testOverride: PrincipalResolver | null = null;
-
-export function resolvePrincipal(request: Request): Promise<Principal | null> {
-  return (testOverride ?? noPrincipal)(request);
+/** Anything with request headers: a route's Request, or a page's headers(). */
+export interface PrincipalRequest {
+  headers: Headers;
 }
 
-/** Test-only: every request resolves through `resolver` (null restores the default). */
+export type PrincipalResolver = (request: PrincipalRequest) => Promise<Principal | null>;
+
+const noPrincipal: PrincipalResolver = async () => null;
+
+// Kept on globalThis: Next.js loads instrumentation and route code in separate bundles, which
+// would otherwise each get their own copy of this module.
+const holder = globalThis as unknown as { explorehillsPrincipalResolver?: PrincipalResolver };
+let testOverride: PrincipalResolver | null = null;
+
+export function configurePrincipalResolver(resolver: PrincipalResolver): void {
+  holder.explorehillsPrincipalResolver = resolver;
+}
+
+export function resolvePrincipal(request: PrincipalRequest): Promise<Principal | null> {
+  return (testOverride ?? holder.explorehillsPrincipalResolver ?? noPrincipal)(request);
+}
+
+/** Test-only: every request resolves through `resolver` (null restores the configured one). */
 export function setPrincipalResolverForTests(resolver: PrincipalResolver | null): void {
   if (getEnv().APP_ENV !== "test") {
     throw new Error("setPrincipalResolverForTests may only be used when APP_ENV=test");

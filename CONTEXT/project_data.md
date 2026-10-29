@@ -197,6 +197,7 @@ src/
 │   ├── api/              # frontend API client + friendly error mapper
 │   ├── ui/               # shared React components (ErrorMessage, toast, SupportContact)
 │   └── logger/
+├── instrumentation.ts    # Next.js register(): installs the principal resolver at server start (Decision 39)
 ├── worker/               # worker process entry point (composition root): collects every module's jobs from their index.ts and starts pg-boss
 └── tests/                # cross-cutting tests (architecture, SSOT, security)
 ```

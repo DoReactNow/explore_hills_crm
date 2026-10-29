@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008 part B done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -311,12 +311,14 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 - [x] W-005 adds `syncRbac` to it.
 - [ ] W-009 adds the test seed to it.
 - [x] `playwright.config.ts`: loads `.env.test`, reads the port from env (note: with `output: 'standalone'`, `next start` prints a warning; either accept it for E2E or start `.next/standalone/server.js` with `HOSTNAME`/`PORT`, and record the choice), `webServer` runs `npm run start:test` against the existing build, `reuseExistingServer` only outside CI, Chromium only, traces on first retry.
-- [ ] Part B: `e2e/` spec for the forbidden message. The health spec is in W-003; the not-found and server-error specs are in W-004 (Decisions 34 and 36).
-- [ ] Test-only routes (diagnostics failure, test principal override) exist **only** when `APP_ENV=test`, and a unit test proves they are unreachable otherwise.
+- [x] Part B: `e2e/` spec for the forbidden message (`e2e/forbidden.e2e.ts`: manager refused, admin allowed, signed-out asked to sign in, on the new `/diagnostics` page). The health spec is in W-003; the not-found and server-error specs are in W-004 (Decisions 34 and 36).
+- [x] Test-only routes (diagnostics failure, test principal override) exist **only** when `APP_ENV=test`, and a unit test proves they are unreachable otherwise. The failure route is from W-004; the principal override is the test-only `eh_test_role` cookie resolver installed by `src/instrumentation.ts` (Decision 39).
 
 **Verification:** run each tier alone, then `npm run test`.
 
 > **Part A done 2026-10-30.** 6 new tests (callRoute, guards, resetDatabase, test storage); 28 unit and 6 integration passing. RED checks proven: with `.env.test` removed and with `DATABASE_URL` set to `explorehills_dev`, both `test:integration` and a direct Vitest run stop with a clear message (the global setup prints the reason itself because Vitest 5 can hide errors thrown there behind a source-map error). Dev isolation proven with a marker row in `explorehills_dev` that was unchanged after `npm run test`. Playwright choice: **accept the `next start` standalone warning** for E2E (it serves normally); proven with a temporary probe spec that was then deleted. `test:e2e` uses `--pass-with-no-tests` until W-003 adds the health spec; **W-003 removes that flag**. jsdom 30.1.3 added. `resetDatabase()` clears pg-boss `job`/`archive` tables when present; W-012 confirms the names.
+
+> **Part B done 2026-10-30.** 8 new unit tests (cookie resolver, configurable resolver, instrumentation installs it only in test) and 3 E2E specs; 155 unit, 31 integration, 6 E2E passing. Checked by hand: a development server ignores the cookie (401 even as `SUPER_ADMIN`). Details in Decision 39.
 
 ---
 

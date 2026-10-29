@@ -772,3 +772,16 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Who may read the bypass flag:** the guard and the scope resolver decide on it. The identity module, which owns the role data, also reads the column to build principals and run the sync. A scan test fails if any other file reads `bypassesAccess` or compares role codes.
 - **Diagnostics:** `GET /api/diagnostics` returns the health detail for now; W-012 adds the worker and jobs.
 - **Prisma client format:** the generator emits CommonJS (`moduleFormat = "cjs"`). The ES-module client uses `import.meta.url`, which breaks inside the esbuild bundles (`dist/sync-rbac.js`, `dist/worker.js`). Next.js, Vitest and tsx all load the CommonJS client.
+
+---
+
+### Decision 39: Test Sign-In for E2E and the Diagnostics Page (W-008 Part B)
+
+**Date:** 2026-10-30
+**Status:** Accepted
+
+#### Decision
+- **Request identity is composed at server start** in `src/instrumentation.ts` (Next.js `register()`), which calls `configurePrincipalResolver()`. The configured resolver is kept on `globalThis`, because Next.js loads instrumentation and route code in separate bundles. Phase 1 installs the session resolver in the same place.
+- **E2E acts as a role with a test-only cookie,** `eh_test_role=<ROLE>`: the resolver builds that role's principal from its real grants in the test database. It is installed only when `APP_ENV=test`; installing it otherwise throws (unit-tested), and a development server ignores the cookie (checked by hand: 401 even for `SUPER_ADMIN`). Playwright sets the cookie directly, so there is no extra test-only API route.
+- **A `/diagnostics` page** (client component) reads `GET /api/diagnostics` through the shared API client, so the friendly 401/403 path is exercised end to end. Next.js's `forbidden()` / `unauthorized()` helpers are experimental (`authInterrupts`), so pages are not built on them for now; a refused page shows the catalog message inside the page.
+- **E2E locators** scope `role="alert"` to `<main>`, because Next.js adds its own route-announcer element with that role.
