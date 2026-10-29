@@ -24,7 +24,7 @@
     "test:unit": "vitest run --project unit --project unit-dom && npm run test:unit:tz",
     "test:unit:tz": "cross-env TZ=UTC vitest run --project unit --passWithNoTests src/shared/time && cross-env TZ=Asia/Kolkata vitest run --project unit --passWithNoTests src/shared/time && cross-env TZ=America/Los_Angeles vitest run --project unit --passWithNoTests src/shared/time && cross-env TZ=Pacific/Kiritimati vitest run --project unit --passWithNoTests src/shared/time",
     "test:integration": "npm run db:test:prepare && vitest run --project integration",
-    "test:e2e": "npm run db:test:prepare && playwright test --pass-with-no-tests",
+    "test:e2e": "npm run db:test:prepare && playwright test",
     "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:watch": "vitest --project unit --project unit-dom",
     "ci:quality": "npm run lint && npm run typecheck && npm run build && npm run build:worker && npm run test:unit && npm run test:integration && npm run test:e2e",

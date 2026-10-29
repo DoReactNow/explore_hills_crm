@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -147,23 +147,25 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-001, W-002.
 
 **RED checks**
-- [ ] `lint:arch` fails when a deliberately bad import is added (then remove it), for each rule: cross-module internals, controller imported outside `src/app`, Prisma imported outside repositories/seeds/scripts/`shared/db`, `shared` importing a module, UI importing server code, repository importing service, circular import, a telephony provider folder imported outside `providers/registry.server.ts` / `registry.browser.ts`, a server adapter reaching the browser bundle, `src/shared` importing `src/worker` or a module, a storage driver imported outside `shared/storage/registry.ts`, pg-boss imported outside `shared/jobs/`.
-- [ ] Unit: `system.service` returns status, version and server instant from the injected `Clock`, with a mocked repository.
-- [ ] Integration: `GET /api/health` returns `200 { data: { status: 'ok', database: 'up', time } }` against the test DB, and `{ database: 'down' }` with status `503` when the database check fails (simulate by a repository stub in a dedicated test).
+- [x] `lint:arch` fails when a deliberately bad import is added (then remove it), for each rule: cross-module internals, controller imported outside `src/app`, Prisma imported outside repositories/seeds/scripts/`shared/db`, `shared` importing a module, UI importing server code, repository importing service, circular import, a telephony provider folder imported outside `providers/registry.server.ts` / `registry.browser.ts`, a server adapter reaching the browser bundle, `src/shared` importing `src/worker` or a module, a storage driver imported outside `shared/storage/registry.ts`, pg-boss imported outside `shared/jobs/`.
+- [x] Unit: `system.service` returns status, version and server instant from the injected `Clock`, with a mocked repository.
+- [x] Integration: `GET /api/health` returns `200 { data: { status: 'ok', database: 'up', time } }` against the test DB, and `{ database: 'down' }` with status `503` when the database check fails (simulate by a repository stub in a dedicated test).
 
 **GREEN tasks**
-- [ ] Create the folder layout from `project_data.md` Section 4.2 (empty module folders only get a `.gitkeep` and a README line in `src/modules/README.md`).
-- [ ] `.dependency-cruiser.cjs` with the import rules from `project_data.md` Section 4.2 (rules 1–5, 7 and 8), plus `no-circular`. Test files (`*.test.ts(x)`, `src/tests/**`) are exempt from the Prisma-import rule (the enum parity test imports generated enums). Rule 6 (a repository writes only its own module's tables) is not an import rule; it is checked in review and by integration tests.
-- [ ] `src/shared/db/prisma.ts` (client singleton).
-- [ ] `src/modules/system/`: `system.controller.ts`, `system.service.ts`, `system.repository.ts` (`SELECT 1` health query), `system.schemas.ts`, `index.ts`.
-- [ ] `src/app/api/health/route.ts` using `route({ access: 'public', ... })` and listed in the public allow-list.
-- [ ] `src/shared/events/eventBus.ts`: typed in-process publish/subscribe with a unit test (events carry plain serialisable data).
-- [ ] `src/shared/logger/` with structured logs, `requestId` support and redaction of secrets.
-- [ ] `src/modules/README.md` documenting the module template and the rules for adding a module.
-- [ ] Remove `--pass-with-no-tests` from `test:e2e` in `package.json` (added in W-008 part A).
-- [ ] `e2e/health.e2e.ts`: `GET /api/health` on the built app returns `200` with `status: 'ok'` (moved here from W-008 part A, Decision 34).
+- [x] Create the folder layout from `project_data.md` Section 4.2 (empty module folders only get a `.gitkeep` and a README line in `src/modules/README.md`).
+- [x] `.dependency-cruiser.cjs` with the import rules from `project_data.md` Section 4.2 (rules 1–5, 7 and 8), plus `no-circular`. Test files (`*.test.ts(x)`, `src/tests/**`) are exempt from the Prisma-import rule (the enum parity test imports generated enums). Rule 6 (a repository writes only its own module's tables) is not an import rule; it is checked in review and by integration tests.
+- [x] `src/shared/db/prisma.ts` (client singleton).
+- [x] `src/modules/system/`: `system.controller.ts`, `system.service.ts`, `system.repository.ts` (`SELECT 1` health query), `system.schemas.ts`, `index.ts`.
+- [x] `src/app/api/health/route.ts` using `route({ access: 'public', ... })` and listed in the public allow-list.
+- [x] `src/shared/events/eventBus.ts`: typed in-process publish/subscribe with a unit test (events carry plain serialisable data).
+- [x] `src/shared/logger/` with structured logs, `requestId` support and redaction of secrets.
+- [x] `src/modules/README.md` documenting the module template and the rules for adding a module.
+- [x] Remove `--pass-with-no-tests` from `test:e2e` in `package.json` (added in W-008 part A).
+- [x] `e2e/health.e2e.ts`: `GET /api/health` on the built app returns `200` with `status: 'ok'` (moved here from W-008 part A, Decision 34).
 
 **Verification:** `lint` (including `lint:arch`), `typecheck`, `build`, `test:unit`, `test:integration`, `test:e2e`.
+
+> **Done 2026-10-30.** 16 new tests (system service, health integration incl. the 503 stub, event bus, logger, `route()`) plus `e2e/health.e2e.ts`; 42 unit, 8 integration, 1 E2E passing. Every architecture rule proven with a deliberate bad import (16 probes, all removed): module internals from a module and from outside, controller outside `src/app`, Prisma (generated client and `@prisma/client`) outside repositories, `shared` importing a module or the worker, UI importing server code (module `ui/` and an app page), repository importing a service, circular import, telephony provider outside the registries, server adapter reachable from the browser registry, storage driver outside the registry, pg-boss outside `src/shared/jobs/`. The first run showed that excluding `src/generated/` hid rule 3; it is now "do not follow" (Decision 35). `/api/health` builds as dynamic. Design choices in Decision 35.
 
 ---
 

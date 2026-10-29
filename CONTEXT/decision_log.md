@@ -715,3 +715,16 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 **Outcome at install (2026-10-30, W-001):** TypeScript **5.9.3** (the Next.js 16.4.3 starter itself declares `typescript ^5`). ESLint stays on **9.39.5**: ESLint 10 installs, but the plugins bundled in `eslint-config-next` 16.4.3 (`import`, `jsx-a11y`, `react`) do not declare ESLint 10 support. npm marks 9.x as no longer supported; move to 10 when `eslint-config-next` supports it. Next's `cacheComponents` (on in the starter) is left off for now; turning it on later is a logged decision.
 
 **Addendum (2026-10-30, W-007):** `dotenv-cli` 11 replaced `dotenv -e <file> -- <cmd>` with `dotenv run -f <file> -- <cmd>`. All scripts use `dotenv run -q --override -f <file> --`: `--override` makes the named env file win over values already in the shell, so a stray `DATABASE_URL` can never send a migration or seed to the wrong database. The drift check (`db:migrate:check`) migrates the test database and diffs it against `schema.prisma`, so no shadow database is needed (details in `database_schema.md` Section 6).
+
+---
+
+### Decision 35: Phase 0 Kernel Choices Made in W-003
+
+**Date:** 2026-10-30
+**Status:** Accepted
+
+#### Decision
+- **Logger:** a small in-house structured JSON logger (`src/shared/logger/`) instead of a library such as pino. It writes one JSON line per record (warn and above to stderr), takes its level from `LOG_LEVEL`, redacts secret-looking keys at any depth (password, secret, token, authorization, cookie, API key, `*Encrypted`, credentials, database URL), and serialises errors with name, message and stack. Revisit in Phase 11 (observability) if log shipping needs a library.
+- **Built incrementally, in execution order:** `route()` exists from W-003 with request IDs and the `{ data }` envelope and supports only `access: 'public'`; W-004 adds the error envelope and W-005 adds principal resolution and the access check. The `Clock` interface (`src/shared/time/clock.ts`) is introduced in W-003 because the system service needs it; W-006 builds the rest of the time module around it.
+- **Health response:** `{ data: { status: 'ok' | 'degraded', database: 'up' | 'down', version, time } }`, `200` when the database answers and `503` when it does not. The database error is logged, never returned.
+- **Architecture lint:** generated Prisma code is "do not follow" rather than excluded, so imports of it are still checked by rule 3. Each of the 13 rules was proven with a deliberate bad import.
