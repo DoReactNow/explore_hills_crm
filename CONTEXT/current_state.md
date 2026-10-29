@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -176,22 +176,24 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-003.
 
 **RED tests**
-- [ ] Unit: `AppError(code)` maps to the catalog message and HTTP status for all eight codes.
-- [ ] Unit: unknown errors (a thrown `Error`, a Prisma-like error, a string) become `INTERNAL_ERROR` with the generic message; the original is passed to the logger with the `requestId`.
-- [ ] Unit: Zod validation errors become `VALIDATION_FAILED` with per-field friendly messages; library-default text (e.g. "Expected string, received number") never appears.
-- [ ] Unit: catalog scan: no message matches the permission-code pattern `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$` or contains words like `prisma`, `sql`, `stack`, `undefined`, `ECONN`.
-- [ ] Unit: the frontend mapper turns network failure, 401, 403, 404, 429, 5xx and malformed bodies into fixed friendly sentences and ignores any `message` not from the catalog.
-- [ ] Integration: a diagnostics route that throws (enabled only when `APP_ENV=test`) returns `500` with `{ error: { code: 'INTERNAL_ERROR', message, requestId } }` and no stack or internal text.
-- [ ] E2E (`e2e/not-found.e2e.ts` written here, moved from W-008 part A, Decision 34): opening an unknown URL shows the friendly not-found page; forcing a server error shows the friendly error page with a "Reference" ID; page text contains none of the banned strings.
+- [x] Unit: `AppError(code)` maps to the catalog message and HTTP status for all eight codes.
+- [x] Unit: unknown errors (a thrown `Error`, a Prisma-like error, a string) become `INTERNAL_ERROR` with the generic message; the original is passed to the logger with the `requestId`.
+- [x] Unit: Zod validation errors become `VALIDATION_FAILED` with per-field friendly messages; library-default text (e.g. "Expected string, received number") never appears.
+- [x] Unit: catalog scan: no message matches the permission-code pattern `^[a-z]+(-[a-z]+)*:[a-z]+(-[a-z]+)*$` or contains words like `prisma`, `sql`, `stack`, `undefined`, `ECONN`.
+- [x] Unit: the frontend mapper turns network failure, 401, 403, 404, 429, 5xx and malformed bodies into fixed friendly sentences and ignores any `message` not from the catalog.
+- [x] Integration: a diagnostics route that throws (enabled only when `APP_ENV=test`) returns `500` with `{ error: { code: 'INTERNAL_ERROR', message, requestId } }` and no stack or internal text.
+- [x] E2E (`e2e/not-found.e2e.ts` written here, moved from W-008 part A, Decision 34): opening an unknown URL shows the friendly not-found page; forcing a server error shows the friendly error page with a "Reference" ID; page text contains none of the banned strings.
 
 **GREEN tasks**
-- [ ] `src/shared/errors/`: `AppError`, `errorCatalog.ts` (initial codes: `VALIDATION_FAILED`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `RATE_LIMITED`, `UPSTREAM_UNAVAILABLE`, `INTERNAL_ERROR`), `toErrorResponse()`.
-- [ ] `src/shared/http/route.ts`: the `route({ access, input?, handler })` wrapper: request ID → principal resolution → access check → input parsing → handler → success/error envelope. Defines the shared `ApiResponse<T>` type.
-- [ ] `src/shared/api/client.ts` and `friendlyError.ts` for the frontend.
-- [ ] `src/app/error.tsx`, `global-error.tsx`, `not-found.tsx` using the mapper and `APP_CONFIG` for support contact.
-- [ ] A reusable `<ErrorMessage />` component and a toast helper that accept only mapped friendly text.
+- [x] `src/shared/errors/`: `AppError`, `errorCatalog.ts` (initial codes: `VALIDATION_FAILED`, `UNAUTHENTICATED`, `FORBIDDEN`, `NOT_FOUND`, `CONFLICT`, `RATE_LIMITED`, `UPSTREAM_UNAVAILABLE`, `INTERNAL_ERROR`), `toErrorResponse()`.
+- [x] `src/shared/http/route.ts`: the `route({ access, input?, handler })` wrapper: request ID → principal resolution → access check → input parsing → handler → success/error envelope. Defines the shared `ApiResponse<T>` type.
+- [x] `src/shared/api/client.ts` and `friendlyError.ts` for the frontend.
+- [x] `src/app/error.tsx`, `global-error.tsx`, `not-found.tsx` using the mapper and `APP_CONFIG` for support contact.
+- [x] A reusable `<ErrorMessage />` component and a toast helper that accept only mapped friendly text.
 
 **Verification:** `lint`, `typecheck`, `build`, `test:unit`, `test:integration`, `test:e2e`.
+
+> **Done 2026-10-30.** 46 new tests (catalog, `toErrorResponse`, `parseInput`, `route()` errors and input, test-only guard, frontend mapper, API client, `<ErrorMessage />` and toast with Testing Library) plus `e2e/not-found.e2e.ts` and `e2e/server-error.e2e.ts`; 87 unit, 9 integration, 3 E2E passing. Test-only route and page checked by hand: 404 when served with the development `.env`. Not-found page checked in the browser pane. `@testing-library/react` 16.3.3 and `@testing-library/dom` 10.4.2 added. Details in Decision 36.
 
 ---
 
@@ -290,7 +292,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 
 **Dependencies:** Part A: W-002, W-007. Part B: W-005.
 
-> **Built in two parts** (see the Phase 0 execution order). **Part A**, before W-003: the Vitest projects, env loading and safety guards, `resetDatabase()`, `callRoute()`, the test storage folder, `scripts/prepare-test-db.ts` (migrations only at first; it gains the RBAC sync in W-005 and the test seed in W-009) and `playwright.config.ts`. The health E2E spec is written and ticked in W-003 and the not-found spec in W-004 (Decision 34). **Part B**, after W-005: the test-principal factory (including a Super Admin principal), the test-only routes, and the forbidden and server-error E2E specs.
+> **Built in two parts** (see the Phase 0 execution order). **Part A**, before W-003: the Vitest projects, env loading and safety guards, `resetDatabase()`, `callRoute()`, the test storage folder, `scripts/prepare-test-db.ts` (migrations only at first; it gains the RBAC sync in W-005 and the test seed in W-009) and `playwright.config.ts`. The health E2E spec is written and ticked in W-003 and the not-found spec in W-004 (Decision 34). **Part B**, after W-005: the test-principal factory (including a Super Admin principal), the test principal override route, and the forbidden E2E spec (the server-error spec and the failure route arrived in W-004, Decision 36).
 
 **RED checks**
 - [x] Running `test:integration` with `.env.test` removed fails with a clear message.
@@ -304,7 +306,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 - [x] Part A: `scripts/prepare-test-db.ts` loads `.env.test`, asserts guards, runs migrations. Idempotent.
 - [ ] W-005 adds `syncRbac` to it; W-009 adds the test seed.
 - [x] `playwright.config.ts`: loads `.env.test`, reads the port from env (note: with `output: 'standalone'`, `next start` prints a warning; either accept it for E2E or start `.next/standalone/server.js` with `HOSTNAME`/`PORT`, and record the choice), `webServer` runs `npm run start:test` against the existing build, `reuseExistingServer` only outside CI, Chromium only, traces on first retry.
-- [ ] Part B: `e2e/` specs for the forbidden message and the server-error page (using the test-only diagnostics failure route). The health spec is in W-003 and the not-found spec in W-004 (Decision 34).
+- [ ] Part B: `e2e/` spec for the forbidden message. The health spec is in W-003; the not-found and server-error specs are in W-004 (Decisions 34 and 36).
 - [ ] Test-only routes (diagnostics failure, test principal override) exist **only** when `APP_ENV=test`, and a unit test proves they are unreachable otherwise.
 
 **Verification:** run each tier alone, then `npm run test`.

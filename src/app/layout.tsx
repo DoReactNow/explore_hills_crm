@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { APP_CONFIG } from "@/shared/config/appConfig";
+import { Toaster } from "@/shared/ui/toast";
 
 export const metadata: Metadata = {
   title: APP_CONFIG.product.name,
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang={APP_CONFIG.locale.locale}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Toaster />
+      </body>
     </html>
   );
 }

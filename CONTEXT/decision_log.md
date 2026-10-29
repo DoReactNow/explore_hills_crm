@@ -728,3 +728,18 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Built incrementally, in execution order:** `route()` exists from W-003 with request IDs and the `{ data }` envelope and supports only `access: 'public'`; W-004 adds the error envelope and W-005 adds principal resolution and the access check. The `Clock` interface (`src/shared/time/clock.ts`) is introduced in W-003 because the system service needs it; W-006 builds the rest of the time module around it.
 - **Health response:** `{ data: { status: 'ok' | 'degraded', database: 'up' | 'down', version, time } }`, `200` when the database answers and `503` when it does not. The database error is logged, never returned.
 - **Architecture lint:** generated Prisma code is "do not follow" rather than excluded, so imports of it are still checked by rule 3. Each of the 13 rules was proven with a deliberate bad import.
+
+---
+
+### Decision 36: Error Handling Details Settled in W-004
+
+**Date:** 2026-10-30
+**Status:** Accepted
+
+#### Decision
+- **Test-only endpoints:** `/api/test-support/fail` (route) and `/test-support/server-error` (page) exist for the error E2E and integration tests. Both call `src/shared/http/testOnly.ts` first and answer **404 outside `APP_ENV=test`** (unit-tested, and checked by hand against a development server). The route is in the public allow-list because it carries no data and is unreachable outside tests.
+- **Where shared types and UI live:** `ApiResponse<T>` and `FieldError` are in `src/shared/api/apiResponse.ts` (types only), so the browser bundle never imports `src/shared/http/route.ts`. Shared React components (`ErrorMessage`, `SupportContact`, the toast, the error-page body) are in a new `src/shared/ui/` folder.
+- **Friendly errors only, by type:** `toFriendlyError()` is the only producer of the branded `FriendlyError` type, and `<ErrorMessage />` and `toastError()` accept only that type. Messages always come from the catalog by code; the only server text shown is the per-field messages of a `VALIDATION_FAILED` response. A browser-only `NETWORK_ERROR` sentence lives in the catalog file.
+- **Zod messages:** input is parsed with a per-parse fallback, so a message a schema defines itself is kept and any library default becomes "Please check this field."
+- **Error page reference:** for server render errors the page shows Next's `error.digest` as "Reference: …"; for API errors the reference is the `requestId`. Next.js 16.4 error components receive `error: unknown` and `retry()`.
+- **The server-error E2E spec** is delivered in W-004 together with the not-found spec (both journey 8); W-008 part B keeps only the forbidden spec.
