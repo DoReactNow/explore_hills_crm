@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -136,7 +136,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 
 **Verification:** `lint`, `typecheck`, `build` (with no `.env` present), `test:unit`.
 
-> **Done 2026-10-30.** 23 unit tests (`src/shared/config/__tests__/`, `src/tests/ssot.unit.test.ts`); the SSOT scan and the `process.env` lint rule were each proven by a temporary probe file. Zod 4.6.7 added. A minimal `vitest.config.ts` (unit project only) was created here because W-002 needs unit tests before W-008; W-008 extends it. `test:unit:tz` uses `--passWithNoTests` until the time module exists; **W-006 removes that flag**. Production refuses secrets containing the placeholder markers `dev-only`, `test-only` or `change-me`.
+> **Done 2026-10-30.** 23 unit tests (`src/shared/config/__tests__/`, `src/tests/ssot.unit.test.ts`); the SSOT scan and the `process.env` lint rule were each proven by a temporary probe file. Zod 4.6.7 added. A minimal Vitest config (unit project only; renamed to `vitest.config.mts` in W-008) was created here because W-002 needs unit tests before W-008; W-008 extends it. `test:unit:tz` uses `--passWithNoTests` until the time module exists; **W-006 removes that flag**. Production refuses secrets containing the placeholder markers `dev-only`, `test-only` or `change-me`.
 
 ---
 
@@ -160,6 +160,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 - [ ] `src/shared/events/eventBus.ts`: typed in-process publish/subscribe with a unit test (events carry plain serialisable data).
 - [ ] `src/shared/logger/` with structured logs, `requestId` support and redaction of secrets.
 - [ ] `src/modules/README.md` documenting the module template and the rules for adding a module.
+- [ ] Remove `--pass-with-no-tests` from `test:e2e` in `package.json` (added in W-008 part A).
 - [ ] `e2e/health.e2e.ts`: `GET /api/health` on the built app returns `200` with `status: 'ok'` (moved here from W-008 part A, Decision 34).
 
 **Verification:** `lint` (including `lint:arch`), `typecheck`, `build`, `test:unit`, `test:integration`, `test:e2e`.
@@ -290,19 +291,23 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 > **Built in two parts** (see the Phase 0 execution order). **Part A**, before W-003: the Vitest projects, env loading and safety guards, `resetDatabase()`, `callRoute()`, the test storage folder, `scripts/prepare-test-db.ts` (migrations only at first; it gains the RBAC sync in W-005 and the test seed in W-009) and `playwright.config.ts`. The health E2E spec is written and ticked in W-003 and the not-found spec in W-004 (Decision 34). **Part B**, after W-005: the test-principal factory (including a Super Admin principal), the test-only routes, and the forbidden and server-error E2E specs.
 
 **RED checks**
-- [ ] Running `test:integration` with `.env.test` removed fails with a clear message.
-- [ ] Running the integration setup with `DATABASE_URL` pointing at `explorehills_dev` fails with "refusing to run".
-- [ ] Prove dev isolation: write a row in a test, then confirm `explorehills_dev` is unchanged.
+- [x] Running `test:integration` with `.env.test` removed fails with a clear message.
+- [x] Running the integration setup with `DATABASE_URL` pointing at `explorehills_dev` fails with "refusing to run".
+- [x] Prove dev isolation: write a row in a test, then confirm `explorehills_dev` is unchanged.
 
 **GREEN tasks**
-- [ ] `vitest.config.ts` with two projects: `unit` (`src/**/*.unit.test.{ts,tsx}`, jsdom for component tests) and `integration` (`src/**/*.int.test.ts`, node environment, `fileParallelism: false`, global setup that loads `.env.test` with override and asserts the safety guards).
-- [ ] `src/tests/setup/` with env loading, a `resetDatabase()` helper (truncate all `public` tables except `_prisma_migrations`, and clear pg-boss jobs), a test-principal factory (including a Super Admin principal), a `callRoute(handler, request)` helper, and a temporary test storage folder cleaned between runs.
-- [ ] `scripts/prepare-test-db.ts`: loads `.env.test`, asserts guards, runs migrations, `syncRbac`, then the test seed. Idempotent.
-- [ ] `playwright.config.ts`: loads `.env.test`, reads the port from env (note: with `output: 'standalone'`, `next start` prints a warning; either accept it for E2E or start `.next/standalone/server.js` with `HOSTNAME`/`PORT`, and record the choice), `webServer` runs `npm run start:test` against the existing build, `reuseExistingServer` only outside CI, Chromium only, traces on first retry.
-- [ ] `e2e/` with specs: health, not-found page, forbidden message, server-error page (using the test-only diagnostics failure route).
+- [x] `vitest.config.mts` (`.mts` so Vite loads it as ESM) with three projects: `unit` (`src/**/*.unit.test.ts`, node), `unit-dom` (`src/**/*.unit.test.tsx`, jsdom, for component tests; `test:unit` runs both) and `integration` (`src/**/*.int.test.ts`, node environment, `fileParallelism: false`, global setup that loads `.env.test` with override and asserts the safety guards).
+- [x] Part A: `src/tests/setup/` with env loading (`testEnv.ts`, `guards.ts`), a `resetDatabase()` helper (truncate all `public` tables except `_prisma_migrations`, and clear pg-boss jobs), a `callRoute(handler, request)` helper, and a temporary test storage folder cleaned between runs.
+- [ ] Part B: a test-principal factory in `src/tests/setup/` (including a Super Admin principal).
+- [x] Part A: `scripts/prepare-test-db.ts` loads `.env.test`, asserts guards, runs migrations. Idempotent.
+- [ ] W-005 adds `syncRbac` to it; W-009 adds the test seed.
+- [x] `playwright.config.ts`: loads `.env.test`, reads the port from env (note: with `output: 'standalone'`, `next start` prints a warning; either accept it for E2E or start `.next/standalone/server.js` with `HOSTNAME`/`PORT`, and record the choice), `webServer` runs `npm run start:test` against the existing build, `reuseExistingServer` only outside CI, Chromium only, traces on first retry.
+- [ ] Part B: `e2e/` specs for the forbidden message and the server-error page (using the test-only diagnostics failure route). The health spec is in W-003 and the not-found spec in W-004 (Decision 34).
 - [ ] Test-only routes (diagnostics failure, test principal override) exist **only** when `APP_ENV=test`, and a unit test proves they are unreachable otherwise.
 
 **Verification:** run each tier alone, then `npm run test`.
+
+> **Part A done 2026-10-30.** 6 new tests (callRoute, guards, resetDatabase, test storage); 28 unit and 6 integration passing. RED checks proven: with `.env.test` removed and with `DATABASE_URL` set to `explorehills_dev`, both `test:integration` and a direct Vitest run stop with a clear message (the global setup prints the reason itself because Vitest 5 can hide errors thrown there behind a source-map error). Dev isolation proven with a marker row in `explorehills_dev` that was unchanged after `npm run test`. Playwright choice: **accept the `next start` standalone warning** for E2E (it serves normally); proven with a temporary probe spec that was then deleted. `test:e2e` uses `--pass-with-no-tests` until W-003 adds the health spec; **W-003 removes that flag**. jsdom 30.1.3 added. `resetDatabase()` clears pg-boss `job`/`archive` tables when present; W-012 confirms the names.
 
 ---
 
