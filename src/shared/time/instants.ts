@@ -15,3 +15,8 @@ export function parseInstant(value: string): Date {
 export function toIsoInstant(instant: Date): string {
   return instant.toISOString();
 }
+
+/** The instant at a number of milliseconds since the Unix epoch (for example from a job clock). */
+export function instantFromEpochMs(ms: number): Date {
+  return new Date(ms);
+}

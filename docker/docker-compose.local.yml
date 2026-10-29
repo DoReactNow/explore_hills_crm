@@ -72,6 +72,9 @@ services:
         condition: service_healthy
     environment:
       APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: "47214"
+      APP_URL: http://127.0.0.1:47214 # links the worker puts in messages point at the app
       LOG_LEVEL: debug
       DATABASE_URL: postgresql://explorehills_user:explorehills_password@db:5432/explorehills_dev
       AUTH_SECRET: dev-only-secret-change-me-0123456789abcdef

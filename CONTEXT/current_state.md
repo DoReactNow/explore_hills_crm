@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011, W-012 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -552,22 +552,24 @@ jobs:
 **Data and time:** `system_worker_heartbeats.lastBeatAt` (instant). pg-boss tables live in the `pgboss` schema. Job scheduling uses the injected `Clock` and the business timezone.
 
 **RED tests**
-- [ ] Unit: the job assembler (in `src/worker/`) rejects duplicate job names across modules; `defineJob()` requires a Zod payload schema and a retry policy; an invalid payload is rejected before enqueue.
-- [ ] Unit: the in-memory `JobQueue` fake (for unit tests) records enqueued, delayed and cancelled jobs.
-- [ ] Integration: a test-only job (registered only when `APP_ENV=test`) is enqueued and `runPendingJobs()` runs it exactly once; enqueuing twice with the same singleton/idempotency key runs it once.
-- [ ] Integration: a failing handler is retried per its policy, then ends in the failed state and writes an alert log entry with the `requestId`/job ID.
-- [ ] Integration: `enqueueAt(t)` does not run before `t` and runs after the test clock is advanced past `t` (the test-only helper may move pg-boss's start time for due jobs; confirm table and column names for the installed pg-boss version).
-- [ ] Integration: the worker writes a heartbeat; `GET /api/diagnostics` reports the worker as `up` when the last beat is recent and `down` when it is older than the threshold.
-- [ ] `lint:arch` fails if pg-boss is imported outside `src/shared/jobs/`.
+- [x] Unit: the job assembler (in `src/worker/`) rejects duplicate job names across modules; `defineJob()` requires a Zod payload schema and a retry policy; an invalid payload is rejected before enqueue.
+- [x] Unit: the in-memory `JobQueue` fake (for unit tests) records enqueued, delayed and cancelled jobs.
+- [x] Integration: a test-only job (registered only when `APP_ENV=test`) is enqueued and `runPendingJobs()` runs it exactly once; enqueuing twice with the same singleton/idempotency key runs it once.
+- [x] Integration: a failing handler is retried per its policy, then ends in the failed state and writes an alert log entry with the `requestId`/job ID.
+- [x] Integration: `enqueueAt(t)` does not run before `t` and runs after the test clock is advanced past `t` (the test-only helper may move pg-boss's start time for due jobs; confirm table and column names for the installed pg-boss version).
+- [x] Integration: the worker writes a heartbeat; `GET /api/diagnostics` reports the worker as `up` when the last beat is recent and `down` when it is older than the threshold.
+- [x] `lint:arch` fails if pg-boss is imported outside `src/shared/jobs/`.
 
 **GREEN tasks**
-- [ ] Add `pg-boss`. `src/shared/jobs/`: `JobQueue` interface (`enqueue`, `enqueueAt`, `schedule`, `cancel`), the pg-boss implementation, `defineJob()`, the registry type, and the testing helpers (`runPendingJobs()`, in-memory fake).
-- [ ] `src/worker/index.ts`: validates env, starts pg-boss (it creates the `pgboss` schema), collects every module's jobs from their `index.ts` exports (the worker is a composition root; `src/shared` never imports modules), writes a heartbeat through the `system` module service every few seconds, and shuts down gracefully on `SIGTERM`.
-- [ ] The web app only enqueues (it never calls `work`).
-- [ ] Replace the W-001 placeholder. `npm run worker`, `build:worker` and `worker:start` work; the Docker `worker` container (W-010) now writes a heartbeat; CI still builds it (W-011).
-- [ ] Document the job rules (idempotent handlers, retry with backoff, alert on final failure, delayed jobs + sweeper for timeouts) in `src/shared/jobs/README.md`.
+- [x] Add `pg-boss`. `src/shared/jobs/`: `JobQueue` interface (`enqueue`, `enqueueAt`, `schedule`, `cancel`), the pg-boss implementation, `defineJob()`, the registry type, and the testing helpers (`runPendingJobs()`, in-memory fake).
+- [x] `src/worker/index.ts`: validates env, starts pg-boss (it creates the `pgboss` schema), collects every module's jobs from their `index.ts` exports (the worker is a composition root; `src/shared` never imports modules), writes a heartbeat through the `system` module service every few seconds, and shuts down gracefully on `SIGTERM`.
+- [x] The web app only enqueues (it never calls `work`).
+- [x] Replace the W-001 placeholder. `npm run worker`, `build:worker` and `worker:start` work; the Docker `worker` container (W-010) now writes a heartbeat; CI still builds it (W-011).
+- [x] Document the job rules (idempotent handlers, retry with backoff, alert on final failure, delayed jobs + sweeper for timeouts) in `src/shared/jobs/README.md`.
 
 **Verification:** `lint`, `typecheck`, `build`, `build:worker`, `test:unit`, `test:integration`; manual: `npm run worker` alongside `npm run dev` shows the heartbeat on the diagnostics endpoint.
+
+> **Done 2026-10-30.** pg-boss 12.38.0. 17 new unit tests (`defineJob`, payload validation, fake queue, assembler, keyed job IDs, worker job list, worker status) and 9 integration tests (run once, idempotency key, invalid payload, retries then final failure with one alert, delayed job with the clock advanced, cancel, heartbeat and diagnostics up/down). 189 unit, 41 integration (also four shuffled orders), 6 E2E passing. Checked by hand: the bundled `dist/worker.js` against the dev database creates the `pgboss` schema, writes a heartbeat every 5 s and exits 0 on SIGTERM; with a worker on the test database, `GET /api/diagnostics` as admin reports `worker: up`; the Docker `worker` container writes heartbeats under its container ID. Found and fixed: pg-boss's `singletonKey` alone does not deduplicate (keyed job IDs instead); the local Docker worker was missing `APP_HOST`/`APP_PORT`/`APP_URL`; the Docker dependency volume must be recreated after a dependency change (troubleshooting note in `local_setup.md`). Details in Decision 42.
 
 ---
 
