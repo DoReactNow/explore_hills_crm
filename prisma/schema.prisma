@@ -69,6 +69,7 @@ model SystemWorkerHeartbeat {
   version    String // app version / git SHA
   startedAt  DateTime @db.Timestamptz(3)
   lastBeatAt DateTime @db.Timestamptz(3)
+  driftProbe String?
 
   @@map("system_worker_heartbeats")
 }
