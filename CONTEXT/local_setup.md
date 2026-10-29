@@ -292,6 +292,9 @@ services:
         condition: service_healthy
     environment:
       APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: "47214"
+      APP_URL: http://127.0.0.1:47214                # links the worker puts in messages point at the app
       LOG_LEVEL: debug
       DATABASE_URL: postgresql://explorehills_user:explorehills_password@db:5432/explorehills_dev
       AUTH_SECRET: dev-only-secret-change-me-0123456789abcdef
@@ -605,6 +608,13 @@ With `STORAGE_DRIVER=local`, recordings live in the `explorehills_storage` volum
 **Tests pass locally but fail in CI (or the reverse).** CI uses the same scripts and the same `.env.test.example` defaults. Run `npm run ci:quality` locally to reproduce the exact sequence.
 
 **Dates look one day off.** Do not format dates with `toLocale*` or JS `Date` methods. Use `src/shared/time/` (see `project_data.md` Section 6).
+
+**The Docker `app` or `worker` container cannot find a package that was just added** (for example `Cannot find module 'pg-boss'`). The containers keep `node_modules` in the named volume `explorehills-local_explorehills_local_node_modules`, which Docker fills from the image only while it is empty. After a dependency change, remove the volume and rebuild:
+```bash
+docker compose -f docker/docker-compose.local.yml --profile app down
+docker volume rm explorehills-local_explorehills_local_node_modules
+npm run docker:local:up
+```
 
 **Diagnostics shows the worker as `down`, or timeouts and reminders never happen.** The worker is not running. Start `npm run worker` (or the `worker` container) and check its log.
 

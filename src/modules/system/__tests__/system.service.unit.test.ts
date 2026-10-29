@@ -11,7 +11,11 @@ function service(repository: SystemRepository) {
 
 describe("system service: health", () => {
   it("reports ok, the version and the clock's instant when the database answers", async () => {
-    const repository = { pingDatabase: vi.fn().mockResolvedValue(undefined) };
+    const repository = {
+      pingDatabase: vi.fn().mockResolvedValue(undefined),
+      upsertHeartbeat: vi.fn(),
+      latestHeartbeat: vi.fn(),
+    };
     await expect(service(repository).getHealth()).resolves.toEqual({
       status: "ok",
       database: "up",
@@ -22,7 +26,11 @@ describe("system service: health", () => {
   });
 
   it("reports the database as down, without throwing, when the ping fails", async () => {
-    const repository = { pingDatabase: vi.fn().mockRejectedValue(new Error("ECONNREFUSED")) };
+    const repository = {
+      pingDatabase: vi.fn().mockRejectedValue(new Error("ECONNREFUSED")),
+      upsertHeartbeat: vi.fn(),
+      latestHeartbeat: vi.fn(),
+    };
     const result = await service(repository).getHealth();
     expect(result).toMatchObject({ status: "degraded", database: "down" });
     expect(JSON.stringify(result)).not.toContain("ECONNREFUSED");

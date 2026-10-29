@@ -1,19 +1,19 @@
 "use client";
 
 // Diagnostics for operators (system:view-diagnostics). It reads the guarded API through the shared
-// client, so a refusal shows the same friendly message as everywhere else. W-012 adds the worker.
+// client, so a refusal shows the same friendly message as everywhere else.
 import { useEffect, useState } from "react";
-import type { Health } from "@/modules/system";
+import type { Diagnostics } from "@/modules/system";
 import { apiRequest, type ApiResult } from "@/shared/api/client";
 import { formatInstant, parseInstant } from "@/shared/time";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
 
 export default function DiagnosticsPage() {
-  const [result, setResult] = useState<ApiResult<Health> | null>(null);
+  const [result, setResult] = useState<ApiResult<Diagnostics> | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    apiRequest<Health>("/api/diagnostics", { signal: controller.signal }).then((next) => {
+    apiRequest<Diagnostics>("/api/diagnostics", { signal: controller.signal }).then((next) => {
       if (!controller.signal.aborted) setResult(next);
     });
     return () => controller.abort();
@@ -28,6 +28,12 @@ export default function DiagnosticsPage() {
         <section>
           <p>Status: {result.data.status}</p>
           <p>Database: {result.data.database}</p>
+          <p>
+            Worker: {result.data.worker.state}
+            {result.data.worker.lastBeatAt
+              ? ` (last heartbeat ${formatInstant(parseInstant(result.data.worker.lastBeatAt), "dateTime")})`
+              : null}
+          </p>
           <p>Version: {result.data.version}</p>
           <p>Server time: {formatInstant(parseInstant(result.data.time), "dateTime")}</p>
         </section>

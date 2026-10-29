@@ -25,7 +25,11 @@ describe("GET /api/health", () => {
 
   it("returns 503 with the database down when the database check fails", async () => {
     const service = createSystemService({
-      repository: { pingDatabase: () => Promise.reject(new Error("connection refused")) },
+      repository: {
+        pingDatabase: () => Promise.reject(new Error("connection refused")),
+        upsertHeartbeat: vi.fn(),
+        latestHeartbeat: vi.fn(),
+      },
       clock: createTestClock("2027-01-01T00:00:00.000Z"),
       version: "test",
       logger: { warn: vi.fn() },

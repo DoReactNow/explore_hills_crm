@@ -812,3 +812,18 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **OpenSSL** is installed in the stages that run the Prisma CLI (`deps`/`builder` and `migrator`); without it the migration engine only guesses the OpenSSL version. The runtime images do not need it (the app uses the `pg` driver adapter).
 - **Next.js cache tmpfs** is mounted with `uid=1000,gid=1000`: a default tmpfs is root-owned, so the `node` user could not write Next's cache. `local_setup.md` Section 10 is updated.
 - **Image size:** the worker image is about 1.45 GB because the production dependencies include Next.js. Trimming the worker's dependencies is left to Phase 11.
+
+---
+
+### Decision 42: Background Job Details Settled in W-012
+
+**Date:** 2026-10-30
+**Status:** Accepted (implements Decision 27)
+
+#### Decision
+- **pg-boss 12.38.0**, in the `pgboss` schema. Only `src/shared/jobs/` imports it (architecture rule 8, re-proven against the installed package).
+- **Test time:** integration tests use pg-boss's own `TestClock`, which also overrides the database-side clock (`pgboss.job_now()`), so JavaScript and Postgres agree on a hand-moved "now". This replaces the plan's fallback of editing pg-boss's start times by hand. `resetDatabase()` clears `pgboss.job` and `pgboss.job_dependency` and keeps queue definitions, which a running pg-boss caches.
+- **Idempotency keys:** on a standard queue, pg-boss 12's `singletonKey` does not prevent a second job (seen in the integration test). `enqueue(..., { singletonKey })` therefore also sets the job ID to a UUID derived from the job name and key (`keyedJobId()`); pg-boss inserts with `ON CONFLICT DO NOTHING`, so the second `enqueue` returns `null`. The key stays taken while pg-boss keeps the job row.
+- **Retries and alerts:** each job's retry policy is applied to its queue and to every job sent. The last failed attempt is logged as `ALERT: job failed permanently` with the job ID; earlier failures as warnings.
+- **Worker status:** the worker writes a heartbeat every 5 seconds; diagnostics reports it `down` when the newest heartbeat is older than 30 seconds (constants in `system.types.ts` until `system_settings` exists in Phase 3).
+- **The local Docker worker** gets `APP_HOST`, `APP_PORT` and `APP_URL`, because the environment check applies to every process and the worker will build links to the app.

@@ -3,8 +3,9 @@ import { Client } from "pg";
 import { getEnv } from "@/shared/config/env";
 import { assertTestDatabaseUrl } from "./guards";
 
-// pg-boss job tables (W-012 confirms the names for the installed pg-boss version).
-const PGBOSS_JOB_TABLES = ["job", "archive"];
+// pg-boss 12 job tables (confirmed in W-012). Queue definitions ("queue") are kept, because a
+// running pg-boss instance caches them.
+const PGBOSS_JOB_TABLES = ["job", "job_dependency"];
 
 export async function resetDatabase(options: { connectionString?: string } = {}): Promise<void> {
   const connectionString = options.connectionString ?? getEnv().DATABASE_URL;
