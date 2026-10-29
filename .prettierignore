@@ -1,0 +1,14 @@
+# Generated or external output
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+src/generated/
+storage/
+package-lock.json
+next-env.d.ts
+
+# Planning docs are hand-formatted; Prettier must not rewrite them
+CONTEXT/
