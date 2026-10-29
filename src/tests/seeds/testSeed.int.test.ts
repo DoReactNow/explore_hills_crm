@@ -26,7 +26,10 @@ async function snapshot() {
   const result: Record<string, unknown[]> = {};
   for (const table of tables) {
     result[table] = (await client.query(`SELECT * FROM ${table} ORDER BY 1, 2`)).rows.map((row) => {
-      const { createdAt: _c, updatedAt: _u, ...rest } = row as Record<string, unknown>;
+      // Timestamps change on every write; compare everything else.
+      const rest = { ...(row as Record<string, unknown>) };
+      delete rest.createdAt;
+      delete rest.updatedAt;
       return rest;
     });
   }

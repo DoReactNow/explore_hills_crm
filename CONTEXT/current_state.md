@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011, W-012 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011, W-012, W-013 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -584,19 +584,21 @@ jobs:
 **Data and time:** no tables. Uses Postgres `LISTEN/NOTIFY` on one channel.
 
 **RED tests**
-- [ ] Unit: `defineEventType()` and the assembler: event names are unique across modules; each type has a Zod payload schema containing IDs only; an encoded payload over 4 KB is rejected.
-- [ ] Unit: the per-user filter drops an event the principal may not receive; an event type without a filter is never delivered (default deny).
-- [ ] Integration: an authenticated test principal connects to `GET /api/events/stream` and receives a test event published through `NOTIFY` from a separate database connection (simulating the worker); an unauthenticated request gets `401`.
-- [ ] Integration: an event filtered out for a user is not delivered to that user but is delivered to an allowed user.
-- [ ] Unit (component): `useLiveEvents()` falls back to polling at the configured interval when the stream errors, and returns to streaming when it reconnects.
+- [x] Unit: `defineEventType()` and the assembler: event names are unique across modules; each type has a Zod payload schema containing IDs only; an encoded payload over 4 KB is rejected.
+- [x] Unit: the per-user filter drops an event the principal may not receive; an event type without a filter is never delivered (default deny).
+- [x] Integration: an authenticated test principal connects to `GET /api/events/stream` and receives a test event published through `NOTIFY` from a separate database connection (simulating the worker); an unauthenticated request gets `401`.
+- [x] Integration: an event filtered out for a user is not delivered to that user but is delivered to an allowed user.
+- [x] Unit (component): `useLiveEvents()` falls back to polling at the configured interval when the stream errors, and returns to streaming when it reconnects.
 
 **GREEN tasks**
-- [ ] Add `pg`. `src/shared/realtime/` (mechanism only, no module imports): `defineEventType()`, `publish()` (NOTIFY), and the relay (one LISTEN connection per app instance fanning out to connected streams). Modules declare their event types and receive filters in `<module>.events.ts` and export them from `index.ts`; the stream route assembles them. Phase 0 defines one test-only event type in the `system` module.
-- [ ] `src/app/api/events/stream/route.ts`: Node runtime, dynamic, sends a keep-alive comment every ~25 seconds, closes cleanly on disconnect.
-- [ ] Browser hook `useLiveEvents()` with `EventSource`, automatic reconnect, re-fetch on reconnect, and polling fallback (default interval from a constant until `system_settings` exists in Phase 3).
-- [ ] Document the reverse-proxy requirement (response buffering off for the stream path) in `local_setup.md` Troubleshooting and the Phase 12 runbook.
+- [x] Add `pg`. `src/shared/realtime/` (mechanism only, no module imports): `defineEventType()`, `publish()` (NOTIFY), and the relay (one LISTEN connection per app instance fanning out to connected streams). Modules declare their event types and receive filters in `<module>.events.ts` and export them from `index.ts`; the stream route assembles them. Phase 0 defines one test-only event type in the `system` module.
+- [x] `src/app/api/events/stream/route.ts`: Node runtime, dynamic, sends a keep-alive comment every ~25 seconds, closes cleanly on disconnect.
+- [x] Browser hook `useLiveEvents()` with `EventSource`, automatic reconnect, re-fetch on reconnect, and polling fallback (default interval from a constant until `system_settings` exists in Phase 3).
+- [x] Document the reverse-proxy requirement (response buffering off for the stream path) in `local_setup.md` Troubleshooting and the Phase 12 runbook.
 
 **Verification:** `lint`, `typecheck`, `build`, `test:unit`, `test:integration`; manual: a test event published from the worker appears in an open browser tab.
+
+> **Done 2026-10-30.** 19 new unit tests (event types, size limit, default deny, filters, `useLiveEvents` fallback and reconnect, the worker status event) and 3 integration tests (401; a notice sent by `pg_notify` on another connection reaches the stream; the per-user filter delivers to one user and skips the other). Checked in the browser pane against the built app (test env, admin test cookie): the diagnostics page showed `Worker: down` and `Live updates: live`; starting the worker switched it to `Worker: up` with no reload (1 navigation, 2 fetches). The reverse-proxy note was already in `local_setup.md` Section 10 and the Phase 12 summary; the troubleshooting entry now also lists the keep-alive, `X-Accel-Buffering` and the `live`/`polling` status. Details in Decision 43.
 
 ---
 

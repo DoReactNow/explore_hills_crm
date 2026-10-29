@@ -1,11 +1,12 @@
 // The worker process (Decision 27): runs every module's background jobs and writes a heartbeat.
 // `npm run worker` in development; the "worker" service in Docker. The web app only enqueues.
 import { hostname } from "node:os";
-import { HEARTBEAT_INTERVAL_SECONDS } from "@/modules/system";
+import { HEARTBEAT_INTERVAL_SECONDS, workerStatusChangedEvent } from "@/modules/system";
 import { getEnv } from "@/shared/config/env";
 import { getPrisma } from "@/shared/db/prisma";
 import { createPgBoss, startJobWorkers } from "@/shared/jobs/pgBoss";
 import { logger } from "@/shared/logger";
+import { closePublisher, publishEvent } from "@/shared/realtime/publish";
 import { startHeartbeat } from "./heartbeat";
 import { collectWorkerJobs } from "./workerJobs";
 
@@ -23,6 +24,7 @@ async function main(): Promise<void> {
     intervalMs: HEARTBEAT_INTERVAL_SECONDS * 1000,
   });
   logger.info("worker started", { workerId, jobs: [...jobs.keys()] });
+  await notifyStatusChanged(workerId);
 
   let stopping = false;
   const shutdown = async (signal: string) => {
@@ -31,11 +33,20 @@ async function main(): Promise<void> {
     logger.info("worker stopping", { signal });
     heartbeat.stop();
     await boss.stop({ graceful: true, timeout: 10_000 });
+    await notifyStatusChanged(workerId);
+    await closePublisher();
     await getPrisma().$disconnect();
     process.exit(0);
   };
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
   process.on("SIGINT", () => void shutdown("SIGINT"));
+}
+
+/** Tells open diagnostics screens to re-fetch; a failure here never stops the worker. */
+async function notifyStatusChanged(workerId: string): Promise<void> {
+  await publishEvent(workerStatusChangedEvent, { workerId }).catch((error: unknown) =>
+    logger.warn("could not publish the worker status notice", { err: error }),
+  );
 }
 
 main().catch((error: unknown) => {

@@ -29,11 +29,16 @@ export interface HandlerResult<T> {
   status?: number;
 }
 
+/** For responses that are not the JSON envelope, such as the live-update stream. */
+export interface RawResult {
+  response: Response;
+}
+
 export interface RouteOptions<T, I, P> {
   access: Access;
   /** Validates the JSON body (or the query string for GET, HEAD and DELETE). */
   input?: z.ZodType<I>;
-  handler: (context: RouteContext<I, P>) => Promise<HandlerResult<T>>;
+  handler: (context: RouteContext<I, P>) => Promise<HandlerResult<T> | RawResult>;
 }
 
 export type NextRouteHandler<P> = (
@@ -90,6 +95,10 @@ export function route<T, I = undefined, P extends object = Record<string, string
         principal,
         logger,
       });
+      if ("response" in result) {
+        result.response.headers.set("x-request-id", requestId);
+        return result.response;
+      }
       return Response.json({ data: result.data }, { status: result.status ?? 200, headers });
     } catch (error) {
       const { status, body } = toErrorResponse(error, { requestId, logger });

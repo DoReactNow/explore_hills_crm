@@ -827,3 +827,19 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Retries and alerts:** each job's retry policy is applied to its queue and to every job sent. The last failed attempt is logged as `ALERT: job failed permanently` with the job ID; earlier failures as warnings.
 - **Worker status:** the worker writes a heartbeat every 5 seconds; diagnostics reports it `down` when the newest heartbeat is older than 30 seconds (constants in `system.types.ts` until `system_settings` exists in Phase 3).
 - **The local Docker worker** gets `APP_HOST`, `APP_PORT` and `APP_URL`, because the environment check applies to every process and the worker will build links to the app.
+
+---
+
+### Decision 43: Live Update Details Settled in W-013
+
+**Date:** 2026-10-30
+**Status:** Accepted (implements Decision 28)
+
+#### Decision
+- **IDs only, enforced:** `defineEventType()` accepts only an object payload whose fields are strings (IDs); anything else fails at definition time. An encoded event over 4096 bytes is refused before NOTIFY.
+- **Default deny:** an event type without `canReceive` is never delivered; an unknown type, a payload that fails its schema, or a filter that throws is dropped. Filters use the same permission checks as everything else (`can()`), never role names.
+- **One channel:** `explorehills_events`. Each app instance keeps one `LISTEN` connection (kept on `globalThis`, like the principal resolver). If that connection drops, every open stream is closed, so browsers reconnect and re-fetch. App and worker publish with `pg_notify` through a small separate pool.
+- **The stream:** `GET /api/events/stream` (`'authenticated'`) sends `retry: 3000`, a `: connected` comment once it is listening, a `: keep-alive` comment every 25 seconds, and the header `X-Accel-Buffering: no`. `route()` gained a raw-response result for it.
+- **Browser:** `useLiveEvents()` passes notices to `onEvent`, re-fetches (`onResync`) after a reconnect, and polls with `onResync` every 15 seconds while the stream is down. It reports `connecting`, `live` or `polling`.
+- **First real event:** `system.workerStatusChanged` (the worker publishes it on start and stop) lets the diagnostics page update the worker status without a refresh. A test-only `system.testPing` is registered only when `APP_ENV=test`.
+- **Test sign-in IDs:** the test role cookie now gives each role a stable user ID (derived from the role code), so a test can aim a notice at one user.

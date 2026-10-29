@@ -1,0 +1,28 @@
+// GET /api/events/stream: the live-update stream for the signed-in user (Decision 28).
+import { systemEventTypes, systemTestEventTypes } from "@/modules/system";
+import { route } from "@/shared/http/route";
+import { isTestEnvironment } from "@/shared/http/testOnly";
+import { assembleEventTypes, type AnyEventType } from "@/shared/realtime";
+import { createEventStream } from "@/shared/realtime/sse";
+
+export const runtime = "nodejs";
+
+// Assembled on first use, not at import, so `next build` needs no environment.
+let eventTypes: Map<string, AnyEventType> | undefined;
+function allEventTypes() {
+  eventTypes ??= assembleEventTypes({
+    system: [...systemEventTypes, ...(isTestEnvironment() ? systemTestEventTypes : [])],
+  });
+  return eventTypes;
+}
+
+export const GET = route({
+  access: "authenticated",
+  handler: async ({ principal, request }) => ({
+    response: createEventStream({
+      principal: principal!,
+      types: allEventTypes(),
+      signal: request.signal,
+    }),
+  }),
+});
