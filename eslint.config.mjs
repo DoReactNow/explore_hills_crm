@@ -18,6 +18,21 @@ const eslintConfig = defineConfig([
     "test-results/**",
     "src/generated/**",
   ]),
+  {
+    // Environment values are read only through getEnv() (W-002, project_data.md Section 7).
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/shared/config/env.ts", "**/*.test.{ts,tsx}", "src/tests/**"],
+    rules: {
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "process",
+          property: "env",
+          message: "Read environment values through getEnv() from @/shared/config/env.",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

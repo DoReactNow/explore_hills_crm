@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -119,22 +119,24 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-001.
 
 **RED tests (unit)**
-- [ ] `getEnv()` throws a clear error when a required value is missing.
-- [ ] `getEnv()` with `APP_ENV=test` and a database name not ending in `_test` throws "refusing to run".
-- [ ] `getEnv()` with `APP_ENV=production` and a database name ending in `_test` throws; also rejects the dev placeholder `AUTH_SECRET` in production.
-- [ ] `APP_CONFIG` exposes product name, company legal name, support email, support phone (E.164) and derived display/`tel:` forms, business timezone, locale, currency; the object is frozen.
-- [ ] SSOT scan test: fails when an email or phone literal, or the product/company name, appears in `src/` outside `appConfig.ts`, tests and fixtures. (Prove it by temporarily adding a literal.)
-- [ ] Test that `.env.example`, `.env.test.example` and `.env.production.example` all parse against the env schema (production example with placeholders replaced).
-- [ ] `getEnv()` validates `TELEPHONY_PROVIDER`, `WHATSAPP_GATEWAY`, `STORAGE_DRIVER` (+ `STORAGE_LOCAL_DIR` for `local`) and `CREDENTIALS_ENCRYPTION_KEY`. With `APP_ENV=production` it refuses `fake` for `TELEPHONY_PROVIDER` and `WHATSAPP_GATEWAY`, and refuses the dev placeholder encryption key.
+- [x] `getEnv()` throws a clear error when a required value is missing.
+- [x] `getEnv()` with `APP_ENV=test` and a database name not ending in `_test` throws "refusing to run".
+- [x] `getEnv()` with `APP_ENV=production` and a database name ending in `_test` throws; also rejects the dev placeholder `AUTH_SECRET` in production.
+- [x] `APP_CONFIG` exposes product name, company legal name, support email, support phone (E.164) and derived display/`tel:` forms, business timezone, locale, currency; the object is frozen.
+- [x] SSOT scan test: fails when an email or phone literal, or the product/company name, appears in `src/` outside `appConfig.ts`, tests and fixtures. (Prove it by temporarily adding a literal.)
+- [x] Test that `.env.example`, `.env.test.example` and `.env.production.example` all parse against the env schema (production example with placeholders replaced).
+- [x] `getEnv()` validates `TELEPHONY_PROVIDER`, `WHATSAPP_GATEWAY`, `STORAGE_DRIVER` (+ `STORAGE_LOCAL_DIR` for `local`) and `CREDENTIALS_ENCRYPTION_KEY`. With `APP_ENV=production` it refuses `fake` for `TELEPHONY_PROVIDER` and `WHATSAPP_GATEWAY`, and refuses the dev placeholder encryption key.
 
 **GREEN tasks**
-- [ ] `src/shared/config/env.ts`: Zod-validated, lazy (validated on first use at runtime, **not at import**, so `next build` needs no database or secrets). The only file that reads `process.env`; ESLint forbids `process.env` elsewhere.
-- [ ] `src/shared/config/appConfig.ts` with placeholder values (`support@example.com`, a clearly fake phone) and a comment that real values are set here only.
-- [ ] Create `.env.example`, `.env.test.example`, `.env.production.example` exactly as shown in `local_setup.md` Section 3. Use `127.0.0.1` everywhere; web ports 47213 / 47215; Postgres 54329.
-- [ ] No `NEXT_PUBLIC_*` for environment-specific values.
-- [ ] Home page and page metadata read `APP_CONFIG` (proves the SSOT is wired).
+- [x] `src/shared/config/env.ts`: Zod-validated, lazy (validated on first use at runtime, **not at import**, so `next build` needs no database or secrets). The only file that reads `process.env`; ESLint forbids `process.env` elsewhere.
+- [x] `src/shared/config/appConfig.ts` with placeholder values (`support@example.com`, a clearly fake phone) and a comment that real values are set here only.
+- [x] Create `.env.example`, `.env.test.example`, `.env.production.example` exactly as shown in `local_setup.md` Section 3. Use `127.0.0.1` everywhere; web ports 47213 / 47215; Postgres 54329.
+- [x] No `NEXT_PUBLIC_*` for environment-specific values.
+- [x] Home page and page metadata read `APP_CONFIG` (proves the SSOT is wired).
 
 **Verification:** `lint`, `typecheck`, `build` (with no `.env` present), `test:unit`.
+
+> **Done 2026-10-30.** 23 unit tests (`src/shared/config/__tests__/`, `src/tests/ssot.unit.test.ts`); the SSOT scan and the `process.env` lint rule were each proven by a temporary probe file. Zod 4.6.7 added. A minimal `vitest.config.ts` (unit project only) was created here because W-002 needs unit tests before W-008; W-008 extends it. `test:unit:tz` uses `--passWithNoTests` until the time module exists; **W-006 removes that flag**. Production refuses secrets containing the placeholder markers `dev-only`, `test-only` or `change-me`.
 
 ---
 
@@ -242,6 +244,7 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 - [ ] Integration: a record inserted at 23:59 and another at 00:01 business time are returned by the correct "today" query; a daily-bucket SQL using `AT TIME ZONE <business tz>` groups them on different days.
 
 **GREEN tasks**
+- [ ] Remove `--passWithNoTests` from `test:unit:tz` in `package.json` (added in W-002).
 - [ ] Add Luxon. `src/shared/time/`: `clock.ts`, `instants.ts`, `businessDate.ts`, `range.ts`, `format.ts`, `formats.ts` (style registry), `index.ts`.
 - [ ] ESLint `no-restricted-syntax` / `no-restricted-properties` rules banning the listed APIs outside `src/shared/time/**`.
 - [ ] A short `prisma/CONVENTIONS.md` (or comment block in `schema.prisma`): instants are `@db.Timestamptz(3)`, business dates are `@db.Date`.
