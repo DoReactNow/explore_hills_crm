@@ -843,3 +843,17 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Browser:** `useLiveEvents()` passes notices to `onEvent`, re-fetches (`onResync`) after a reconnect, and polls with `onResync` every 15 seconds while the stream is down. It reports `connecting`, `live` or `polling`.
 - **First real event:** `system.workerStatusChanged` (the worker publishes it on start and stop) lets the diagnostics page update the worker status without a refresh. A test-only `system.testPing` is registered only when `APP_ENV=test`.
 - **Test sign-in IDs:** the test role cookie now gives each role a stable user ID (derived from the role code), so a test can aim a notice at one user.
+
+---
+
+### Decision 44: File Storage Details Settled in W-014
+
+**Date:** 2026-10-30
+**Status:** Accepted (implements Decision 26; the production target stays open, Decision 31)
+
+#### Decision
+- **Interface:** `put(key, body, contentType)` returns `{ sizeBytes, checksumSha256 }`; `get(key)` streams the file back (or `null`); `delete` of a missing key is a no-op; `exists`; `getTemporaryUrl(key, ttl)` returns a signed link or `null` (then the app streams the file after its permission check). The content type, size and checksum are stored with the record's metadata in the database; the local driver does not keep them beside the file.
+- **Keys:** relative paths of ASCII segments (`A–Z a–z 0–9 . _ -`, not starting with a dot), at most 512 characters; `..`, a leading `/`, backslashes, empty segments and hidden names are rejected by every driver. `buildKey()` makes `<area>/<YYYY>/<MM>/<uuid>.<ext>` with the area from a fixed list (`recordings`, `uploads`, `exports`) and a UUID as the only identifier, so keys cannot carry personal data.
+- **Local driver:** writes to a hidden temporary file in the same folder, syncs it to disk, then renames it into place; on any failure the temporary file is removed and an existing file under the key is left untouched. Reads stream in 64 KB chunks.
+- **Startup checks:** the app (in `instrumentation.ts`) and the worker resolve the configured storage when they start, so a wrong or unbuilt driver stops them immediately. `STORAGE_DRIVER=s3` is accepted by the environment check but refused until the driver is built in Phase 7.
+- **Contract suite:** `src/shared/storage/__tests__/storageContract.ts`; each driver's test calls `runStorageContract()`. The local driver runs it against `storage/test` in the integration tier.

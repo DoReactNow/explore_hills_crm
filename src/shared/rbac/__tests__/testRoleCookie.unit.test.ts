@@ -82,6 +82,17 @@ describe("instrumentation register()", () => {
     await expect(registerAndResolve("test")).resolves.toMatchObject({ roleCode: "ADMIN" });
   });
 
+  it("fails at startup when the storage driver is not available", async () => {
+    stubEnv("development");
+    vi.stubEnv("NEXT_RUNTIME", "nodejs");
+    vi.stubEnv("STORAGE_DRIVER", "s3");
+    for (const name of ["ENDPOINT", "REGION", "BUCKET", "ACCESS_KEY_ID", "SECRET_ACCESS_KEY"]) {
+      vi.stubEnv(`STORAGE_S3_${name}`, name === "ENDPOINT" ? "https://s3.example.com" : "x");
+    }
+    const { register } = await import("@/instrumentation");
+    await expect(register()).rejects.toThrow(/Phase 7/);
+  });
+
   it("installs nothing outside APP_ENV=test, so the cookie is ignored", async () => {
     await expect(registerAndResolve("development")).resolves.toBeNull();
   });
