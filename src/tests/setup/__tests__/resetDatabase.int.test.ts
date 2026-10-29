@@ -12,6 +12,7 @@ const count = async (table: string) =>
 
 describe("resetDatabase", () => {
   it("empties every application table but keeps the migration history", async () => {
+    await resetDatabase(); // start from a known state, whatever ran before
     await client.query(
       `INSERT INTO system_worker_heartbeats ("workerId", version, "startedAt", "lastBeatAt")
        VALUES ('test-worker', 'v', now(), now())`,

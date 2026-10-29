@@ -743,3 +743,17 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Zod messages:** input is parsed with a per-parse fallback, so a message a schema defines itself is kept and any library default becomes "Please check this field."
 - **Error page reference:** for server render errors the page shows Next's `error.digest` as "Reference: …"; for API errors the reference is the `requestId`. Next.js 16.4 error components receive `error: unknown` and `retry()`.
 - **The server-error E2E spec** is delivered in W-004 together with the not-found spec (both journey 8); W-008 part B keeps only the forbidden spec.
+
+---
+
+### Decision 37: Time Module Details Settled in W-006
+
+**Date:** 2026-10-30
+**Status:** Accepted (refines Decision 6)
+
+#### Decision
+- **The date ban also covers tests.** Outside `src/shared/time/`, ESLint rejects every `new Date(...)` and `Date(...)` call, `Date.now()`, `Date.parse()`, the local-time getters and setters, and `toLocale*`, `toDateString` and `toTimeString`. Tests build instants with `parseInstant("...Z")` and freeze time with `createTestClock()`, so a test can never pass only because of the machine's timezone.
+- **Instants must carry a zone.** `parseInstant()` rejects an ISO string without `Z` or an offset, so nothing is ever read as local time.
+- **Business dates** are `YYYY-MM-DD` strings; the Prisma `@db.Date` value is UTC midnight of that day (`businessDateToDbDate()` / `dbDateToBusinessDate()`).
+- **Display styles** live in `src/shared/time/formats.ts` (`date`, `longDate`, `time`, `dateTime`) and use the `en-IN` locale from `APP_CONFIG`, for example "1 Jan 2027, 12:05 am".
+- **Integration tests clean up after themselves** (or reset first) and pass in shuffled order.

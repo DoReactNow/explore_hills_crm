@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { createTestClock } from "@/shared/time";
 import { createLogger, type LogRecord } from "../logger";
 
 function capture(level: Parameters<typeof createLogger>[0]["level"]) {
   const records: LogRecord[] = [];
-  const clock = { now: () => new Date("2026-10-30T10:00:00.000Z") };
+  const clock = createTestClock("2026-10-30T10:00:00.000Z");
   const logger = createLogger({ level, sink: (record) => records.push(record), clock });
   return { logger, records };
 }

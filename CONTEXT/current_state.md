@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -238,24 +238,26 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Dependencies:** W-002.
 
 **RED tests (unit, run under the `TZ` matrix)**
-- [ ] `toBusinessDate`: `2026-12-31T18:35:00Z` → `2027-01-01` for `Asia/Kolkata`; `2026-12-31T18:29:59Z` → `2026-12-31`.
-- [ ] `businessDayRange('2027-01-01')` → `[2026-12-31T18:30:00Z, 2027-01-01T18:30:00Z)` half-open, and adjacent days neither overlap nor leave gaps.
-- [ ] A DST zone (set via a test override of the business timezone) produces 23-hour and 25-hour days correctly.
-- [ ] `formatInstant` output is identical regardless of the machine `TZ`.
-- [ ] `parseBusinessLocalDateTime('2027-01-01', '00:05')` → the correct UTC instant.
-- [ ] Business-date round trip: `YYYY-MM-DD` ⇄ Prisma `@db.Date` value ⇄ `YYYY-MM-DD` never shifts a day.
-- [ ] The injected `Clock` can be frozen and advanced.
-- [ ] ESLint rule test: `new Date()`, `Date.now()`, `getHours()` and `toLocaleDateString()` outside `src/shared/time/` fail `lint:code`.
-- [ ] Integration: a record inserted at 23:59 and another at 00:01 business time are returned by the correct "today" query; a daily-bucket SQL using `AT TIME ZONE <business tz>` groups them on different days.
+- [x] `toBusinessDate`: `2026-12-31T18:35:00Z` → `2027-01-01` for `Asia/Kolkata`; `2026-12-31T18:29:59Z` → `2026-12-31`.
+- [x] `businessDayRange('2027-01-01')` → `[2026-12-31T18:30:00Z, 2027-01-01T18:30:00Z)` half-open, and adjacent days neither overlap nor leave gaps.
+- [x] A DST zone (set via a test override of the business timezone) produces 23-hour and 25-hour days correctly.
+- [x] `formatInstant` output is identical regardless of the machine `TZ`.
+- [x] `parseBusinessLocalDateTime('2027-01-01', '00:05')` → the correct UTC instant.
+- [x] Business-date round trip: `YYYY-MM-DD` ⇄ Prisma `@db.Date` value ⇄ `YYYY-MM-DD` never shifts a day.
+- [x] The injected `Clock` can be frozen and advanced.
+- [x] ESLint rule test: `new Date()`, `Date.now()`, `getHours()` and `toLocaleDateString()` outside `src/shared/time/` fail `lint:code`.
+- [x] Integration: a record inserted at 23:59 and another at 00:01 business time are returned by the correct "today" query; a daily-bucket SQL using `AT TIME ZONE <business tz>` groups them on different days.
 
 **GREEN tasks**
-- [ ] Remove `--passWithNoTests` from `test:unit:tz` in `package.json` (added in W-002).
-- [ ] Add Luxon. `src/shared/time/`: `clock.ts`, `instants.ts`, `businessDate.ts`, `range.ts`, `format.ts`, `formats.ts` (style registry), `index.ts`.
-- [ ] ESLint `no-restricted-syntax` / `no-restricted-properties` rules banning the listed APIs outside `src/shared/time/**`.
-- [ ] A short `prisma/CONVENTIONS.md` (or comment block in `schema.prisma`): instants are `@db.Timestamptz(3)`, business dates are `@db.Date`.
-- [ ] Postgres runs with `timezone=UTC` (already in compose); add an integration test asserting `SHOW timezone` is `UTC`.
+- [x] Remove `--passWithNoTests` from `test:unit:tz` in `package.json` (added in W-002).
+- [x] Add Luxon. `src/shared/time/`: `clock.ts`, `instants.ts`, `businessDate.ts`, `range.ts`, `format.ts`, `formats.ts` (style registry), `index.ts`.
+- [x] ESLint `no-restricted-syntax` / `no-restricted-properties` rules banning the listed APIs outside `src/shared/time/**`.
+- [x] A short `prisma/CONVENTIONS.md` (or comment block in `schema.prisma`): instants are `@db.Timestamptz(3)`, business dates are `@db.Date`.
+- [x] Postgres runs with `timezone=UTC` (already in compose); add an integration test asserting `SHOW timezone` is `UTC`.
 
 **Verification:** `lint`, `typecheck`, `build`, `test:unit` (includes the TZ matrix), `test:integration`.
+
+> **Done 2026-10-30.** Luxon 3.7.2. `src/shared/time/`: `clock.ts` (with `createTestClock`), `instants.ts`, `businessDate.ts`, `range.ts`, `format.ts`, `formats.ts`, `index.ts`. 16 time tests pass under each of the four `TZ` values; 10 lint-rule tests use the ESLint API; 3 integration tests cover `SHOW timezone` = UTC, 23:59 / 00:01 across the 31 Jan → 1 Feb boundary, and `AT TIME ZONE` buckets. The four older tests that built dates directly now use the time module. `prisma/CONVENTIONS.md` was written in W-007. `--passWithNoTests` removed from `test:unit:tz`. Integration suite passes in shuffled order. 113 unit (+64 under the TZ matrix), 12 integration, 3 E2E passing. Details in Decision 37.
 
 ---
 

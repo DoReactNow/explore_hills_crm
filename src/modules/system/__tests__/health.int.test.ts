@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/api/health/route";
 import { getPrisma } from "@/shared/db/prisma";
 import { route } from "@/shared/http/route";
+import { createTestClock } from "@/shared/time";
 import { callRoute } from "@/tests/setup/callRoute";
 import { createSystemController } from "../system.controller";
 import { createSystemService } from "../system.service";
@@ -25,7 +26,7 @@ describe("GET /api/health", () => {
   it("returns 503 with the database down when the database check fails", async () => {
     const service = createSystemService({
       repository: { pingDatabase: () => Promise.reject(new Error("connection refused")) },
-      clock: { now: () => new Date("2027-01-01T00:00:00.000Z") },
+      clock: createTestClock("2027-01-01T00:00:00.000Z"),
       version: "test",
       logger: { warn: vi.fn() },
     });

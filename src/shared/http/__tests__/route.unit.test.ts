@@ -29,6 +29,7 @@ describe("route() wrapper", () => {
     const second = await callRoute(handler, { path: "/api/x" });
     expect(first.status).toBe(200);
     expect(first.headers.get("x-request-id")).toBe(seen[0]);
+    expect(second.headers.get("x-request-id")).toBe(seen[1]);
     expect(seen[0]).not.toBe(seen[1]);
   });
 

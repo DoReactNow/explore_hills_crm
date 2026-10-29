@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { createTestClock } from "@/shared/time";
 import { createSystemService } from "../system.service";
 import type { SystemRepository } from "../system.repository";
 
-const clock = { now: () => new Date("2026-12-31T18:35:00.000Z") };
+const clock = createTestClock("2026-12-31T18:35:00.000Z");
 
 function service(repository: SystemRepository) {
   return createSystemService({ repository, clock, version: "1.2.3", logger: { warn: vi.fn() } });

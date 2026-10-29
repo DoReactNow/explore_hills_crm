@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { parseInstant } from "@/shared/time";
 import { createEventBus } from "../eventBus";
 
 type TestEvents = {
@@ -43,7 +44,9 @@ describe("event bus", () => {
 
   it("rejects payloads that are not plain serialisable data", async () => {
     const bus = createEventBus<Record<string, unknown>>();
-    await expect(bus.publish("x", { at: new Date(0) })).rejects.toThrow(/serialisable/);
+    await expect(bus.publish("x", { at: parseInstant("1970-01-01T00:00:00Z") })).rejects.toThrow(
+      /serialisable/,
+    );
     await expect(bus.publish("x", { fn: () => 1 })).rejects.toThrow(/serialisable/);
     await expect(bus.publish("x", { n: Number.NaN })).rejects.toThrow(/serialisable/);
     await expect(bus.publish("x", { ok: [1, "a", true, null, { b: 2 }] })).resolves.toBeUndefined();
