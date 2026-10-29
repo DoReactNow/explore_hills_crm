@@ -757,3 +757,18 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Business dates** are `YYYY-MM-DD` strings; the Prisma `@db.Date` value is UTC midnight of that day (`businessDateToDbDate()` / `dbDateToBusinessDate()`).
 - **Display styles** live in `src/shared/time/formats.ts` (`date`, `longDate`, `time`, `dateTime`) and use the `en-IN` locale from `APP_CONFIG`, for example "1 Jan 2027, 12:05 am".
 - **Integration tests clean up after themselves** (or reset first) and pass in shuffled order.
+
+---
+
+### Decision 38: Access-Control Details Settled in W-005
+
+**Date:** 2026-10-30
+**Status:** Accepted (implements Decisions 4, 5 and 23)
+
+#### Decision
+- **Registry shape:** `PERMISSIONS` is a flat object keyed by code (`"system:view-diagnostics": { label, description, module, reserved }`); `PermissionCode` is its key type, so routes declare `{ permission: "system:view-diagnostics" }` and an unknown code does not compile. Reserved codes are flagged `reserved: true` in the same object.
+- **Principal resolution:** `route()` asks `src/shared/rbac/principalResolver.ts`. Phase 0 resolves nobody. Tests replace it with `setPrincipalResolverForTests()`, which throws unless `APP_ENV=test`; test principals are built from the role's real grants in the test database (`src/tests/setup/principals.ts`). Phase 1 installs the session-based resolver.
+- **Denials:** `FORBIDDEN` carries `{ permission, principalId }` as log context only; `toErrorResponse` writes it to the server log, and the body holds the catalog message.
+- **Who may read the bypass flag:** the guard and the scope resolver decide on it. The identity module, which owns the role data, also reads the column to build principals and run the sync. A scan test fails if any other file reads `bypassesAccess` or compares role codes.
+- **Diagnostics:** `GET /api/diagnostics` returns the health detail for now; W-012 adds the worker and jobs.
+- **Prisma client format:** the generator emits CommonJS (`moduleFormat = "cjs"`). The ES-module client uses `import.meta.url`, which breaks inside the esbuild bundles (`dist/sync-rbac.js`, `dist/worker.js`). Next.js, Vitest and tsx all load the CommonJS client.

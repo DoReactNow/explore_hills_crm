@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -206,28 +206,30 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **Permissions and roles:** `system:view-diagnostics` (ADMIN by default; SUPER_ADMIN through the bypass). Reserved codes `roles:manage` and `users:manage-super-admins` are registered now (Decision 23).
 
 **RED tests**
-- [ ] Unit: permission registry integrity: every code is unique, matches `resource:action`, and has a label, description and module; the reserved list contains exactly `roles:manage` and `users:manage-super-admins`.
-- [ ] Unit: default roles reference only registered codes; no default bundle contains a reserved code; `SUPER_ADMIN` has `bypassesAccess` and an empty bundle; `ADMIN` has `system:view-diagnostics`, `MANAGER` and `AGENT` do not.
-- [ ] Unit: Super Admin bypass: a principal whose role has `bypassesAccess` passes `can()` for every registered code (including reserved ones) and the scope resolver returns "all"; no code outside the guard and scope resolver reads `bypassesAccess` or compares role codes (scan test).
-- [ ] Unit: `can(principal, code)` and the guard: allow, deny, `anyOf`, `authenticated`, `public`; default is deny when access is missing.
-- [ ] Unit: guard-coverage scan: every `src/app/api/**/route.ts` uses `route()` with an `access` value; every `'public'` route is in `publicRoutes.ts`. (Prove by temporarily adding an undeclared route.)
-- [ ] Integration: `GET /api/diagnostics` with an ADMIN or SUPER_ADMIN principal returns `200`; with a MANAGER principal returns `403` with the generic message and **no permission code in the body**; with no principal returns `401`. The server log for the denial contains the permission code and principal ID.
-- [ ] Integration: `db:sync-rbac` is idempotent (run twice, identical rows) and follows Decision 23: a **new** registry code is granted to its default roles; a code removed from the registry is deleted with its grants; a grant removed by hand from an existing role stays removed after re-sync; the `SUPER_ADMIN` row is created if missing and never updated.
-- [ ] Integration: the database trigger rejects inserting a reserved permission into any role, and any grant to the bypass role.
-- [ ] (The E2E check for the friendly forbidden message lives in W-008's e2e specs; there is no separate page-text scan for permission codes, per Decision 29.)
+- [x] Unit: permission registry integrity: every code is unique, matches `resource:action`, and has a label, description and module; the reserved list contains exactly `roles:manage` and `users:manage-super-admins`.
+- [x] Unit: default roles reference only registered codes; no default bundle contains a reserved code; `SUPER_ADMIN` has `bypassesAccess` and an empty bundle; `ADMIN` has `system:view-diagnostics`, `MANAGER` and `AGENT` do not.
+- [x] Unit: Super Admin bypass: a principal whose role has `bypassesAccess` passes `can()` for every registered code (including reserved ones) and the scope resolver returns "all"; no code outside the guard and scope resolver reads `bypassesAccess` or compares role codes (scan test).
+- [x] Unit: `can(principal, code)` and the guard: allow, deny, `anyOf`, `authenticated`, `public`; default is deny when access is missing.
+- [x] Unit: guard-coverage scan: every `src/app/api/**/route.ts` uses `route()` with an `access` value; every `'public'` route is in `publicRoutes.ts`. (Prove by temporarily adding an undeclared route.)
+- [x] Integration: `GET /api/diagnostics` with an ADMIN or SUPER_ADMIN principal returns `200`; with a MANAGER principal returns `403` with the generic message and **no permission code in the body**; with no principal returns `401`. The server log for the denial contains the permission code and principal ID.
+- [x] Integration: `db:sync-rbac` is idempotent (run twice, identical rows) and follows Decision 23: a **new** registry code is granted to its default roles; a code removed from the registry is deleted with its grants; a grant removed by hand from an existing role stays removed after re-sync; the `SUPER_ADMIN` row is created if missing and never updated.
+- [x] Integration: the database trigger rejects inserting a reserved permission into any role, and any grant to the bypass role.
+- [x] (The E2E check for the friendly forbidden message lives in W-008's e2e specs; there is no separate page-text scan for permission codes, per Decision 29.)
 
 **GREEN tasks**
-- [ ] `src/shared/rbac/permissionRegistry.ts` (`PERMISSIONS` const object and `PermissionCode` type, starting with `system:view-diagnostics`).
-- [ ] `src/shared/rbac/defaultRoles.ts` (`SUPER_ADMIN` with `bypassesAccess: true` and no bundle; `ADMIN`, `MANAGER`, `AGENT` bundles).
-- [ ] `src/shared/rbac/principal.ts` (the identity card type), `guard.ts`, `assertCan.ts`, `publicRoutes.ts`.
-- [ ] A `PrincipalResolver` interface in the route wrapper. Phase 0 ships a resolver that returns no principal in production; a **test-only** override is allowed only when `APP_ENV=test` and throws otherwise (unit-tested). Real session-based resolution arrives in Phase 1.
-- [ ] `src/modules/identity/`: Prisma-backed repository and service for `permissions`, `roles` and `role_permissions` only, and `syncRbac` plus its CLI.
-- [ ] `src/app/api/diagnostics/route.ts` guarded by `system:view-diagnostics`.
-- [ ] Frontend `usePrincipal()` stub exposing `can()` for hiding controls (never prints codes).
+- [x] `src/shared/rbac/permissionRegistry.ts` (`PERMISSIONS` const object and `PermissionCode` type, starting with `system:view-diagnostics`).
+- [x] `src/shared/rbac/defaultRoles.ts` (`SUPER_ADMIN` with `bypassesAccess: true` and no bundle; `ADMIN`, `MANAGER`, `AGENT` bundles).
+- [x] `src/shared/rbac/principal.ts` (the identity card type), `guard.ts`, `assertCan.ts`, `publicRoutes.ts`.
+- [x] A `PrincipalResolver` interface in the route wrapper. Phase 0 ships a resolver that returns no principal in production; a **test-only** override is allowed only when `APP_ENV=test` and throws otherwise (unit-tested). Real session-based resolution arrives in Phase 1.
+- [x] `src/modules/identity/`: Prisma-backed repository and service for `permissions`, `roles` and `role_permissions` only, and `syncRbac` plus its CLI.
+- [x] `src/app/api/diagnostics/route.ts` guarded by `system:view-diagnostics`.
+- [x] Frontend `usePrincipal()` stub exposing `can()` for hiding controls (never prints codes).
 
 **Verification:** full chain through `test:e2e`.
 
 > **Phase 1 acceptance reminder:** real login-based RBAC tests (each role against each guarded route, with real sessions) must be added in Phase 1.
+
+> **Done 2026-10-30.** 37 new unit tests (registry, default roles, `can`/`checkAccess`/`assertCan`, bypass and `resolveScope`, test-only resolver override, `usePrincipal` stub, guard-coverage scan, bypass/role-name scan) and 19 integration tests (diagnostics per role incl. the denial log, sync rules, triggers). Scans proven with temporary probes (a route not using `route()`, a public route not allow-listed, a bypass read plus a role-code comparison), all removed. `db:sync-rbac` run twice on `explorehills_dev`: the second run changed nothing; `dist/sync-rbac.js` runs from the bundle after switching the Prisma client to CommonJS. 149 unit, 31 integration (also shuffled), 3 E2E passing. Details in Decision 38.
 
 ---
 
@@ -304,9 +306,10 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 **GREEN tasks**
 - [x] `vitest.config.mts` (`.mts` so Vite loads it as ESM) with three projects: `unit` (`src/**/*.unit.test.ts`, node), `unit-dom` (`src/**/*.unit.test.tsx`, jsdom, for component tests; `test:unit` runs both) and `integration` (`src/**/*.int.test.ts`, node environment, `fileParallelism: false`, global setup that loads `.env.test` with override and asserts the safety guards).
 - [x] Part A: `src/tests/setup/` with env loading (`testEnv.ts`, `guards.ts`), a `resetDatabase()` helper (truncate all `public` tables except `_prisma_migrations`, and clear pg-boss jobs), a `callRoute(handler, request)` helper, and a temporary test storage folder cleaned between runs.
-- [ ] Part B: a test-principal factory in `src/tests/setup/` (including a Super Admin principal).
+- [x] Part B: a test-principal factory in `src/tests/setup/` (including a Super Admin principal). Built in W-005 (`principals.ts`), because W-005's integration tests need it.
 - [x] Part A: `scripts/prepare-test-db.ts` loads `.env.test`, asserts guards, runs migrations. Idempotent.
-- [ ] W-005 adds `syncRbac` to it; W-009 adds the test seed.
+- [x] W-005 adds `syncRbac` to it.
+- [ ] W-009 adds the test seed to it.
 - [x] `playwright.config.ts`: loads `.env.test`, reads the port from env (note: with `output: 'standalone'`, `next start` prints a warning; either accept it for E2E or start `.next/standalone/server.js` with `HOSTNAME`/`PORT`, and record the choice), `webServer` runs `npm run start:test` against the existing build, `reuseExistingServer` only outside CI, Chromium only, traces on first retry.
 - [ ] Part B: `e2e/` spec for the forbidden message. The health spec is in W-003; the not-found and server-error specs are in W-004 (Decisions 34 and 36).
 - [ ] Test-only routes (diagnostics failure, test principal override) exist **only** when `APP_ENV=test`, and a unit test proves they are unreachable otherwise.

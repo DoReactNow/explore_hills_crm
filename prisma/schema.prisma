@@ -4,8 +4,10 @@
 // its own models. Constraints Prisma cannot express live as raw SQL in the migrations.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  // CommonJS, so the esbuild bundles (dist/worker.js, dist/sync-rbac.js) can include it.
+  moduleFormat = "cjs"
 }
 
 datasource db {

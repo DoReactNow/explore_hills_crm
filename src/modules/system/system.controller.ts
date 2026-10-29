@@ -14,6 +14,11 @@ export function createSystemController(service: SystemService) {
       const health = await service.getHealth();
       return { status: health.database === "up" ? 200 : 503, data: health };
     },
+
+    /** GET /api/diagnostics: health detail for operators (W-012 adds the worker and jobs). */
+    async diagnostics(): Promise<HandlerResult<Health>> {
+      return { data: await service.getHealth() };
+    },
   };
 }
 

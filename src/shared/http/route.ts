@@ -1,22 +1,26 @@
 // The route() wrapper every src/app/api/**/route.ts uses:
 //   export const POST = route({ access, input, handler: controller.fn })
-// Order: request ID → (W-005: principal + access check) → input parsing → handler → envelope.
-// Anything thrown becomes the friendly error envelope (W-004).
+// Order: request ID → principal → access check (default deny) → input parsing → handler →
+// envelope. Anything thrown becomes the friendly error envelope (W-004).
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import { AppError } from "@/shared/errors/AppError";
 import { GENERIC_FIELD_MESSAGE } from "@/shared/errors/errorCatalog";
 import { parseInput, toErrorResponse } from "@/shared/errors/toErrorResponse";
 import { logger as rootLogger, type Logger } from "@/shared/logger";
+import { checkAccess, requiredPermissions, type Access } from "@/shared/rbac/guard";
+import type { Principal } from "@/shared/rbac/principal";
+import { resolvePrincipal } from "@/shared/rbac/principalResolver";
 
-/** W-003/W-004 support public routes only; W-005 adds 'authenticated', { permission } and { anyOf }. */
-export type Access = "public";
+export type { Access };
 
 export interface RouteContext<I, P> {
   request: Request;
   requestId: string;
   params: P;
   input: I;
+  /** Null only on public routes. */
+  principal: Principal | null;
   logger: Logger;
 }
 
@@ -62,6 +66,19 @@ export function route<T, I = undefined, P extends object = Record<string, string
     const logger = rootLogger.child({ requestId });
     const headers = { "x-request-id": requestId };
     try {
+      const principal = await resolvePrincipal(request);
+      const decision = checkAccess(options.access, principal);
+      if (decision === "unauthenticated") throw new AppError("UNAUTHENTICATED");
+      if (decision === "forbidden") {
+        const codes = requiredPermissions(options.access);
+        throw new AppError("FORBIDDEN", {
+          logContext: {
+            permission: codes?.length === 1 ? codes[0] : codes,
+            principalId: principal?.userId ?? null,
+          },
+        });
+      }
+
       const input = options.input
         ? parseInput(options.input, await readRawInput(request))
         : (undefined as I);
@@ -70,6 +87,7 @@ export function route<T, I = undefined, P extends object = Record<string, string
         requestId,
         params: await context.params,
         input,
+        principal,
         logger,
       });
       return Response.json({ data: result.data }, { status: result.status ?? 200, headers });

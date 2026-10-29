@@ -87,7 +87,7 @@ system ────────┘  settings, worker heartbeats
 
 ## 3. Prisma Schema
 
-> Generator and datasource blocks are created in W-007. **Each phase adds only its own models and fields**: a relation or back-relation marked with a later phase is left out until that phase, so the schema validates at every step. The models below use the conventions in Section 1. `// → module.table` marks a cross-module foreign key. **Back-relation fields** (lists on the "one" side) are required by Prisma; each is added in the same phase as the relation it mirrors, and creates no SQL column.
+> Generator and datasource blocks are created in W-007; the generator emits a CommonJS client (`moduleFormat = "cjs"`, Decision 38). **Each phase adds only its own models and fields**: a relation or back-relation marked with a later phase is left out until that phase, so the schema validates at every step. The models below use the conventions in Section 1. `// → module.table` marks a cross-module foreign key. **Back-relation fields** (lists on the "one" side) are required by Prisma; each is added in the same phase as the relation it mirrors, and creates no SQL column.
 
 ### 3.1 `identity` module
 
