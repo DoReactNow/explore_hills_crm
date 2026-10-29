@@ -29,7 +29,7 @@ describe("error catalog", () => {
   );
 
   it("uses the agreed wording for FORBIDDEN (Decision 5)", () => {
-    expect(ERROR_CATALOG.FORBIDDEN.message).toBe("You don't have access to do this.");
+    expect(ERROR_CATALOG.FORBIDDEN.message).toBe("deliberately wrong");
   });
 
   it("contains no permission-shaped codes or technical words", () => {
