@@ -798,3 +798,17 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **`npm run db:seed`** runs `scripts/run-real-seed.ts`, which explains how to create `prisma/private/seed.ts` when it is missing instead of failing with a module error.
 - **First Super Admin password policy** (checked before anything is written): at least 12 characters, at least three of lowercase, uppercase, digits and symbols, and no placeholder (`change-me`) or common word (`password`, the company name, `qwerty`, `123456`). The committed `.env.example` value is therefore refused on purpose. Errors never echo the password.
 - **`npm run guard:files`** also refuses tracked files under `storage/` (recordings and uploads), in addition to `prisma/private/` and real `.env*` files.
+
+---
+
+### Decision 41: Docker Details Settled in W-010 Part B
+
+**Date:** 2026-10-30
+**Status:** Accepted (implements Decisions 14 and 27)
+
+#### Decision
+- **Base image:** `node:${NODE_VERSION}-bookworm-slim` with `ARG NODE_VERSION=22`, kept in step with `.nvmrc` by a scan test.
+- **Production stages:** `deps` (all dependencies) → `builder` (Prisma generate, `next build`, worker and tools bundles) → `migrator` (Prisma CLI, `prisma/`, `prisma.config.ts`, `dist/sync-rbac.js`) → `runner` (standalone output) and `worker` (production dependencies plus `dist/worker.js`). `runner` and `worker` run as `node` (uid 1000) on a read-only filesystem.
+- **OpenSSL** is installed in the stages that run the Prisma CLI (`deps`/`builder` and `migrator`); without it the migration engine only guesses the OpenSSL version. The runtime images do not need it (the app uses the `pg` driver adapter).
+- **Next.js cache tmpfs** is mounted with `uid=1000,gid=1000`: a default tmpfs is root-owned, so the `node` user could not write Next's cache. `local_setup.md` Section 10 is updated.
+- **Image size:** the worker image is about 1.45 GB because the production dependencies include Next.js. Trimming the worker's dependencies is left to Phase 11.

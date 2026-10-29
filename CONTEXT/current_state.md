@@ -18,7 +18,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009 done) |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010 done) |
 | 1 | Identity: users, sessions, real RBAC end to end | PENDING |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
@@ -357,24 +357,26 @@ Phase 0 has **no user accounts** (`identity_users` arrives in Phase 1). Everythi
 
 **RED checks**
 - [x] `docker compose -f docker/docker-compose.local.yml up -d db` gives a healthy container with both `explorehills_dev` and `explorehills_test` on a fresh volume; `SHOW timezone` is `UTC`.
-- [ ] `--profile app` serves `http://127.0.0.1:47214/api/health` with hot reload working, and the `worker` container starts and stays up (W-001 placeholder; its heartbeat is verified in W-012).
-- [ ] `docker compose ... -f docker/docker-compose.prod.yml build` succeeds; the `migrate` service runs before `app` and `worker`; a deliberately failing migration prevents both from starting.
-- [ ] Containers reach each other by service name (`db`), with no fixed IP addresses (Decision 29).
-- [ ] The production `app` and `worker` containers run as a non-root user with a read-only filesystem; `app` passes its healthcheck; the `storage` volume (used when `STORAGE_DRIVER=local`) is the only writable path besides `/tmp`.
+- [x] `--profile app` serves `http://127.0.0.1:47214/api/health` with hot reload working, and the `worker` container starts and stays up (W-001 placeholder; its heartbeat is verified in W-012).
+- [x] `docker compose ... -f docker/docker-compose.prod.yml build` succeeds; the `migrate` service runs before `app` and `worker`; a deliberately failing migration prevents both from starting.
+- [x] Containers reach each other by service name (`db`), with no fixed IP addresses (Decision 29).
+- [x] The production `app` and `worker` containers run as a non-root user with a read-only filesystem; `app` passes its healthcheck; the `storage` volume (used when `STORAGE_DRIVER=local`) is the only writable path besides `/tmp`.
 
 **GREEN tasks**
 - [x] Part A: the `db` service, volume and network of `docker/docker-compose.local.yml`, and `docker/postgres/init/01-create-test-db.sql`, exactly as in `local_setup.md` Section 4.
-- [ ] Part B: the `app` and `worker` services (profile `app`) added to `docker/docker-compose.local.yml` exactly as in `local_setup.md` Section 4.
+- [x] Part B: the `app` and `worker` services (profile `app`) added to `docker/docker-compose.local.yml` exactly as in `local_setup.md` Section 4.
 
 > **Part A done 2026-10-30.** Fresh volume: container healthy, `explorehills_dev` and `explorehills_test` both exist, `SHOW timezone` is `UTC` in both, port published on `127.0.0.1:54329` only, no fixed IP. `docker:db:create:dev` / `create:test` report "already exists" on the existing volume (harmless, as documented).
-- [ ] `docker/Dockerfile.local`: Node image from `.nvmrc` version (build arg), installs all dependencies, runs `next dev` on `0.0.0.0`.
-- [ ] `docker/Dockerfile.prod`: stages `deps` → `builder` (prisma generate + `next build` + `build:worker`) → `migrator` (prisma CLI, `prisma/` directory, runs `migrate deploy`) → `runner` (standalone output, non-root `node` user, `HEALTHCHECK` using `node -e fetch(...)` because slim images have no `wget`, no dev dependencies; sets `HOSTNAME=0.0.0.0` and `PORT` from `APP_PORT`, because the standalone `server.js` reads `PORT`/`HOSTNAME`) → `worker` (production dependencies, `dist/worker.js`, non-root, runs `node dist/worker.js` directly, not through npm, because the filesystem is read-only). The `migrator` stage also contains `prisma.config.ts` (Prisma 7) and `dist/sync-rbac.js` (from `build:tools`). Create `/app/storage` owned by the `node` user so the mounted volume is writable. `ffmpeg` comes from the `ffmpeg-static` package (added in Phase 7), so no system package is needed.
-- [ ] `docker/docker-compose.prod.yml` exactly as in `local_setup.md` Section 10.
-- [ ] Root `.dockerignore` (node_modules, .next, dist, `.env*`, `prisma/private`, `storage`, tests output, `.git`).
-- [ ] All `docker:*` npm scripts from W-001.
-- [ ] Keep the Node version in the Dockerfiles in step with `.nvmrc` (use a build arg defaulting to the same major).
+- [x] `docker/Dockerfile.local`: Node image from `.nvmrc` version (build arg), installs all dependencies, runs `next dev` on `0.0.0.0`.
+- [x] `docker/Dockerfile.prod`: stages `deps` → `builder` (prisma generate + `next build` + `build:worker`) → `migrator` (prisma CLI, `prisma/` directory, runs `migrate deploy`) → `runner` (standalone output, non-root `node` user, `HEALTHCHECK` using `node -e fetch(...)` because slim images have no `wget`, no dev dependencies; sets `HOSTNAME=0.0.0.0` and `PORT` from `APP_PORT`, because the standalone `server.js` reads `PORT`/`HOSTNAME`) → `worker` (production dependencies, `dist/worker.js`, non-root, runs `node dist/worker.js` directly, not through npm, because the filesystem is read-only). The `migrator` stage also contains `prisma.config.ts` (Prisma 7) and `dist/sync-rbac.js` (from `build:tools`). Create `/app/storage` owned by the `node` user so the mounted volume is writable. `ffmpeg` comes from the `ffmpeg-static` package (added in Phase 7), so no system package is needed.
+- [x] `docker/docker-compose.prod.yml` exactly as in `local_setup.md` Section 10.
+- [x] Root `.dockerignore` (node_modules, .next, dist, `.env*`, `prisma/private`, `storage`, tests output, `.git`).
+- [x] All `docker:*` npm scripts from W-001.
+- [x] Keep the Node version in the Dockerfiles in step with `.nvmrc` (use a build arg defaulting to the same major).
 
 **Verification:** commands above, plus `lint` and `build`.
+
+> **Part B done 2026-10-30.** Local full stack: `docker:local:up` builds and starts db, app and worker; `127.0.0.1:47214/api/health` returns ok with the database reached as `db`; a host edit to the home page was served within about 4 s (hot reload); the worker stays up. Production drill against a throwaway `explorehills_prodcheck` database and a temporary git-ignored `.env.production` (both removed afterwards): images build; `migrate` exits 0 before `app` and `worker` start; `app` becomes healthy through the real database; `app` and `worker` run as `node` (uid 1000) on a read-only filesystem where only `/app/storage` and `/tmp` (plus the app's Next cache) are writable; `node dist/sync-rbac.js` in the migrator image creates the four roles. A deliberately invalid migration made `migrate` exit 1 (P3018) and `app` and `worker` stayed in Created. Found and fixed: the Next cache tmpfs was root-owned (now `uid=1000`), and the Prisma CLI warned about missing OpenSSL (now installed in the CLI stages). 6 Docker scan tests; 172 unit, 32 integration, 6 E2E passing. Details in Decision 41.
 
 ---
 

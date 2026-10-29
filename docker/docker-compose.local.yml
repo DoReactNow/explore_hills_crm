@@ -1,7 +1,5 @@
 name: explorehills-local
 
-# W-010 part A: the Postgres container only. Part B adds the optional app and worker
-# services (profile "app") exactly as in CONTEXT/local_setup.md Section 4.
 services:
   db:
     image: postgres:16-alpine
@@ -27,8 +25,72 @@ services:
     networks:
       - explorehills_local_net
 
+  # Optional: the whole app (web + worker) inside Docker. Start with:  --profile app
+  app:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.local
+    container_name: explorehills_local_app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      APP_HOST: 0.0.0.0
+      APP_PORT: "47214"
+      APP_URL: http://127.0.0.1:47214
+      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://explorehills_user:explorehills_password@db:5432/explorehills_dev
+      AUTH_SECRET: dev-only-secret-change-me-0123456789abcdef
+      CREDENTIALS_ENCRYPTION_KEY: ZGV2LW9ubHkta2V5LWNoYW5nZS1tZS0wMDAwMDAwMDA=
+      TELEPHONY_PROVIDER: fake
+      WHATSAPP_GATEWAY: fake
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: /workspace/storage
+      TZ: UTC
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "127.0.0.1:47214:47214"
+    volumes:
+      - ..:/workspace
+      - explorehills_local_node_modules:/workspace/node_modules
+      - explorehills_local_next_cache:/workspace/.next
+    networks:
+      - explorehills_local_net
+
+  # Background worker (pg-boss). Same image and settings as the app, different command.
+  worker:
+    profiles: ["app"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.local
+    container_name: explorehills_local_worker
+    command: ["npx", "tsx", "watch", "src/worker/index.ts"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: development
+      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://explorehills_user:explorehills_password@db:5432/explorehills_dev
+      AUTH_SECRET: dev-only-secret-change-me-0123456789abcdef
+      CREDENTIALS_ENCRYPTION_KEY: ZGV2LW9ubHkta2V5LWNoYW5nZS1tZS0wMDAwMDAwMDA=
+      TELEPHONY_PROVIDER: fake
+      WHATSAPP_GATEWAY: fake
+      STORAGE_DRIVER: local
+      STORAGE_LOCAL_DIR: /workspace/storage
+      TZ: UTC
+    volumes:
+      - ..:/workspace
+      - explorehills_local_node_modules:/workspace/node_modules
+    networks:
+      - explorehills_local_net
+
 volumes:
   explorehills_local_pgdata:
+  explorehills_local_node_modules:
+  explorehills_local_next_cache:
 
 # Containers reach each other by service name (for example "db"); no fixed IP addresses (Decision 29).
 networks:

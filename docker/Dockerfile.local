@@ -1,0 +1,15 @@
+# Local development image (Decision 14): all dependencies, source mounted from the host,
+# `next dev` with hot reload. Used by the optional "app" and "worker" services in
+# docker/docker-compose.local.yml. Keep NODE_VERSION in step with .nvmrc.
+ARG NODE_VERSION=22
+FROM node:${NODE_VERSION}-bookworm-slim
+
+WORKDIR /workspace
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+EXPOSE 47214
+# Host and port come from the compose environment (APP_HOST=0.0.0.0, APP_PORT=47214).
+CMD ["node", "scripts/run-next.mjs", "dev", ".env"]

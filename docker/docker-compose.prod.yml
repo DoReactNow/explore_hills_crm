@@ -1,0 +1,69 @@
+name: explorehills-prod
+
+services:
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+      target: migrator
+    env_file: ../.env.production
+    command: ["npx", "prisma", "migrate", "deploy"]
+    restart: "no"
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+      target: runner
+    env_file: ../.env.production
+    environment:
+      HOSTNAME: 0.0.0.0 # the standalone server.js reads HOSTNAME and PORT, not APP_HOST/APP_PORT
+      PORT: ${APP_PORT:-47213}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${APP_PORT:-47213}:${APP_PORT:-47213}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache:uid=1000,gid=1000 # Next.js writes its cache here as the node user; the rest of the filesystem is read-only
+    volumes:
+      - explorehills_storage:/app/storage # used only when STORAGE_DRIVER=local (the image creates /app/storage owned by the node user)
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+      target: worker
+    env_file: ../.env.production
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp # recording download and compression scratch space
+    volumes:
+      - explorehills_storage:/app/storage # used only when STORAGE_DRIVER=local
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  explorehills_storage:

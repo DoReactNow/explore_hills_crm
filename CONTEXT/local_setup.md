@@ -456,7 +456,7 @@ After `down -v`, repeat Section 2 steps 2 to 5.
 
 ## 10. Docker: Production Build and Run
 
-Production uses `docker/Dockerfile.prod` (multi-stage, Next.js `standalone` output, a separate `worker` target, non-root user, healthcheck) and `docker/docker-compose.prod.yml`. The database is **external** (managed Postgres). The host must keep processes running (container host or VPS, not serverless), because the worker and live updates are long-running.
+Production uses `docker/Dockerfile.prod` (multi-stage, Next.js `standalone` output, a separate `worker` target, non-root user, healthcheck, OpenSSL only in the Prisma CLI stages) and `docker/docker-compose.prod.yml`. The database is **external** (managed Postgres). The host must keep processes running (container host or VPS, not serverless), because the worker and live updates are long-running.
 
 ```bash
 # On the server, with .env.production in place
@@ -511,7 +511,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp
-      - /app/.next/cache                       # Next.js writes its cache here; the rest of the filesystem is read-only
+      - /app/.next/cache:uid=1000,gid=1000     # Next.js writes its cache here as the node user (uid 1000); the rest of the filesystem is read-only
     volumes:
       - explorehills_storage:/app/storage      # used only when STORAGE_DRIVER=local (the image creates /app/storage owned by the node user)
     security_opt:

@@ -1,0 +1,66 @@
+# Production images (Decisions 14, 27). Targets:
+#   migrator  one-shot: prisma migrate deploy, and the RBAC sync (node dist/sync-rbac.js)
+#   runner    the Next.js app (standalone output), non-root, read-only filesystem, healthcheck
+#   worker    background jobs (node dist/worker.js), non-root, read-only filesystem
+# Keep NODE_VERSION in step with .nvmrc. ffmpeg comes from the ffmpeg-static package (Phase 7).
+ARG NODE_VERSION=22
+
+FROM node:${NODE_VERSION}-bookworm-slim AS base
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# The Prisma CLI's migration engine needs OpenSSL, which slim images do not include.
+FROM base AS base-openssl
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends openssl \
+ && rm -rf /var/lib/apt/lists/*
+
+# All dependencies (build tools, Prisma CLI).
+FROM base-openssl AS deps
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# Production dependencies only (for the worker).
+FROM base AS prod-deps
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+FROM deps AS builder
+COPY . .
+RUN npm run db:generate \
+ && npm run build \
+ && npm run build:worker \
+ && npm run build:tools
+
+FROM base-openssl AS migrator
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json prisma.config.ts ./
+COPY prisma ./prisma
+COPY --from=builder /app/dist/sync-rbac.js ./dist/sync-rbac.js
+USER node
+CMD ["npx", "prisma", "migrate", "deploy"]
+
+FROM base AS runner
+ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
+    PORT=47213
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+# The only writable paths at runtime: the storage volume and Next's cache (a tmpfs in compose).
+RUN mkdir -p /app/storage /app/.next/cache && chown node:node /app/storage /app/.next/cache
+USER node
+EXPOSE 47213
+# Slim images have no wget/curl, so the check uses Node's fetch.
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=5 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+CMD ["node", "server.js"]
+
+FROM base AS worker
+ENV NODE_ENV=production
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY package.json ./
+COPY --from=builder /app/dist/worker.js ./dist/worker.js
+RUN mkdir -p /app/storage && chown node:node /app/storage
+USER node
+# Run node directly, not through npm: the filesystem is read-only.
+CMD ["node", "dist/worker.js"]

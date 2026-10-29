@@ -1,0 +1,19 @@
+# Build context for docker/Dockerfile.local and docker/Dockerfile.prod.
+# Secrets, local data and anything regenerated in the image stay out.
+node_modules
+.next
+dist
+coverage
+test-results
+playwright-report
+blob-report
+src/generated
+storage
+.env*
+!.env*.example
+prisma/private
+.git
+.github
+.claude
+*.log
+.DS_Store
