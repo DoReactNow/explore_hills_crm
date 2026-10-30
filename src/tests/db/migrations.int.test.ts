@@ -8,8 +8,8 @@ const client = new Client({ connectionString: getEnv().DATABASE_URL });
 beforeAll(() => client.connect());
 afterAll(() => client.end());
 
-describe("baseline migration", () => {
-  it("creates the Phase 0 tables in the public schema", async () => {
+describe("migrations", () => {
+  it("creates the application tables in the public schema", async () => {
     const { rows } = await client.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
@@ -17,20 +17,26 @@ describe("baseline migration", () => {
     );
     expect(rows.map((row) => row.table_name)).toEqual([
       "_prisma_migrations",
+      "audit_events",
+      "identity_login_throttle",
       "identity_permissions",
       "identity_role_permissions",
       "identity_roles",
+      "identity_sessions",
+      "identity_users",
       "system_worker_heartbeats",
     ]);
   });
 
-  it("records the baseline migration as applied", async () => {
+  it("records every migration as applied, baseline first", async () => {
     const { rows } = await client.query<{ migration_name: string; finished_at: Date | null }>(
       `SELECT migration_name, finished_at FROM _prisma_migrations ORDER BY migration_name`,
     );
-    expect(rows).toHaveLength(1);
     expect(rows[0].migration_name).toMatch(/^\d{14}_init_identity_rbac_system$/);
-    expect(rows[0].finished_at).not.toBeNull();
+    expect(rows.map((row) => row.migration_name.slice(15))).toContain(
+      "identity_users_sessions_audit",
+    );
+    expect(rows.every((row) => row.finished_at !== null)).toBe(true);
   });
 
   it("stores instants as timestamptz(3)", async () => {

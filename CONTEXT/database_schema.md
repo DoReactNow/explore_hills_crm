@@ -3,7 +3,7 @@
 This document is the authoritative **target** schema for Explore Hills CRM: every table, column type, index and ownership rule, plus the seed plan and shared constants. It is written for PostgreSQL 16 and Prisma.
 
 > **Status of this document**
-> - **Last updated 2026-10-29** to match `decision_log.md` Decisions 21–31.
+> - **Last updated 2026-10-30**: Phase 1 tables (`identity_users`, `identity_sessions`, `identity_login_throttle`, `audit_events`) are implemented (W-101).
 > - **Phase 0 implements** the `identity` RBAC tables (`identity_permissions`, `identity_roles`, `identity_role_permissions`) and `system_worker_heartbeats`.
 > - Every other table is **planned**. Each phase's detailed plan (written with `TDD_INSTRUCTION_GUIDE.md`) may adjust its tables, and must update this file in the same change.
 > - Authentication is decided (own sessions table, Decision 46); Phase 1 adds `identity_users`, `identity_sessions`, `identity_login_throttle` and `audit_events`.
@@ -43,7 +43,7 @@ This document is the authoritative **target** schema for Explore Hills CRM: ever
 ## 2. Module Ownership and Cross-Module Foreign Keys
 
 ```
-identity ──────┐  users, teams, roles, permissions, sessions
+identity ──────┐  users, teams, roles, permissions, sessions, sign-in throttle
                │
 leads ─────────┤  contacts, leads, pipeline stages, notes, tasks, timeline
                │
@@ -221,6 +221,19 @@ model IdentitySession {
   @@index([userId])
   @@index([expiresAt])
   @@map("identity_sessions")
+}
+
+// PHASE 1 — sign-in attempts per IP address in the current window (Decision 46). The key is a hash
+// of the IP address, never the address itself. Old windows are removed by the daily clean-up job.
+model IdentityLoginThrottle {
+  key         String   @id
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([windowStart])
+  @@map("identity_login_throttle")
 }
 ```
 
@@ -971,6 +984,7 @@ Cross-module foreign keys (dotted)
 | `telephony_agent_endpoints.loginEncrypted`, `.secretEncrypted` | Staff calling credentials | Encrypted at rest, never logged or returned by an API. |
 | `identity_users.email`, `.name`, `.phoneE164`, `.passwordHash` | Staff identity | `passwordHash` is never returned by any API or written to any log. |
 | `identity_sessions.ip`, `.userAgent` | Network identifiers | Purged after expiry plus a short retention window. |
+| `identity_login_throttle.key` | Hash of an IP address | Not reversible; rows are removed a day after their window ends. |
 | `audit_events.metadata`, `.summary` | May reference people | Store IDs, not names or phone numbers, in `metadata`. |
 
 Logs must redact all of the above (see `project_data.md` Section 8).

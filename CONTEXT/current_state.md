@@ -680,23 +680,25 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** None.
 
 #### Step 1: Schema and migration
-- [ ] Models in `prisma/schema.prisma` exactly as `database_schema.md`, minus Phase 2 columns; add `IdentityLoginThrottle` and document it in `database_schema.md` 3.1
-- [ ] `npm run db:migrate:dev -- --name identity_users_sessions_audit`, with raw SQL: unique index on `lower("email")`, `CHECK` on `"phoneE164"`, append-only trigger on `audit_events` (UPDATE and DELETE raise)
-- [ ] `db:test:migrate` applies cleanly; `db:migrate:check` passes (raw SQL not reported as drift)
-- [ ] `npm run db:generate`; `resetDatabase()` still clears every new table (the audit trigger allows TRUNCATE)
+- [x] Models in `prisma/schema.prisma` exactly as `database_schema.md`, minus Phase 2 columns; add `IdentityLoginThrottle` and document it in `database_schema.md` 3.1
+- [x] `npm run db:migrate:dev -- --name identity_users_sessions_audit`, with raw SQL: unique index on `lower("email")`, `CHECK` on `"phoneE164"`, append-only trigger on `audit_events` (UPDATE and DELETE raise)
+- [x] `db:test:migrate` applies cleanly; `db:migrate:check` passes (raw SQL not reported as drift)
+- [x] `npm run db:generate`; `resetDatabase()` still clears every new table (the audit trigger allows TRUNCATE)
 
 #### Step 2: RED tests (write first, watch them fail)
-- [ ] Integration: the four tables exist with `timestamptz(3)` instants; a second user with the same email in different case is rejected; an invalid phone is rejected
-- [ ] Integration: updating or deleting an `audit_events` row raises; inserting works
-- [ ] Integration: deleting a role still held by a user is refused (`Restrict`); deleting a user deletes their sessions (`Cascade`)
-- [ ] Unit: enum parity, `IDENTITY_USER_STATUSES` equals Prisma's `IdentityUserStatus`
+- [x] Integration: the four tables exist with `timestamptz(3)` instants; a second user with the same email in different case is rejected; an invalid phone is rejected
+- [x] Integration: updating or deleting an `audit_events` row raises; inserting works
+- [x] Integration: deleting a role still held by a user is refused (`Restrict`); deleting a user deletes their sessions (`Cascade`)
+- [x] Unit: enum parity, `IDENTITY_USER_STATUSES` equals Prisma's `IdentityUserStatus`
 
 #### Step 3: GREEN implementation
-- [ ] Schema, migration, `identity.types.ts` constants, enum parity test, `database_schema.md` and `prisma/CONVENTIONS.md` updated
+- [x] Schema, migration, `identity.types.ts` constants, enum parity test, `database_schema.md` and `prisma/CONVENTIONS.md` updated
 
 #### Step 4: Verification chain
-- [ ] `lint` · `typecheck` · `build` · `build:worker` · `test:unit` · `test:integration` · `test:e2e` · `db:migrate:check`
-- [ ] `current_state.md` updated
+- [x] `lint` · `typecheck` · `build` · `build:worker` · `test:unit` · `test:integration` · `test:e2e` · `db:migrate:check`
+- [x] `current_state.md` updated
+
+> **Done 2026-10-30.** Migration `identity_users_sessions_audit` with the case-insensitive email index, the E.164 phone check and the append-only audit trigger (TRUNCATE, used only by the test reset, is still allowed). Drift check clean, and a probe `migrate dev` produced an empty migration (Prisma would not drop the raw SQL). 7 new tests (6 integration, 1 enum parity); the Phase 0 migrations test now lists the new tables. 231 unit, 63 integration, 6 E2E passing.
 
 ---
 
