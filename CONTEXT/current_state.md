@@ -659,6 +659,11 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 > **Detailed plan written and approved by the owner on 2026-10-30.** Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
+**Before W-102 continues (Decision 47):** map every Phase 1 scenario in `test_scenarios.md` to a work item by its ID, answer Phase 1's open questions, and get the owner's approval of the revised plan. W-101 is complete.
+
+- [ ] Phase 1 plan revised against `test_scenarios.md` and re-approved by the owner
+- [ ] Create the missing `scripts/reset-db.ts` behind `db:reset:dev` and `db:reset:test` (`P0-OPS-01`, `P0-OPS-02`). W-001 and W-015 were ticked with this gap; it was found on 2026-10-30.
+
 **Definition of done for Phase 1:** a person signs in with email and password, works under their role's permissions, and signs out; the Super Admin protections hold; every user change and sign-in event is audited; RBAC is proven end to end with real sessions for every role, including `SUPER_ADMIN`; every box below is ticked.
 
 ---

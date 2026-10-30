@@ -896,3 +896,16 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **What the user is told:** a wrong email or password gives one message that does not reveal whether the account exists (new catalog code `INVALID_CREDENTIALS`); a locked account or a throttled IP gets the existing `RATE_LIMITED` message.
 - **Who can sign in:** only `ACTIVE` users. Deactivating a user revokes all their sessions; a role or permission change applies on the next request, because the principal is rebuilt every time.
 - **Audit:** sign-in, sign-out, lockouts and every user change are written to `audit_events` (the table and writer arrive in Phase 1, Decision 23).
+
+---
+
+### Decision 47: Test Scenario Catalogue and When Phases Are Planned
+
+**Date:** 2026-10-30
+**Status:** Accepted (chosen by the user)
+
+#### Decision
+- `CONTEXT/test_scenarios.md` lists the edge and special cases of every phase in plain language, written once now and kept up to date. It lists what must be true, not test code.
+- Detailed work items are still written when a phase arrives, in the `TDD_INSTRUCTION_GUIDE.md` format, from the code that exists by then. Plans for all phases are not written in advance, because they would go stale and some depend on open decisions.
+- **Coverage rule:** every scenario of a phase maps to a real test in that phase's plan, by ID, or moves to a named later phase with the reason. New edge cases and production bugs are added to the catalogue in the same change.
+- The session prompt and the TDD guide carry these rules, so they apply in every new session.
