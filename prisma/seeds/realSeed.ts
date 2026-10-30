@@ -1,7 +1,7 @@
 // Helpers for the PRIVATE real seed (Decision 11). The real seed itself lives in
 // prisma/private/seed.ts, which is git-ignored; prisma/seed.example.ts is its committed template.
 // Values come from .env (SEED_SUPER_ADMIN_*), never from files.
-import { checkPasswordStrength } from "@/modules/identity";
+import { checkPasswordStrength, ensureFirstSuperAdmin } from "@/modules/identity";
 import { getEnv } from "@/shared/config/env";
 import type { SeedTarget } from "./testSeed";
 
@@ -40,17 +40,20 @@ export function checkSuperAdminCredentials(input: {
 }
 
 /**
- * Runs the checks every real seed shares. Phase 0 has no user accounts, so nothing is written yet;
- * from Phase 1 this creates the first Super Admin, and does nothing if an active one exists.
+ * Runs the checks every real seed shares, then creates the first Super Admin. It does nothing if an
+ * active one exists, and refuses clearly if the email belongs to another account (Decision 49).
  */
 export async function runRealSeed(): Promise<void> {
   const env = getEnv();
   assertRealSeedTarget(env);
-  checkSuperAdminCredentials({
+  const credentials = checkSuperAdminCredentials({
     email: process.env.SEED_SUPER_ADMIN_EMAIL,
     password: process.env.SEED_SUPER_ADMIN_PASSWORD,
   });
+  const result = await ensureFirstSuperAdmin(credentials);
   console.log(
-    `[seed] checks passed for database "${env.databaseName}". User accounts arrive in Phase 1; nothing to create yet.`,
+    result === "created"
+      ? `[seed] created the first Super Admin in database "${env.databaseName}".`
+      : `[seed] an active Super Admin already exists in database "${env.databaseName}"; nothing to do.`,
   );
 }

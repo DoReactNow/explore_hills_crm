@@ -37,6 +37,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json prisma.config.ts ./
 COPY prisma ./prisma
 COPY --from=builder /app/dist/sync-rbac.js ./dist/sync-rbac.js
+COPY --from=builder /app/dist/reset-super-admin-password.js ./dist/reset-super-admin-password.js
 USER node
 CMD ["npx", "prisma", "migrate", "deploy"]
 

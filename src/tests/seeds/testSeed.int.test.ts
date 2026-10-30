@@ -45,6 +45,7 @@ describe("test seed", () => {
       "AGENT",
       "MANAGER",
       "SUPER_ADMIN",
+      "TEAM_VIEWER",
     ]);
 
     await runTestSeed();

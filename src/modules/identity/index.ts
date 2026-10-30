@@ -9,6 +9,7 @@ export {
   verifyPassword,
 } from "./identity.passwords";
 
+export { createUserIfMissing, ensureFirstSuperAdmin } from "./identity.operator";
 export { createSessionPrincipalResolver } from "./identity.session";
 
 export const buildPrincipalForRole = identityService.buildPrincipalForRole;

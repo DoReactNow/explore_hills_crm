@@ -1028,7 +1028,7 @@ Decision 21 (resolved 2026-10-29): the platform serves **one company, Explore Hi
 | **RBAC sync** (`db:sync-rbac`) | Every environment | All permissions from the registry (code, label, description, module, reserved flag); system roles `SUPER_ADMIN` (`bypassesAccess = true`, no grants), `ADMIN`, `MANAGER`, `AGENT`. Default grants are applied only when a role is created or a permission is new; grants edited on the Roles & Permissions page are never overwritten (Decision 23). | Yes (code); no secrets |
 | **Reference data** | Run by both seeds through shared functions | Default pipeline stages (Phase 3); default `system_settings` values (below); a `telephony_provider_accounts` row for the active provider (Phase 7) | Yes (code); no secrets |
 | **Real seed** (`db:seed`) | Dev and production only | The **first Super Admin** (from `SEED_SUPER_ADMIN_*` env values) and real team members. Phase 0 builds the file and its guards; it creates users from Phase 1, when `identity_users` exists. | **No.** `prisma/private/seed.ts`, git-ignored |
-| **Test seed** (`db:seed:test`) | Test database only | Phase 0: RBAC data only. From Phase 1: fake users and the fixtures below, added phase by phase as their tables arrive. | Yes; credentials come from `.env.test` |
+| **Test seed** (`db:seed:test`) | Test database only | RBAC data, the fake users and custom role below (Phase 1), and the other fixtures below, added phase by phase as their tables arrive. | Yes; credentials come from `.env.test` |
 
 ### Default pipeline stages (travel)
 
