@@ -17,6 +17,17 @@ import * as password from "@/app/api/users/[id]/password/route";
 import * as reactivate from "@/app/api/users/[id]/reactivate/route";
 import * as item from "@/app/api/users/[id]/route";
 import * as collection from "@/app/api/users/route";
+import * as followUps from "@/app/api/follow-ups/route";
+import * as leadNotes from "@/app/api/leads/[id]/notes/route";
+import * as leadStage from "@/app/api/leads/[id]/stage/route";
+import * as leadTask from "@/app/api/leads/[id]/tasks/[taskId]/route";
+import * as leadTasks from "@/app/api/leads/[id]/tasks/route";
+import * as leadItem from "@/app/api/leads/[id]/route";
+import * as leadStages from "@/app/api/leads/stages/route";
+import * as leads from "@/app/api/leads/route";
+import * as settings from "@/app/api/settings/route";
+import * as settingStage from "@/app/api/settings/stages/[id]/route";
+import * as settingStages from "@/app/api/settings/stages/route";
 import * as roleOptions from "@/app/api/roles/options/route";
 import * as roleReset from "@/app/api/roles/[id]/reset/route";
 import * as roleItem from "@/app/api/roles/[id]/route";
@@ -49,6 +60,7 @@ const EVERYONE: readonly Role[] = ROLES;
 const USERS_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "TEAM_VIEWER"];
 const ADMINS: readonly Role[] = ["SUPER_ADMIN", "ADMIN"];
 const SUPER_ONLY: readonly Role[] = ["SUPER_ADMIN"];
+const LEAD_ROLES: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "AGENT"];
 const TEAM_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
 
 interface Case {
@@ -57,7 +69,7 @@ interface Case {
   handler: unknown;
   /** Roles allowed through; "public" routes also answer someone signed out. */
   allowed: readonly Role[] | "public";
-  usesId?: "user" | "team" | "role";
+  usesId?: "user" | "team" | "role" | "lead" | "stage";
   body?: unknown;
 }
 
@@ -107,6 +119,89 @@ const CASES: Case[] = [
     handler: reactivate.POST,
     allowed: ADMINS,
     usesId: "user",
+  },
+  { method: "GET", path: "/api/leads", handler: leads.GET, allowed: LEAD_ROLES },
+  { method: "POST", path: "/api/leads", handler: leads.POST, allowed: LEAD_ROLES, body: {} },
+  { method: "GET", path: "/api/leads/stages", handler: leadStages.GET, allowed: LEAD_ROLES },
+  { method: "GET", path: "/api/follow-ups", handler: followUps.GET, allowed: LEAD_ROLES },
+  {
+    method: "GET",
+    path: "/api/leads/[id]",
+    handler: leadItem.GET,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "PATCH",
+    path: "/api/leads/[id]",
+    handler: leadItem.PATCH,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/leads/[id]",
+    handler: leadItem.DELETE,
+    allowed: ADMINS,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/stage",
+    handler: leadStage.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/notes",
+    handler: leadNotes.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/tasks",
+    handler: leadTasks.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "PATCH",
+    path: "/api/leads/[id]/tasks/[taskId]",
+    handler: leadTask.PATCH,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  { method: "GET", path: "/api/settings", handler: settings.GET, allowed: ADMINS },
+  { method: "PATCH", path: "/api/settings", handler: settings.PATCH, allowed: ADMINS, body: {} },
+  { method: "GET", path: "/api/settings/stages", handler: settingStages.GET, allowed: ADMINS },
+  {
+    method: "POST",
+    path: "/api/settings/stages",
+    handler: settingStages.POST,
+    allowed: ADMINS,
+    body: {},
+  },
+  {
+    method: "PATCH",
+    path: "/api/settings/stages/[id]",
+    handler: settingStage.PATCH,
+    allowed: ADMINS,
+    usesId: "stage",
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/settings/stages/[id]",
+    handler: settingStage.DELETE,
+    allowed: ADMINS,
+    usesId: "stage",
   },
   { method: "GET", path: "/api/teams", handler: teams.GET, allowed: TEAM_VIEW },
   { method: "POST", path: "/api/teams", handler: teams.POST, allowed: ADMINS, body: {} },
@@ -177,14 +272,17 @@ const CASES: Case[] = [
 
 async function call(testCase: Case, headers: Record<string, string>) {
   const target = testCase.usesId ? await createTarget(testCase.usesId) : "";
-  const url = new URL(testCase.path.replace("[id]", target).replace("[userId]", target), origin);
+  const url = new URL(
+    testCase.path.replace("[id]", target).replace("[userId]", target).replace("[taskId]", target),
+    origin,
+  );
   const response = await (testCase.handler as Handler)(
     new Request(url, {
       method: testCase.method,
       headers: { "content-type": "application/json", ...headers },
       body: testCase.body === undefined ? undefined : JSON.stringify(testCase.body),
     }),
-    { params: Promise.resolve({ id: target, userId: target }) as Promise<never> },
+    { params: Promise.resolve({ id: target, userId: target, taskId: target }) as Promise<never> },
   );
   // The live-update stream never ends, so read a body only when it is the JSON envelope.
   const isStream = response.headers.get("content-type")?.includes("text/event-stream");
@@ -193,7 +291,23 @@ async function call(testCase: Case, headers: Record<string, string>) {
   return { status: response.status, text };
 }
 
-async function createTarget(kind: "user" | "team" | "role"): Promise<string> {
+async function createTarget(kind: "user" | "team" | "role" | "lead" | "stage"): Promise<string> {
+  if (kind === "stage") {
+    const name = `Stage ${randomUUID()}`;
+    return (await prisma.leadsPipelineStage.create({ data: { code: name, name, position: 50 } }))
+      .id;
+  }
+  if (kind === "lead") {
+    const stage = await prisma.leadsPipelineStage.findUniqueOrThrow({ where: { code: "NEW" } });
+    nextPhone += 1;
+    const contact = await prisma.leadsContact.create({
+      data: { phoneE164: `+9197${10000000 + nextPhone}`, name: "Matrix" },
+    });
+    const lead = await prisma.leadsLead.create({
+      data: { contactId: contact.id, stageId: stage.id },
+    });
+    return lead.id;
+  }
   if (kind === "team") {
     return (await prisma.identityTeam.create({ data: { name: `Team ${randomUUID()}` } })).id;
   }
@@ -214,6 +328,7 @@ async function createTarget(kind: "user" | "team" | "role"): Promise<string> {
   return user.id;
 }
 
+let nextPhone = 0;
 let nextIp = 0;
 async function signedInHeaders(role: Role): Promise<Record<string, string>> {
   nextIp += 1;

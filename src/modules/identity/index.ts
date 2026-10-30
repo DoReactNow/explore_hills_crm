@@ -13,6 +13,6 @@ export { createUserIfMissing, ensureFirstSuperAdmin } from "./identity.operator"
 export { identityJobs, identitySchedules } from "./identity.jobs";
 export { createSessionPrincipalResolver } from "./identity.session";
 
-export { getVisibleAgentIds } from "./identity.scope";
+export { getUserSummary, getVisibleAgentIds } from "./identity.scope";
 
 export const buildPrincipalForRole = identityService.buildPrincipalForRole;

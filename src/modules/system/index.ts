@@ -13,4 +13,7 @@ export {
 export { getTestProbeRuns, resetTestProbeRuns, systemJobs, systemTestJobs } from "./system.jobs";
 export { systemEventTypes, systemTestEventTypes, workerStatusChangedEvent } from "./system.events";
 
+export { ensureDefaultSettings, getSetting } from "./system.settings.service";
+export type { SettingKey } from "./system.settings";
+
 export const recordWorkerHeartbeat = systemService.recordHeartbeat;

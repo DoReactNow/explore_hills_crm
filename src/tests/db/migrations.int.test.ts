@@ -26,6 +26,13 @@ describe("migrations", () => {
       "identity_team_members",
       "identity_teams",
       "identity_users",
+      "leads_contacts",
+      "leads_leads",
+      "leads_notes",
+      "leads_pipeline_stages",
+      "leads_tasks",
+      "leads_timeline_entries",
+      "system_settings",
       "system_worker_heartbeats",
     ]);
   });

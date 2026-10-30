@@ -36,9 +36,12 @@ export function usePrincipal(): { can: (code: PermissionCode) => boolean; state:
 }
 
 /** Whether a page may show itself: "loading", "allowed", or the friendly refusal to display. */
-export function usePageAccess(code: PermissionCode): "loading" | "allowed" | FriendlyError {
+export function usePageAccess(
+  code: PermissionCode | readonly PermissionCode[],
+): "loading" | "allowed" | FriendlyError {
   const { can, state } = usePrincipal();
   if (state === "loading") return "loading";
   if (state === "signed-out") return toFriendlyError({ status: 401 });
-  return can(code) ? "allowed" : toFriendlyError({ status: 403 });
+  const codes = typeof code === "string" ? [code] : code;
+  return codes.some(can) ? "allowed" : toFriendlyError({ status: 403 });
 }

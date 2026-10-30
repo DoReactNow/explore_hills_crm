@@ -66,6 +66,55 @@ export const PERMISSIONS = {
     module: "identity",
     reserved: false,
   },
+  "leads:create": {
+    label: "Create leads",
+    description: "Add a lead by hand.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:view-own": {
+    label: "View own leads",
+    description: "See the leads they own.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:view-team": {
+    label: "View team leads",
+    description: "See leads owned by anyone in their branch, and unassigned leads.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:view-all": {
+    label: "View all leads",
+    description: "See every lead in the company.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:edit": {
+    label: "Edit leads",
+    description:
+      "Change trip details and stage, and add notes and follow-ups, on leads they can see.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:delete": {
+    label: "Delete leads",
+    description: "Remove a lead from every list. Its history is kept.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:assign": {
+    label: "Assign leads",
+    description: "Choose who owns a new lead, or leave it for the queue.",
+    module: "leads",
+    reserved: false,
+  },
+  "settings:manage": {
+    label: "Manage settings",
+    description: "Change system settings and the pipeline stages.",
+    module: "system",
+    reserved: false,
+  },
   "roles:manage": {
     label: "Manage roles and permissions",
     description: "Create, edit and delete roles and choose what each role may do.",

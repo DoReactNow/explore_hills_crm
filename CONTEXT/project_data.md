@@ -338,7 +338,7 @@ Only `system:view-diagnostics` is implemented in Phase 0. Every other permission
 | `leads:view-all` | View all leads | YES | NO | NO |
 | `leads:edit` | Edit lead details and stage (within scope) | YES | YES | YES |
 | `leads:delete` | Delete a lead | YES | NO | NO |
-| `leads:assign` | Assign leads from the queue | YES | YES | NO |
+| `leads:assign` | Choose a new lead's owner (Phase 3) and assign leads from the queue (Phase 5) | YES | YES | NO |
 | `leads:reassign` | Move a lead to a different agent | YES | YES | NO |
 | `leads:claim` | Claim a lead from a blast pool | NO | NO | YES |
 | `assignment:manage-rules` | Configure modes, caps, timeouts, shifts | YES | YES | NO |

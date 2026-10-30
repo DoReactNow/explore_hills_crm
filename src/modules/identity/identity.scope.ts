@@ -14,3 +14,11 @@ export async function getVisibleAgentIds(
   if (scope === "team") return userRepository.visibleUserIds(principal.userId);
   return scope === "own" ? [principal.userId] : [];
 }
+
+/** Just enough of a person for another module to check they can be given work. */
+export async function getUserSummary(
+  id: string,
+): Promise<{ id: string; name: string; status: string } | null> {
+  const user = await userRepository.getUser(id);
+  return user && { id: user.id, name: user.name, status: user.status };
+}

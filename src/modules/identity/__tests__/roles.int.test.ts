@@ -119,7 +119,7 @@ describe("creating and renaming", () => {
     const created = await create({ name: "Team Lead", copyFromCode: "MANAGER" });
     expect(created.status).toBe(201);
     expect(created.body?.data.code).toBe("TEAM_LEAD");
-    expect(created.body?.data.permissions).toEqual(["teams:view", "users:view"]);
+    expect(created.body?.data.permissions).toEqual([...DEFAULT_ROLES.MANAGER.permissions].sort());
 
     const renamed = await patch(created.body!.data.id, {
       name: "Shift Lead",
@@ -275,7 +275,9 @@ describe("reset to defaults", () => {
     const created = await create({ name: "Custom", copyFromCode: "MANAGER" });
     const result = await resetRole(created.body!.data.id, created.body!.data.version);
     expect(result.status).toBe(409);
-    expect((await findRole("CUSTOM")).permissions).toEqual(["teams:view", "users:view"]);
+    expect((await findRole("CUSTOM")).permissions).toEqual(
+      [...DEFAULT_ROLES.MANAGER.permissions].sort(),
+    );
   });
 });
 
