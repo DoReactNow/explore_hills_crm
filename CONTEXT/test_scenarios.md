@@ -11,13 +11,13 @@ The catalogue of normal, failure, race, permission, time and cross-module cases,
 
 **This list is as complete as we can make it today, but no list can promise every case.** That is why rule 4 exists.
 
-**Contents:** 501 scenarios and 19 open questions, as of 2026-10-30.
+**Contents:** 503 scenarios and 18 open questions, as of 2026-10-30.
 
 | Section | Scenarios |
 |:---|:---|
 | Rules for every feature | 61 |
 | Phase 0 | 18 |
-| Phase 1 | 89 |
+| Phase 1 | 91 |
 | Phase 2 | 30 |
 | Phase 3 | 44 |
 | Phase 4 | 51 |
@@ -237,7 +237,9 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P1-PASS-12** Each password change is audited with who and whose, never the password.
 - **Q-01 (answered, Decision 48):** An Admin gives the default password and only an Admin changes it later.
 - **Q-02 (answered, Decision 48):** Yes, changing a password signs the user out of all running sessions.
-- **Q-21 (needs an answer):** What happens if the only Super Admin forgets their password?
+- **P1-PASS-13** A private operator command, run on the server, sets a new password for a Super Admin, signs them out everywhere and is audited; no web route can do this.
+- **P1-PASS-14** The operator command refuses a weak password, an unknown or non-Super-Admin account, and a test or mismatched database, and never prints the password.
+- **Q-21 (answered, Decision 49):** An operator resets it with a private command on the server.
 
 ### Managing users
 
@@ -812,7 +814,6 @@ Collected from the sections above. Answer a phase's questions before planning it
 
 | ID | Phase | Question |
 |:---|:---|:---|
-| Q-21 | 1 | What happens if the only Super Admin forgets their password? |
 | Q-03 | 2 | Does "team" visibility include managers of managers? |
 | Q-04 | 2 | Can a user belong to more than one team? |
 | Q-05 | 3 | Does a returning customer reopen the old lead or start a new one? |

@@ -657,14 +657,44 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Detailed plan written and approved by the owner on 2026-10-30.** Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
-**Before W-102 continues (Decision 47):** map every Phase 1 scenario in `test_scenarios.md` to a work item by its ID, answer Phase 1's open questions, and get the owner's approval of the revised plan. W-101 is complete.
+- [x] Revised plan re-approved by the owner
 
-- [ ] Phase 1 plan revised against `test_scenarios.md` and re-approved by the owner, including Decision 48: an Admin sets and changes passwords (API in W-104), a change signs the user out everywhere, no self-service or "forgot password" flow; confirm its listed details and Q-21
-- [ ] Create the missing `scripts/reset-db.ts` behind `db:reset:dev` and `db:reset:test` (`P0-OPS-01`, `P0-OPS-02`). W-001 and W-015 were ticked with this gap; it was found on 2026-10-30.
+**Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
+
+| Work item | Scenarios |
+|:---|:---|
+| W-112 | `P0-OPS-01–02` |
+| W-102 | `P1-SIGNIN-06–07`, `P1-PASS-01–04`, `P1-PASS-06` |
+| W-103 | `P1-AUDIT-02–04`, `P1-AUDIT-06–07` |
+| W-104 | `P1-SESSION-12`, `P1-PASS-05`, `P1-PASS-07–12`, `P1-USER-01–11`, `P1-SUPER-01–09`, `P1-AUDIT-01` |
+| W-105 | `P1-SIGNIN-01–05`, `P1-SIGNIN-08–10`, `P1-LOCK-01–13`, `P1-SESSION-08–10`, `P1-CSRF-01–05`, `P1-AUDIT-05` |
+| W-106 | `P1-SESSION-01–07`, `P1-SESSION-13` |
+| W-107 | `P1-SIGNIN-11`, `P1-SESSION-11` |
+| W-108 | `P1-PASS-13–14`, `P1-SEED-01–05` |
+| W-109 | `P1-E2E-01–02` |
+| W-110 | `P1-SESSION-14` |
 
 **Definition of done for Phase 1:** a person signs in with email and password, works under their role's permissions, and signs out; the Super Admin protections hold; every user change and sign-in event is audited; RBAC is proven end to end with real sessions for every role, including `SUPER_ADMIN`; every box below is ticked.
+
+---
+
+### W-112: Database reset command (Phase 0 gap)
+
+**Goal:** `db:reset:dev` and `db:reset:test` work, and can never reset the wrong database. Runs first because W-001 and W-015 were ticked with this gap.
+
+**Why now / dependencies:** None. **Permissions and roles:** None (developer command). **Data and time:** None. **Errors the user can see:** None (clear command-line messages). **Module boundaries:** `scripts/` only. **Jobs, live updates, adapters:** None.
+
+#### Step 2: RED tests
+- [ ] Unit: the guard accepts `.env` with a development database and `.env.test` with a `_test` database, and refuses production, a mismatch and a missing file (`P0-OPS-02`)
+- [ ] Manual: both commands reset and re-apply migrations on their own database, and the other database is untouched (`P0-OPS-01`)
+
+#### Step 3: GREEN implementation
+- [ ] `scripts/reset-db.ts`, using the same env guards as the test setup; it runs no seed (Decision 11)
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
 
 ---
 
@@ -728,6 +758,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Unit: verifying against a malformed hash returns false, never throws a library error to the caller
 - [ ] Unit: the strength rule (12+ characters, three character classes, no placeholder or common word) gives the same results as the Decision 40 seed tests, which keep passing unchanged
 - [ ] Unit: a dummy hash is verified when the user does not exist, so timing does not reveal accounts
+- [ ] Unit: a password over 1024 bytes is refused before hashing; emoji and non-English passwords work; a password containing the user's email or name is refused; many hashes at once run with limited concurrency (`P1-SIGNIN-06`, `-07`, `P1-PASS-03`, `-06`)
 
 #### Step 3: GREEN implementation
 - [ ] Add `@node-rs/argon2` (pinned); `hashPassword`, `verifyPassword`, `checkPasswordStrength`; the seed uses the shared rule
@@ -759,9 +790,10 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Unit: `recordAudit` requires an action, entity type, entity ID and summary; refuses metadata values that look like an email or phone number
 - [ ] Integration: written inside a transaction that rolls back, the audit row is gone too; committed, it is stored with `actorUserId`, `actorRoleCode` and `requestId`
 - [ ] Integration: a system action (no actor) stores `actorUserId = null`
+- [ ] Integration: a failed audit write fails the change it belongs to; a system action has no user (`P1-AUDIT-03`, `-06`)
 
 #### Step 3: GREEN implementation
-- [ ] `src/modules/audit/` (repository, service, types, `index.ts`); action names registry `AUDIT_ACTIONS` (`auth.signed_in`, `auth.signed_out`, `auth.sign_in_failed`, `auth.locked`, `user.created`, `user.updated`, `user.role_changed`, `user.deactivated`, `user.reactivated`)
+- [ ] `src/modules/audit/` (repository, service, types, `index.ts`); action names registry `AUDIT_ACTIONS` (`auth.signed_in`, `auth.signed_out`, `auth.sign_in_failed`, `auth.locked`, `user.created`, `user.updated`, `user.role_changed`, `user.deactivated`, `user.reactivated`, `user.password_changed`)
 
 #### Step 4: Verification chain
 - [ ] Full chain; `current_state.md` updated
@@ -792,6 +824,9 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Integration: each change writes the matching audit event in the same transaction; a refused change writes none
 - [ ] Integration: deactivating a user revokes their sessions; their next request is 401
 - [ ] Integration: there is no route or service method that hard-deletes a user
+- [ ] Integration: `POST /api/users` takes a default password (strength rule, user `ACTIVE`); `POST /api/users/:id/password` sets a new one, signs that user out everywhere (including a request at the same moment), clears the lock and audits `user.password_changed` without the password; the old password fails and the new one works (`P1-PASS-07`, `-09`, `-10`, `-12`)
+- [ ] Integration: a user cannot change their own password, role or status; no "forgot password" route exists; an Admin cannot change a Super Admin's password, by any route including bulk (`P1-PASS-08`, `-11`, `P1-USER-10`, `P1-SUPER-02`)
+- [ ] Integration: two Super Admins deactivating each other at the same moment leave one active; simultaneous creates with one email give one user; a deactivated user's email stays taken (`P1-SUPER-05`, `P1-USER-02`, `-03`)
 
 #### Step 3: GREEN implementation
 - [ ] Registry codes and default bundles; `db:sync-rbac` grants the new codes to ADMIN and MANAGER (Decision 23 rule 1)
@@ -828,6 +863,9 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Integration: sign-out revokes the session (the same cookie then gives 401) and clears the cookie
 - [ ] Integration: a POST with a session cookie and a foreign `Origin` is refused with `FORBIDDEN`; the same POST from `APP_URL` passes
 - [ ] Integration: sign-in, failed sign-in and lockout write audit events (failed ones with no personal data in metadata)
+- [ ] Integration: five wrong passwords at the same moment all count; guesses during a lock do not extend it; two attempts at the limit cannot both pass (`P1-LOCK-05`, `-06`, `-07`, `-12`)
+- [ ] Unit: a faked `X-Forwarded-For` cannot dodge the limit or frame another address; an unreadable IP uses the limited "unknown" bucket (`P1-LOCK-10`, `-11`)
+- [ ] Integration: a write with a cookie and no `Origin` is refused; signing in while signed in, on two devices, and signing out twice all behave (`P1-CSRF-03`, `P1-SIGNIN-08`, `-09`, `P1-SESSION-10`)
 
 #### Step 3: GREEN implementation
 - [ ] Catalog entry `INVALID_CREDENTIALS` (catalog scan test stays green); session, throttle and sign-in services; `route()` Origin check for cookie-authenticated writes; route adapters under `src/app/api/auth/`
@@ -859,6 +897,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Integration: removing a permission from the user's role takes effect on the very next request (Decision 4)
 - [ ] Integration: an expired, revoked or tampered cookie, or a deactivated user, gives 401 on a guarded route
 - [ ] Unit: the test-only role cookie is still refused outside `APP_ENV=test`
+- [ ] Integration: many requests at once with one cookie all work with at most one extension write; a request at the exact expiry moment is expired (`P1-SESSION-05`, `-07`)
 
 #### Step 3: GREEN implementation
 - [ ] `createSessionPrincipalResolver()` in `identity`, installed by `instrumentation.ts`; composed with the test cookie resolver in tests
@@ -888,6 +927,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Unit (component): the form shows field messages, the friendly error, disables the button while submitting, and never shows the server's raw text
 - [ ] Unit (component): the shell shows the user's name and a sign-out button; signed out, it shows a "Sign in" link
 - [ ] Unit: the `?next=` return path accepts only same-site relative paths (no open redirect)
+- [ ] E2E: after sign-out, Back shows no protected data (`P1-SESSION-11`)
 
 #### Step 3: GREEN implementation
 - [ ] Sign-in page, user menu with sign-out, `PrincipalProvider` fed from `GET /api/auth/me` so `usePrincipal().can()` reflects the real user, "Please sign in" pages link to `/sign-in?next=…`
@@ -918,6 +958,8 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Integration: the test seed run twice gives identical users (idempotent); each `TEST_*` user can sign in with its `.env.test` password
 - [ ] Integration: the real seed creates one active Super Admin from `SEED_SUPER_ADMIN_*` and does nothing if an active Super Admin exists; it still refuses a test database and a weak password (W-009 tests stay green)
 - [ ] Scan: committed seed files still contain no password literals
+- [ ] Integration: `npm run user:reset-super-admin-password` sets the password, signs the user out everywhere and audits it; it refuses a weak password, a non-Super-Admin, and a test or mismatched database, and never prints the password (`P1-PASS-13`, `-14`)
+- [ ] Integration: with only a deactivated Super Admin, the real seed creates an active one, or refuses clearly if that email is taken (`P1-SEED-04`)
 
 #### Step 3: GREEN implementation
 - [ ] `prisma/seeds/testSeed.ts` users; `prisma/seeds/realSeed.ts` creates the first Super Admin; `local_setup.md` Section 2 step 4 no longer says "skip in Phase 0"
