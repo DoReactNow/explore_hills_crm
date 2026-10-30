@@ -657,15 +657,15 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30) and **W-106** are done. **Working locally by the owner's choice:** W-106 is committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-107 onward, in the order above.
-> 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN. **Three questions need the owner's answer before W-107:** the "Keep me signed in" checkbox (conflicts with Decision 46), the lockout countdown (conflicts with `P1-LOCK-08`), and approval of the theme and fonts.
+> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** and **W-107** are done. **Working locally by the owner's choice:** W-106 and W-107 are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-108 onward, in the order above.
+> 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN; theme and fonts are settled (Decision 53).
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -942,17 +942,19 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Unit (component): the form shows field messages, the friendly error, disables the button while submitting, and never shows the server's raw text
-- [ ] Unit (component): the shell shows the user's name and a sign-out button; signed out, it shows a "Sign in" link
-- [ ] Unit: the `?next=` return path accepts only same-site relative paths (no open redirect)
-- [ ] E2E: after sign-out, Back shows no protected data (`P1-SESSION-11`)
+- [x] Unit (component): the form shows field messages, the friendly error, disables the button while submitting, and never shows the server's raw text
+- [x] Unit (component): the shell shows the user's name and a sign-out button; signed out, it shows a "Sign in" link
+- [x] Unit: the `?next=` return path accepts only same-site relative paths (no open redirect)
+- [x] E2E: after sign-out, Back shows no protected data (`P1-SESSION-11`)
 
 #### Step 3: GREEN implementation
-- [ ] Sign-in page, user menu with sign-out, `PrincipalProvider` fed from `GET /api/auth/me` so `usePrincipal().can()` reflects the real user, "Please sign in" pages link to `/sign-in?next=…`
-- [ ] Manual browser check: sign in, see the name, open diagnostics as Admin, sign out, keyboard-only use, narrow screen
+- [x] Sign-in page, user menu with sign-out, `PrincipalProvider` fed from `GET /api/auth/me` so `usePrincipal().can()` reflects the real user, "Please sign in" pages link to `/sign-in?next=…`
+- [x] Manual browser check: sign in, see the name, open diagnostics as Admin, sign out, keyboard-only use, narrow screen
 
 #### Step 4: Verification chain
-- [ ] Full chain including E2E; manual browser check done; `current_state.md` updated
+- [x] Full chain including E2E; manual browser check done; `current_state.md` updated
+
+> **Done 2026-10-30.** Design tokens in `src/app/globals.css`, fonts through `next/font` (served by this app), `/sign-in`, and the shell with name, role, sign-out and permission-filtered navigation. The sidebar lists only pages that exist; the rest of the design's navigation arrives with its pages. API responses are now `no-store`, and `GET /api/auth/me` also returns what the person can do. 28 new unit tests and 5 E2E specs. Checked in the browser: keyboard-only sign-in, a wrong then right password, a Hindi name, phone width, sign-out. 348 unit plus the TZ matrix, 172 integration, 11 E2E passing. E2E creates its own users until W-108 seeds them; W-109 moves the older specs to real sign-in. Not built from the design: the greeting and language label (no data behind them yet). Details in Decisions 53 and 54.
 
 ---
 

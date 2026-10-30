@@ -2,6 +2,8 @@
 import { getEnv } from "@/shared/config/env";
 import { AppError } from "@/shared/errors";
 import type { HandlerResult, RouteContext } from "@/shared/http/route";
+import { can } from "@/shared/rbac/guard";
+import { PERMISSION_CODES, type PermissionCode } from "@/shared/rbac/permissionRegistry";
 import type { Principal } from "@/shared/rbac/principal";
 import type {
   CreateUserInput,
@@ -52,10 +54,13 @@ export const identityController = {
     return { data: { signedOut: true }, headers: { "set-cookie": clearSessionCookie(isSecure()) } };
   },
 
+  /** `permissions` lists what this person can do, so the browser never needs the bypass flag. */
   async me(
     context: RouteContext<undefined, Record<string, string>>,
-  ): Promise<HandlerResult<PublicUser>> {
-    return { data: await userService.getOwnProfile(userContext(context)) };
+  ): Promise<HandlerResult<PublicUser & { permissions: PermissionCode[] }>> {
+    const user = await userService.getOwnProfile(userContext(context));
+    const permissions = PERMISSION_CODES.filter((code) => can(context.principal, code));
+    return { data: { ...user, permissions } };
   },
 
   async listUsers(context: RouteContext<ListUsersInput, Record<string, string>>) {
