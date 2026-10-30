@@ -657,14 +657,14 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** is done, on its own PR. **Then** W-103 onward, in the order above.
+> 3. **W-102** is merged (PR #20) and **W-103** is done, on its own PR. **Then** W-104 onward, in the order above.
 > 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -797,16 +797,18 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Unit: `recordAudit` requires an action, entity type, entity ID and summary; refuses metadata values that look like an email or phone number
-- [ ] Integration: written inside a transaction that rolls back, the audit row is gone too; committed, it is stored with `actorUserId`, `actorRoleCode` and `requestId`
-- [ ] Integration: a system action (no actor) stores `actorUserId = null`
-- [ ] Integration: a failed audit write fails the change it belongs to; a system action has no user (`P1-AUDIT-03`, `-06`)
+- [x] Unit: `recordAudit` requires an action, entity type, entity ID and summary; refuses metadata values that look like an email or phone number
+- [x] Integration: written inside a transaction that rolls back, the audit row is gone too; committed, it is stored with `actorUserId`, `actorRoleCode` and `requestId`
+- [x] Integration: a system action (no actor) stores `actorUserId = null`
+- [x] Integration: a failed audit write fails the change it belongs to; a system action has no user (`P1-AUDIT-03`, `-06`)
 
 #### Step 3: GREEN implementation
-- [ ] `src/modules/audit/` (repository, service, types, `index.ts`); action names registry `AUDIT_ACTIONS` (`auth.signed_in`, `auth.signed_out`, `auth.sign_in_failed`, `auth.locked`, `user.created`, `user.updated`, `user.role_changed`, `user.deactivated`, `user.reactivated`, `user.password_changed`)
+- [x] `src/modules/audit/` (repository, service, types, `index.ts`); action names registry `AUDIT_ACTIONS` (`auth.signed_in`, `auth.signed_out`, `auth.sign_in_failed`, `auth.locked`, `user.created`, `user.updated`, `user.role_changed`, `user.deactivated`, `user.reactivated`, `user.password_changed`)
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** New `audit` module with `recordAudit(tx, event)`, written inside the caller's transaction. 22 unit and 6 integration tests. Metadata is checked at any depth for emails and phone numbers; UUIDs, dates and instants are allowed, and the refusal names the key, never the value. The repository offers insert only. 279 unit plus the TZ matrix, 69 integration, 6 E2E passing; no migration drift.
 
 ---
 
