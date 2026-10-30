@@ -662,8 +662,8 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
-> 1. **PR #18** (`phase-1-plan-revision`, this revised plan): all six CI jobs green and mergeable, not merged. Merge it once the owner says so.
-> 2. **W-112** on branch `w-112-reset-db`, stacked on PR #18, work done and the full chain green, no PR yet. Open the PR, based on `main`, once PR #18 is merged. Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
+> 1. **PR #18** (the revised plan) is merged.
+> 2. **W-112** on branch `w-112-reset-db`: work done and the full chain green; its PR is open against `main`. Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
 > 3. **Then** W-102 onward, in the order above.
 > 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
 
