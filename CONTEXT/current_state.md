@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 4 are complete, with WhatsApp on the fake gateway. Phase 5 is built and in review (Decision 59); Phase 6 is next once it merges. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Next is Phase 6; check `test_scenarios.md` for its open questions. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1142,14 +1142,14 @@ Left out of the design for later phases: Call buttons (7), notifications (8), qu
 
 > **Test evidence.** Integration tests were written before the backend and seen to fail; the screens' E2E tests were written with them. Then 24 rules were broken one at a time, and 20 were caught at once. Three misses were real test gaps, now closed and re-proven: an opt-out after a message is queued, simultaneous first messages, and the first-reply time. The fourth, a double click, is also stopped by a unique index. Checked in the browser with the simulator and a real worker: a Hindi message reaching the inbox, at desktop and phone width, which found the reply box sitting below the fold, now fixed.
 
-### Phase 5: Manager Queue and Assignment Engine — IN REVIEW
-Built on branch `phase-5-assignment`; rules in Decision 59. Moved-in scenarios covered: `P2-UMGMT-03`, `P3-NOTE-07`, and the pool part of `P4-MERGE-03`.
+### Phase 5: Manager Queue and Assignment Engine — DONE
+Merged in PR #32; rules in Decision 59. Moved-in scenarios covered: `P2-UMGMT-03`, `P3-NOTE-07`, and the pool part of `P4-MERGE-03`.
 
 Built beyond the plan: the design's 30-second Undo, `assignment.maxTimeouts`, and `assignment_escalations`. Not built: tap-a-row to swap an agent in the phone preview, drag between tiers, and the phone tab bar (Phase 6). Language and destination suggestions, and "matching leads go to him first", are simple filters for now. Assignment notifications are live-screen updates only until Phase 8.
 
 Unassigned queue, bulk selection, all six modes (manual, round-robin, least-loaded, priority, random, blast), preview before confirm, atomic claim pool with the `assignment_pool_eligibility` join table, caps, shifts and eligibility, timeouts with return-to-pool or escalation as **delayed jobs plus a sweeper** (Decision 27), pool expiry jobs, idempotent assignment, audit events, **live updates** so a claimed lead disappears for other agents and new leads appear in the queue. Heavy concurrency tests. E2E journeys 2 and 3.
 
-### Phase 6: Agent Workspace — PENDING
+### Phase 6: Agent Workspace — PENDING (next)
 "My leads" screen, lead record with chat panel, notes, call outcome (disposition) form, trip details, follow-up tasks, pool claiming UI, quick filters, keyboard-friendly layout, live updates. Reserve the place for the softphone panel and call card; the calling itself arrives in Phase 7.
 
 ### Phase 7: Browser Calling, Call Logging and Recordings — PENDING
