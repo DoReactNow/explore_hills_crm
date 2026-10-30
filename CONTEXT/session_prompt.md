@@ -22,6 +22,7 @@ Then read what the current work needs:
 | Tables, columns, relations, constraints, seeds | `CONTEXT/database_schema.md` |
 | Running, testing, Docker, env files, commands | `CONTEXT/local_setup.md` |
 | What the product should feel like for each user | `CONTEXT/WhatsApp Lead Assignment CRM The Story and What the Platform Contains.md` |
+| Planning or building a phase, or writing its tests | `CONTEXT/test_scenarios.md`: that phase's section and "Rules for every feature" |
 
 Before planning, also read the existing code in the area you will change. Check what is actually built; don't assume it from the docs.
 
@@ -40,16 +41,18 @@ When I answer, log the decision in `decision_log.md` (and update any affected do
 
 - If the current phase already has detailed work items in `current_state.md`, execute them **in order**, exactly as written, following the loop in `TDD_INSTRUCTION_GUIDE.md` Part 1.3. Tick each box only after its verification chain passes.
 - If the current phase has **no detailed plan yet** (only the high-level summary), then:
-  1. Ask me anything from Section 2 first.
+  1. Ask me anything from Section 2 first, including that phase's open questions in `test_scenarios.md`.
   2. Investigate the existing code.
-  3. Write the work items with `TDD_INSTRUCTION_GUIDE.md` (Part 2 template, Part 3 rules) under that phase in `current_state.md`.
-  4. Show me the plan and **wait for my approval**. Do not write code during planning.
+  3. Write the work items with `TDD_INSTRUCTION_GUIDE.md` (Part 2 template, Part 3 rules) under that phase in `current_state.md`. Plan phases only when they arrive, from the code that exists by then; do not write detailed plans for later phases in advance.
+  4. **Map every scenario of that phase in `test_scenarios.md` to a real test in the plan, by its ID**, or move it to a named later phase with the reason. Never drop one silently. Tell me which were moved.
+  5. Show me the plan and **wait for my approval**. Do not write code during planning.
 - Never start a phase until every box in the previous phase is ticked.
 - Work **one work item at a time**. After each one, tell me what was done and what the verification chain showed, then ask before moving on to the next item.
 - Keep changes to already-completed work minimal. If you must change something that is already done, say so and explain why first.
 
 ## 4. Non-negotiable rules (details in the docs)
 
+- `test_scenarios.md` lists what must be true in plain language; real tests are written in each work item. Add any new edge case or production bug to it in the same change.
 - Test first for the risky core: assignment, blast claims, timeouts and jobs, webhooks, the RBAC guard / Super Admin bypass / scope, time handling, and adapter contracts.
 - Never call a real calling provider, WhatsApp API or cloud storage in tests. Use the `fake` / `local` implementations.
 - Never store audio or file bytes in the database.

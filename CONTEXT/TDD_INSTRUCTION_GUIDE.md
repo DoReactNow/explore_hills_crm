@@ -14,10 +14,12 @@ Every implementation task in this project is written as a **TDD checklist work i
 
 1. Read `current_state.md` and find the first `PENDING` phase.
 2. Check `decision_log.md` for any **Open** decision that phase needs (for example the calling provider, Decision 30). If one is open, or anything else needs the user's input, ask the user first and log the answer before planning.
-3. Investigate the existing code first. Read what is already built in that area, the schema, the permission registry and the related modules. Do not plan from assumptions.
-4. Write the phase plan as a list of work items (Part 2 format) **in `current_state.md`** under that phase.
-5. Show the plan to the user and **wait for approval**. Do not write code during planning.
-6. Execute the items in order. Tick each checkbox as it is completed. Do not start the next phase until every box in the current phase is ticked.
+3. Read that phase's section and "Rules for every feature" in `test_scenarios.md`, and answer its open questions with the user.
+4. Investigate the existing code first. Read what is already built in that area, the schema, the permission registry and the related modules. Do not plan from assumptions.
+5. Write the phase plan as a list of work items (Part 2 format) **in `current_state.md`** under that phase.
+6. **Coverage rule (Decision 47):** every scenario of the phase must map to a test in a work item, by its ID (for example `P1-LOCK-05`), or be moved to a named later phase with the reason. List any moved scenarios in the plan. A plan with unmapped scenarios is not ready.
+7. Show the plan to the user and **wait for approval**. Do not write code during planning.
+8. Execute the items in order. Tick each checkbox as it is completed. Do not start the next phase until every box in the current phase is ticked.
 
 ### 1.2 Work item numbering
 
@@ -70,6 +72,7 @@ Copy this template for every item. Fill every section. Delete none.
 - [ ] Integration: <route + real DB scenario 1>, <scenario 2>, <forbidden scenario>, <validation scenario>
 - [ ] Jobs (if any): <handler rule>, <idempotency: run twice = one effect>, <retry/final failure>, <delayed job fires at the right time with the clock advanced>
 - [ ] E2E (only if this item delivers one of the critical journeys in Decision 29): <flow>
+- [ ] Name the `test_scenarios.md` IDs each test covers
 - [ ] Run each tier and record the expected failures
 
 #### Step 3: GREEN implementation (one layer at a time, bottom up)
