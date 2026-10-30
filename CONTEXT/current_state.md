@@ -655,7 +655,337 @@ jobs:
 > **For every phase below:** do not code from this summary. First investigate the current code, then write detailed work items with `TDD_INSTRUCTION_GUIDE.md`, put them in this file under the phase, get the user's approval, and only then execute. Every list or table screen must have correct sorting and filtering on all columns, state kept when going back, smooth scrolling, and friendly errors.
 
 ### Phase 1: Identity — PENDING (next)
-Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Resolve Open Decision 20 (authentication) first and log it (tenancy is resolved: single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
+Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
+
+> **Detailed plan written 2026-10-30, awaiting approval.** Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+
+**Definition of done for Phase 1:** a person signs in with email and password, works under their role's permissions, and signs out; the Super Admin protections hold; every user change and sign-in event is audited; RBAC is proven end to end with real sessions for every role, including `SUPER_ADMIN`; every box below is ticked.
+
+---
+
+### W-101: Identity and audit tables
+
+**Goal:** The database holds staff users, their sessions, sign-in throttling counters and the append-only audit trail.
+
+**Why now / dependencies:** Phase 0 done. Everything else in Phase 1 needs these tables.
+
+**Permissions and roles:** None (schema only).
+
+**Data and time:** New tables (`database_schema.md` 3.1 and 3.6): `identity_users` (instants `createdAt`, `updatedAt`, `lastLoginAt`, `lockedUntil`, `deactivatedAt`; Phase 2 columns `managerId`/`teamId` left out until Phase 2), `identity_sessions` (instants `expiresAt`, `lastSeenAt`, `revokedAt`, `createdAt`), `identity_login_throttle` (new: `key` = hashed IP, `windowStart` instant, `count`), `audit_events` (instant `occurredAt`). Back-relations `IdentityRole.users`, `IdentityUser.sessions`, `IdentityUser.auditEvents`.
+
+**Errors the user can see:** None.
+
+**Module boundaries:** `identity` owns users, sessions and throttle; `audit` owns `audit_events`. Cross-module FK `audit_events.actorUserId → identity_users.id` (`Restrict`). `identity_users.roleId → identity_roles.id` (`Restrict`, same module). `identity_sessions.userId → identity_users.id` (`Cascade`, same module).
+
+**Jobs, live updates, adapters:** None.
+
+#### Step 1: Schema and migration
+- [ ] Models in `prisma/schema.prisma` exactly as `database_schema.md`, minus Phase 2 columns; add `IdentityLoginThrottle` and document it in `database_schema.md` 3.1
+- [ ] `npm run db:migrate:dev -- --name identity_users_sessions_audit`, with raw SQL: unique index on `lower("email")`, `CHECK` on `"phoneE164"`, append-only trigger on `audit_events` (UPDATE and DELETE raise)
+- [ ] `db:test:migrate` applies cleanly; `db:migrate:check` passes (raw SQL not reported as drift)
+- [ ] `npm run db:generate`; `resetDatabase()` still clears every new table (the audit trigger allows TRUNCATE)
+
+#### Step 2: RED tests (write first, watch them fail)
+- [ ] Integration: the four tables exist with `timestamptz(3)` instants; a second user with the same email in different case is rejected; an invalid phone is rejected
+- [ ] Integration: updating or deleting an `audit_events` row raises; inserting works
+- [ ] Integration: deleting a role still held by a user is refused (`Restrict`); deleting a user deletes their sessions (`Cascade`)
+- [ ] Unit: enum parity, `IDENTITY_USER_STATUSES` equals Prisma's `IdentityUserStatus`
+
+#### Step 3: GREEN implementation
+- [ ] Schema, migration, `identity.types.ts` constants, enum parity test, `database_schema.md` and `prisma/CONVENTIONS.md` updated
+
+#### Step 4: Verification chain
+- [ ] `lint` · `typecheck` · `build` · `build:worker` · `test:unit` · `test:integration` · `test:e2e` · `db:migrate:check`
+- [ ] `current_state.md` updated
+
+---
+
+### W-102: Passwords
+
+**Goal:** Passwords are hashed with argon2id and checked in constant time; one strength rule is used by the seed, user creation and later password changes.
+
+**Why now / dependencies:** W-101. Needed by sign-in (W-105), users (W-104) and seeds (W-108).
+
+**Permissions and roles:** None (library code).
+
+**Data and time:** `identity_users.passwordHash` (never returned by any API or written to any log).
+
+**Errors the user can see:** `VALIDATION_FAILED` with a friendly field message for a weak password.
+
+**Module boundaries:** `identity` module (`identity.passwords.ts`); the strength rule moves from `prisma/seeds/realSeed.ts` into it, and the seed imports it from the identity public API.
+
+**Jobs, live updates, adapters:** None.
+
+#### Step 2: RED tests
+- [ ] Unit: hash then verify succeeds; a wrong password fails; two hashes of the same password differ (salt); the hash string starts with `$argon2id$`
+- [ ] Unit: verifying against a malformed hash returns false, never throws a library error to the caller
+- [ ] Unit: the strength rule (12+ characters, three character classes, no placeholder or common word) gives the same results as the Decision 40 seed tests, which keep passing unchanged
+- [ ] Unit: a dummy hash is verified when the user does not exist, so timing does not reveal accounts
+
+#### Step 3: GREEN implementation
+- [ ] Add `@node-rs/argon2` (pinned); `hashPassword`, `verifyPassword`, `checkPasswordStrength`; the seed uses the shared rule
+- [ ] Confirm the production `runner` image loads the native binding (build and health check in the image)
+
+#### Step 4: Verification chain
+- [ ] Full chain; `docker:prod:build` succeeds and the app container is healthy
+- [ ] `current_state.md` updated
+
+---
+
+### W-103: Audit trail writer
+
+**Goal:** Any module can record who did what to which record; the trail cannot be edited.
+
+**Why now / dependencies:** W-101. User changes (W-104) and sign-in events (W-105) are audited from the start (Decision 23).
+
+**Permissions and roles:** None to write (called by services). Reading the trail (`audit:view`) arrives with the audit views in Phase 10.
+
+**Data and time:** `audit_events` (`occurredAt` from the injected `Clock`); `metadata` holds IDs, never names, emails or phone numbers.
+
+**Errors the user can see:** None (an audit write failure fails the surrounding transaction with `INTERNAL_ERROR`).
+
+**Module boundaries:** New `audit` module with a repository and service; public API `recordAudit()`, which accepts a Prisma transaction so the audit row commits or rolls back with the change it describes.
+
+**Jobs, live updates, adapters:** None.
+
+#### Step 2: RED tests
+- [ ] Unit: `recordAudit` requires an action, entity type, entity ID and summary; refuses metadata values that look like an email or phone number
+- [ ] Integration: written inside a transaction that rolls back, the audit row is gone too; committed, it is stored with `actorUserId`, `actorRoleCode` and `requestId`
+- [ ] Integration: a system action (no actor) stores `actorUserId = null`
+
+#### Step 3: GREEN implementation
+- [ ] `src/modules/audit/` (repository, service, types, `index.ts`); action names registry `AUDIT_ACTIONS` (`auth.signed_in`, `auth.signed_out`, `auth.sign_in_failed`, `auth.locked`, `user.created`, `user.updated`, `user.role_changed`, `user.deactivated`, `user.reactivated`)
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
+
+---
+
+### W-104: Users and the Super Admin protections
+
+**Goal:** Users can be created, edited, given a role, deactivated and reactivated through the service and a guarded API, with every Decision 23 protection enforced and every change audited.
+
+**Why now / dependencies:** W-101 to W-103. The user management screens arrive in Phase 2; this item gives them their API.
+
+**Permissions and roles:** New registry codes `users:view`, `users:create`, `users:edit`, `users:deactivate` (defaults per `project_data.md` 5.4: ADMIN all four, MANAGER `users:view`, AGENT none). The reserved `users:manage-super-admins` guards anything touching a Super Admin. Super Admin passes through the bypass.
+
+**Data and time:** `identity_users` (email stored lowercase; `deactivatedAt` instant). Users are never hard-deleted.
+
+**Errors the user can see:** `VALIDATION_FAILED` (bad email, weak password), `CONFLICT` (email taken; deactivating, demoting or deleting the last active Super Admin), `FORBIDDEN` (an Admin touching a Super Admin or handing out `SUPER_ADMIN`), `NOT_FOUND`.
+
+**Module boundaries:** `identity` owns it. Calls `audit` through its public API inside the same transaction.
+
+**Jobs, live updates, adapters:** Deactivation revokes the user's sessions in the same transaction. No jobs.
+
+#### Step 2: RED tests
+- [ ] Unit (service, mocked repository): create normalises the email to lowercase and hashes the password; a taken email gives `CONFLICT`
+- [ ] Unit: an Admin cannot create, edit, deactivate or change the role of a Super Admin, nor give anyone the `SUPER_ADMIN` role (`FORBIDDEN`, the code only in the log); a Super Admin can
+- [ ] Unit: deactivating, demoting or changing the role of the last **active** Super Admin gives `CONFLICT`; with two it succeeds
+- [ ] Integration: `POST /api/users`, `GET /api/users`, `GET /api/users/:id`, `PATCH /api/users/:id`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate`: success, validation, 401, 403 (no permission code in the body), 404, and the Super Admin bypass for each
+- [ ] Integration: each change writes the matching audit event in the same transaction; a refused change writes none
+- [ ] Integration: deactivating a user revokes their sessions; their next request is 401
+- [ ] Integration: there is no route or service method that hard-deletes a user
+
+#### Step 3: GREEN implementation
+- [ ] Registry codes and default bundles; `db:sync-rbac` grants the new codes to ADMIN and MANAGER (Decision 23 rule 1)
+- [ ] `identity.repository.ts` user queries, `identity.service.ts` user rules, `identity.schemas.ts` with friendly messages, controller, route adapters under `src/app/api/users/`
+- [ ] Responses never include `passwordHash`, `failedLoginCount` or `lockedUntil`
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
+
+---
+
+### W-105: Sign-in, sign-out and the session cookie
+
+**Goal:** A person signs in with email and password and gets a session cookie; sign-out ends it; wrong passwords lock the account and fast attempts are throttled.
+
+**Why now / dependencies:** W-102 to W-104.
+
+**Permissions and roles:** `POST /api/auth/sign-in` is `'public'` (added to `publicRoutes.ts`, with this decision as its log entry); `POST /api/auth/sign-out` and `GET /api/auth/me` are `'authenticated'`.
+
+**Data and time:** `identity_sessions` (`expiresAt` = min(last activity + 12 h, sign-in + 7 days)); `identity_users.failedLoginCount`, `lockedUntil` (now + 15 min after the 5th failure), `lastLoginAt`; `identity_login_throttle` (20 attempts per hashed IP per 15-minute window). All instants from the injected `Clock`.
+
+**Errors the user can see:** New catalog code `INVALID_CREDENTIALS` (401, "That email and password don't match. Please try again.") for a wrong email, a wrong password, an inactive account or an unknown user, all alike; `RATE_LIMITED` for a locked account or a throttled IP; `VALIDATION_FAILED` for a missing field; `FORBIDDEN` for a cross-site POST.
+
+**Module boundaries:** `identity` owns it; audits through `audit`.
+
+**Jobs, live updates, adapters:** None here (clean-up in W-110).
+
+#### Step 2: RED tests
+- [ ] Unit (frozen clock): 4 wrong passwords then a right one signs in and resets the count; the 5th wrong one locks for exactly 15 minutes; a right password during the lock still gives `RATE_LIMITED`; at 15 minutes it works again
+- [ ] Unit: the per-IP window allows 20 attempts and refuses the 21st until the window passes; the IP is stored only as a hash
+- [ ] Unit: the session token is 32 random bytes; only its SHA-256 hash is stored; expiry follows the 12 h / 7 day rule
+- [ ] Integration: correct credentials → 200 with `Set-Cookie: eh_session=…; HttpOnly; SameSite=Lax; Path=/` (and `Secure` when `APP_ENV=production`) and the user's public profile; the token does not appear in the body or the logs
+- [ ] Integration: wrong password, unknown email and a deactivated user each return the same `INVALID_CREDENTIALS` body
+- [ ] Integration: sign-out revokes the session (the same cookie then gives 401) and clears the cookie
+- [ ] Integration: a POST with a session cookie and a foreign `Origin` is refused with `FORBIDDEN`; the same POST from `APP_URL` passes
+- [ ] Integration: sign-in, failed sign-in and lockout write audit events (failed ones with no personal data in metadata)
+
+#### Step 3: GREEN implementation
+- [ ] Catalog entry `INVALID_CREDENTIALS` (catalog scan test stays green); session, throttle and sign-in services; `route()` Origin check for cookie-authenticated writes; route adapters under `src/app/api/auth/`
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
+
+---
+
+### W-106: Session-based principal resolver
+
+**Goal:** Every request is resolved from the session cookie to the user's principal, so access checks use real users; activity extends the session.
+
+**Why now / dependencies:** W-105. Replaces the Phase 0 "nobody" resolver.
+
+**Permissions and roles:** All existing guarded routes now work with real sessions. The Super Admin bypass comes from the user's role.
+
+**Data and time:** Reads `identity_sessions` and the user with role and grants on each request; extends `expiresAt` and `lastSeenAt` at most once every 5 minutes.
+
+**Errors the user can see:** `UNAUTHENTICATED` for a missing, expired, revoked or unknown session, or an inactive user.
+
+**Module boundaries:** `identity` builds the principal; `src/instrumentation.ts` installs the resolver for every environment, with the test-only role cookie still layered on top when `APP_ENV=test`.
+
+**Jobs, live updates, adapters:** The live-update stream (W-013) uses the same resolver.
+
+#### Step 2: RED tests
+- [ ] Unit (frozen clock): a session idle for 11 h 59 min is valid and is extended; at 12 h it is expired; past 7 days since sign-in it is expired however active; the extension writes at most once per 5 minutes
+- [ ] Integration: a valid cookie resolves to the user's principal (role code, bypass flag, permissions from the role's current grants)
+- [ ] Integration: removing a permission from the user's role takes effect on the very next request (Decision 4)
+- [ ] Integration: an expired, revoked or tampered cookie, or a deactivated user, gives 401 on a guarded route
+- [ ] Unit: the test-only role cookie is still refused outside `APP_ENV=test`
+
+#### Step 3: GREEN implementation
+- [ ] `createSessionPrincipalResolver()` in `identity`, installed by `instrumentation.ts`; composed with the test cookie resolver in tests
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
+
+---
+
+### W-107: Sign-in page and the signed-in shell
+
+**Goal:** A person can sign in and out in the browser, sees who they are signed in as, and is sent to sign in when they open a page that needs it.
+
+**Why now / dependencies:** W-105, W-106.
+
+**Permissions and roles:** `/sign-in` is public; other pages show their content only to a signed-in user with the right permission.
+
+**Data and time:** None new. Times shown through `src/shared/time`.
+
+**Errors the user can see:** The friendly catalog messages from the sign-in API (`INVALID_CREDENTIALS`, `RATE_LIMITED`, `VALIDATION_FAILED` field messages); the network error sentence.
+
+**Module boundaries:** `identity/ui/` sign-in form and user menu; `src/app/sign-in/page.tsx`; the app layout shows the shell. UI uses only the shared API client.
+
+**Jobs, live updates, adapters:** None.
+
+#### Step 2: RED tests
+- [ ] Unit (component): the form shows field messages, the friendly error, disables the button while submitting, and never shows the server's raw text
+- [ ] Unit (component): the shell shows the user's name and a sign-out button; signed out, it shows a "Sign in" link
+- [ ] Unit: the `?next=` return path accepts only same-site relative paths (no open redirect)
+
+#### Step 3: GREEN implementation
+- [ ] Sign-in page, user menu with sign-out, `PrincipalProvider` fed from `GET /api/auth/me` so `usePrincipal().can()` reflects the real user, "Please sign in" pages link to `/sign-in?next=…`
+- [ ] Manual browser check: sign in, see the name, open diagnostics as Admin, sign out, keyboard-only use, narrow screen
+
+#### Step 4: Verification chain
+- [ ] Full chain including E2E; manual browser check done; `current_state.md` updated
+
+---
+
+### W-108: Seeds with users
+
+**Goal:** The test database has the fake users of `database_schema.md` Section 10, and the private real seed creates the first Super Admin.
+
+**Why now / dependencies:** W-102, W-104.
+
+**Permissions and roles:** Test users: one `SUPER_ADMIN`, one `ADMIN`, one `MANAGER`, five `AGENT`s, one deactivated agent; one custom role with a small bundle (for Phase 2).
+
+**Data and time:** `identity_users`, `identity_roles`. Credentials only from `.env.test` (`TEST_*`) and `.env` (`SEED_SUPER_ADMIN_*`).
+
+**Errors the user can see:** None (seed scripts print clear errors and refuse wrong targets, as in W-009).
+
+**Module boundaries:** Seeds use the `identity` public API (the same service rules as the app).
+
+**Jobs, live updates, adapters:** None.
+
+#### Step 2: RED tests
+- [ ] Integration: the test seed run twice gives identical users (idempotent); each `TEST_*` user can sign in with its `.env.test` password
+- [ ] Integration: the real seed creates one active Super Admin from `SEED_SUPER_ADMIN_*` and does nothing if an active Super Admin exists; it still refuses a test database and a weak password (W-009 tests stay green)
+- [ ] Scan: committed seed files still contain no password literals
+
+#### Step 3: GREEN implementation
+- [ ] `prisma/seeds/testSeed.ts` users; `prisma/seeds/realSeed.ts` creates the first Super Admin; `local_setup.md` Section 2 step 4 no longer says "skip in Phase 0"
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
+
+---
+
+### W-109: RBAC end to end with real sessions (critical journey 1)
+
+**Goal:** Prove, with real sign-ins, that each role reaches exactly what it should, and that the Super Admin reaches everything.
+
+**Why now / dependencies:** W-104 to W-108.
+
+**Permissions and roles:** Every registered code and every guarded route.
+
+**Data and time:** Uses the seeded test users.
+
+**Errors the user can see:** `UNAUTHENTICATED`, `FORBIDDEN` with the friendly messages.
+
+**Module boundaries:** Tests only.
+
+**Jobs, live updates, adapters:** The live-update stream is part of the matrix.
+
+#### Step 2: RED tests
+- [ ] Integration: a table-driven matrix signs in as each seeded role and calls every guarded API route; each result matches the role's grants (allowed → not 401/403; refused → 403 with no permission code), signed out → 401, and `SUPER_ADMIN` passes everything through the bypass
+- [ ] Integration: a guard-matrix scan fails if a new guarded route is not in the matrix
+- [ ] E2E (journey 1): sign in through the form as `SUPER_ADMIN`, `ADMIN`, `MANAGER` and `AGENT`; each sees their name and only the pages they may use; diagnostics is shown to Super Admin and Admin and refused with the friendly message to Manager and Agent; sign out returns to the sign-in page
+- [ ] E2E: the existing specs move from the test-only role cookie to real sign-in where it matters
+
+#### Step 3: GREEN implementation
+- [ ] Shared E2E sign-in helper using the seeded credentials from `.env.test`
+
+#### Step 4: Verification chain
+- [ ] Full chain including E2E; `current_state.md` updated
+
+---
+
+### W-110: Session and throttle clean-up job
+
+**Goal:** Expired and revoked sessions and old throttle counters are removed every day, so the tables stay small and IP data is not kept longer than needed.
+
+**Why now / dependencies:** W-105; the job foundation (W-012).
+
+**Permissions and roles:** None (worker job).
+
+**Data and time:** Deletes sessions that expired or were revoked more than 7 days ago, and throttle rows whose window ended more than 1 day ago. Runs daily at 03:30 business time (`Asia/Kolkata`).
+
+**Errors the user can see:** None.
+
+**Module boundaries:** `identity.jobs.ts` (`identity.cleanupSessions`), registered in the worker.
+
+**Jobs, live updates, adapters:** One recurring job; idempotent.
+
+#### Step 2: RED tests
+- [ ] Unit: the cut-off times are computed from the injected clock
+- [ ] Integration (pg-boss `TestClock`): the job deletes only what is past the cut-off; running it twice changes nothing more; the schedule uses the business timezone
+
+#### Step 3: GREEN implementation
+- [ ] Job, schedule registration in the worker, `identity` exports it from `index.ts`
+
+#### Step 4: Verification chain
+- [ ] Full chain; `current_state.md` updated
+
+---
+
+### W-111: Phase 1 acceptance
+
+**Goal:** Confirm Phase 1 works for a new developer and that the docs match what was built.
+
+- [ ] Fresh clone: `local_setup.md` Section 2 including the real seed (step 4); sign in as the seeded Super Admin in the browser; diagnostics shows the worker `up`
+- [ ] `npm run ci:quality` green; GitHub pipeline green; dev database untouched by tests
+- [ ] `project_data.md`, `database_schema.md`, `local_setup.md` and `decision_log.md` match what was built
+- [ ] Phase 1 set to **DONE** in the Progress Summary, Phase 2 set to **PENDING (next)**
 
 ### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — PENDING
 Manager → agent hierarchy, teams, scope resolution (`getVisibleAgentIds`, with Super Admin resolving to "all"), user management screens, and the **Roles & Permissions page** (Super Admin only, `roles:manage` reserved), exactly as in Decision 23:

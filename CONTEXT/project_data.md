@@ -459,7 +459,6 @@ A value that is meant to be the same everywhere is defined **once** and referenc
 
 | Question | Needed by |
 |:---|:---|
-| Authentication approach (Auth.js credentials, or another session provider)? (Decision 20) | Phase 1 |
 | Direct Meta Cloud API integration or through a WhatsApp provider (BSP)? (Decision 19) | Phase 4 |
 | Do agents need SMS as well as WhatsApp, or WhatsApp only? | Phase 4 |
 | Which calling provider? Use the comparison checklist in Decision 30, including browser calling to Indian numbers and DoT/TRAI compliance. | Before the first real adapter in Phase 7 |
@@ -469,3 +468,4 @@ A value that is meant to be the same everywhere is defined **once** and referenc
 | Hosting target (must be always-on: worker + live updates) | Phase 12 |
 
 **Resolved:** single company vs multi-tenant → single company, Explore Hills (Decision 21, 2026-10-29).
+**Resolved:** authentication → own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords (Decisions 20 and 46, 2026-10-30).

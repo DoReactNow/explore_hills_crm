@@ -327,10 +327,10 @@ Options: direct Meta Cloud API (no platform fee, more integration work) or throu
 
 ---
 
-### Decision 20: Open — Authentication Approach
+### Decision 20: Authentication Approach
 
-**Date:** 2026-10-28
-**Status:** Open (needed by Phase 1)
+**Date:** 2026-10-28 (resolved 2026-10-30)
+**Status:** Resolved by Decision 46: our own sessions table (not Auth.js), 12-hour sliding sessions capped at 7 days, lock for 15 minutes after 5 wrong passwords.
 
 Candidates: Auth.js with a credentials provider and server-side session lookup, or a custom session table. Constraint from Decision 4: the principal and its permissions are resolved server-side on every request. The Phase 1 plan must also decide password hashing, session lifetime and lockout rules.
 
@@ -872,3 +872,27 @@ The W-015 drill followed `local_setup.md` Section 2 in a fresh clone of `main` (
 - **Section 9 (local Docker full stack)** now says to complete Section 2 first: the containers use the checkout's source and its generated Prisma client.
 
 In Phase 0 the diagnostics endpoint needs a signed-in user, which arrives in Phase 1, so "the worker shows as up" was checked through the test environment (the test-only admin cookie), as Section 2 already says.
+
+---
+
+### Decision 46: Authentication — Own Sessions Table
+
+**Date:** 2026-10-30
+**Status:** Accepted (resolves Decision 20; choices confirmed by the user on 2026-10-30, technical details proposed with the Phase 1 plan)
+
+#### Context
+Staff sign in with an email and password. Decision 4 requires the principal and its permissions to be resolved on the server for every request, which a database-backed session does directly.
+
+#### Decision (confirmed by the user)
+- **Own sessions table, not Auth.js.** Sign-in, sign-out, password hashing and lockout are written in the `identity` module.
+- **Session length:** a session expires after **12 hours without activity**; activity extends it, up to **7 days** after sign-in, after which the user signs in again.
+- **Lockout:** **5 wrong passwords lock the account for 15 minutes**; a correct sign-in resets the count. Sign-in attempts are also limited per IP address.
+
+#### Technical details (part of the Phase 1 plan)
+- **Passwords:** argon2id through `@node-rs/argon2` (prebuilt binaries, no compiler needed in Docker). The strength rule is the one the real seed already applies (Decision 40), shared from one place.
+- **Session token:** 32 random bytes, sent only in an `HttpOnly`, `SameSite=Lax` cookie (`Secure` in production). The database stores only its SHA-256 hash (`identity_sessions.tokenHash`), never the token. Activity extends `expiresAt` at most once every 5 minutes, to avoid a write on every request.
+- **Cross-site requests:** requests that change data (POST, PUT, PATCH, DELETE) with a session cookie must come from the app's own origin (`APP_URL`); others are refused with `FORBIDDEN`.
+- **Per-IP limit:** at most 20 sign-in attempts per IP address per 15 minutes, counted in a small Postgres table so it holds across app instances.
+- **What the user is told:** a wrong email or password gives one message that does not reveal whether the account exists (new catalog code `INVALID_CREDENTIALS`); a locked account or a throttled IP gets the existing `RATE_LIMITED` message.
+- **Who can sign in:** only `ACTIVE` users. Deactivating a user revokes all their sessions; a role or permission change applies on the next request, because the principal is rebuilt every time.
+- **Audit:** sign-in, sign-out, lockouts and every user change are written to `audit_events` (the table and writer arrive in Phase 1, Decision 23).
