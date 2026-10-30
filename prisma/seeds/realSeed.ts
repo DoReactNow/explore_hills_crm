@@ -1,11 +1,10 @@
 // Helpers for the PRIVATE real seed (Decision 11). The real seed itself lives in
 // prisma/private/seed.ts, which is git-ignored; prisma/seed.example.ts is its committed template.
 // Values come from .env (SEED_SUPER_ADMIN_*), never from files.
+import { checkPasswordStrength } from "@/modules/identity";
 import { getEnv } from "@/shared/config/env";
 import type { SeedTarget } from "./testSeed";
 
-const PLACEHOLDER = /change-me/i;
-const COMMON_WORDS = /password|explorehills|qwerty|123456/i;
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export function assertRealSeedTarget({ APP_ENV, databaseName }: SeedTarget): void {
@@ -32,15 +31,7 @@ export function checkSuperAdminCredentials(input: {
   }
 
   const password = input.password ?? "";
-  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((pattern) =>
-    pattern.test(password),
-  ).length;
-  if (
-    password.length < 12 ||
-    classes < 3 ||
-    PLACEHOLDER.test(password) ||
-    COMMON_WORDS.test(password)
-  ) {
+  if (!checkPasswordStrength(password, { email }).ok) {
     throw new Error(
       "SEED_SUPER_ADMIN_PASSWORD must be set in .env: at least 12 characters, three of lowercase, uppercase, digits and symbols, and not a placeholder or common word.",
     );

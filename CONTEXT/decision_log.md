@@ -951,3 +951,17 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - Nobody can change their own role or deactivate themselves.
 - Two simultaneous removals of Super Admins are serialised inside the transaction, so at least one active Super Admin always remains.
 - Only if there is no active Super Admin does the real seed create one; if the email belongs to a deactivated account, it refuses with a clear message.
+
+---
+
+### Decision 50: Password Details Settled in W-102
+
+**Date:** 2026-10-30
+**Status:** Accepted
+
+#### Decision
+- **Hash settings:** argon2id with 19 MiB of memory, 2 iterations and 1 thread (OWASP's minimum), set explicitly rather than left to the library's lighter defaults. At most 4 hashes run at once; the rest wait.
+- **Unicode:** a password is converted to NFC before hashing and verifying, so the same characters typed on different keyboards match. Nothing else is changed: case and spaces still matter.
+- **Personal details:** a password is refused if it contains the user's full email, the part before the `@`, their full name, or any part of their name of 3 or more characters, ignoring case.
+- **Non-Latin characters** count as symbols, so the Decision 40 rule gives the same results as before. A password written only in Hindi has one character class and is refused as weak; one that also has Latin letters or digits is accepted.
+- **Unknown user:** a dummy hash, built once from random bytes when first needed, is verified so the response time does not reveal which accounts exist.

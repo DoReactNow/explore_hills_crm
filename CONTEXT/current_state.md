@@ -657,14 +657,14 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
-> 2. **W-112** on branch `w-112-reset-db`: work done and the full chain green; its PR is open against `main`. Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **Then** W-102 onward, in the order above.
+> 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
+> 3. **W-102** is done, on its own PR. **Then** W-103 onward, in the order above.
 > 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -762,19 +762,21 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Unit: hash then verify succeeds; a wrong password fails; two hashes of the same password differ (salt); the hash string starts with `$argon2id$`
-- [ ] Unit: verifying against a malformed hash returns false, never throws a library error to the caller
-- [ ] Unit: the strength rule (12+ characters, three character classes, no placeholder or common word) gives the same results as the Decision 40 seed tests, which keep passing unchanged
-- [ ] Unit: a dummy hash is verified when the user does not exist, so timing does not reveal accounts
-- [ ] Unit: a password over 1024 bytes is refused before hashing; emoji and non-English passwords work; a password containing the user's email or name is refused; many hashes at once run with limited concurrency (`P1-SIGNIN-06`, `-07`, `P1-PASS-03`, `-06`)
+- [x] Unit: hash then verify succeeds; a wrong password fails; two hashes of the same password differ (salt); the hash string starts with `$argon2id$`
+- [x] Unit: verifying against a malformed hash returns false, never throws a library error to the caller
+- [x] Unit: the strength rule (12+ characters, three character classes, no placeholder or common word) gives the same results as the Decision 40 seed tests, which keep passing unchanged
+- [x] Unit: a dummy hash is verified when the user does not exist, so timing does not reveal accounts
+- [x] Unit: a password over 1024 bytes is refused before hashing; emoji and non-English passwords work; a password containing the user's email or name is refused; many hashes at once run with limited concurrency (`P1-SIGNIN-06`, `-07`, `P1-PASS-03`, `-06`)
 
 #### Step 3: GREEN implementation
-- [ ] Add `@node-rs/argon2` (pinned); `hashPassword`, `verifyPassword`, `checkPasswordStrength`; the seed uses the shared rule
-- [ ] Confirm the production `runner` image loads the native binding (build and health check in the image)
+- [x] Add `@node-rs/argon2` (pinned); `hashPassword`, `verifyPassword`, `checkPasswordStrength`; the seed uses the shared rule
+- [x] Confirm the production `runner` image loads the native binding (build and health check in the image)
 
 #### Step 4: Verification chain
-- [ ] Full chain; `docker:prod:build` succeeds and the app container is healthy
-- [ ] `current_state.md` updated
+- [x] Full chain; `docker:prod:build` succeeds and the app container is healthy
+- [x] `current_state.md` updated
+
+> **Done 2026-10-30.** `@node-rs/argon2` 2.2.2. 21 new unit tests in `passwords.unit.test.ts`; the Decision 40 seed tests pass unchanged. 257 unit plus the TZ matrix, 63 integration, 6 E2E passing; no migration drift. Production image: a temporary route (since removed) hashed and verified through the real Next bundle in the `runner` image, which proves the native binding loads; then on a throwaway database `migrate` exited 0, `app` was healthy with the database up, and `worker` started. Details in Decision 50.
 
 ---
 
