@@ -37,7 +37,7 @@ This document is the project metadata, technical reference, permission dictionar
 |:---|:---|
 | **Customer** | Sends a WhatsApp message to the business. Never sees the platform. |
 | **Super Admin** | The only role that bypasses every access check. The only one who can create roles and change any role's permissions (including Admin's), and manage Super Admin accounts (Decision 23). |
-| **Admin** | Runs the platform day to day: users, settings, templates, reports. A normal role whose permissions the Super Admin sets. |
+| **Admin** | Runs the platform day to day: users (including setting and changing their passwords from the employee page, Decision 48), settings, templates, reports. A normal role whose permissions the Super Admin sets. |
 | **Manager** | Sees the queue of unassigned enquiries, picks an assignment mode, previews who gets what, confirms. Watches the team and reports. |
 | **Agent** | Works their own leads: replies on WhatsApp inside the platform, clicks Call and talks **in the browser** with a headset, receives inbound calls as a pop-up, fills the call outcome form. |
 | **Calling provider** (external) | Connects the agent's browser call to the customer's phone, records the call, and reports status and the recording back to the platform. |

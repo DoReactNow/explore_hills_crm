@@ -11,14 +11,14 @@ The catalogue of normal, failure, race, permission, time and cross-module cases,
 
 **This list is as complete as we can make it today, but no list can promise every case.** That is why rule 4 exists.
 
-**Contents:** 492 scenarios and 20 open questions, as of 2026-10-30.
+**Contents:** 501 scenarios and 19 open questions, as of 2026-10-30.
 
 | Section | Scenarios |
 |:---|:---|
 | Rules for every feature | 61 |
 | Phase 0 | 18 |
-| Phase 1 | 83 |
-| Phase 2 | 27 |
+| Phase 1 | 89 |
+| Phase 2 | 30 |
 | Phase 3 | 44 |
 | Phase 4 | 51 |
 | Phase 5 | 57 |
@@ -229,8 +229,15 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P1-PASS-04** A malformed stored hash gives a failed sign-in, not a server error.
 - **P1-PASS-05** Password hashes never appear in any response, log, audit event or export.
 - **P1-PASS-06** Hashing many passwords at once cannot starve the server.
-- **Q-01 (needs an answer):** How does a user get their first password or reset a forgotten one? This plan has no reset flow.
-- **Q-02 (needs an answer):** Should changing a password end the user's other sessions?
+- **P1-PASS-07** An Admin sets a default password when creating a user; it follows the strength rule and is never shown again, logged or audited.
+- **P1-PASS-08** Only an Admin (with the permission) can change a user's password; a user cannot change their own, and no "forgot password" route exists.
+- **P1-PASS-09** Changing a password signs that user out of all running sessions at once, including a request made at the same moment; the old password stops working and the new one works.
+- **P1-PASS-10** Changing a password clears that user's failed-attempt count and lock.
+- **P1-PASS-11** An Admin cannot change a Super Admin's password, by any route; a Super Admin can.
+- **P1-PASS-12** Each password change is audited with who and whose, never the password.
+- **Q-01 (answered, Decision 48):** An Admin gives the default password and only an Admin changes it later.
+- **Q-02 (answered, Decision 48):** Yes, changing a password signs the user out of all running sessions.
+- **Q-21 (needs an answer):** What happens if the only Super Admin forgets their password?
 
 ### Managing users
 
@@ -321,6 +328,9 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 
 - **P2-UMGMT-01** Only allowed roles see the screens, and an Admin never gets controls that touch a Super Admin.
 - **P2-UMGMT-02** The role picker hides Super Admin from an Admin, and the server refuses it anyway.
+- **P2-UMGMT-04** The Admin's employee page lists employees; clicking a record opens that person's details to view and edit.
+- **P2-UMGMT-05** Setting a new password from the employee record works, shows a clear warning that the person will be signed out, and never displays the password afterwards.
+- **P2-UMGMT-06** A manager or agent cannot open the employee page or another person's record by URL, and an Admin opening a Super Admin's record gets no edit or password controls.
 - **P2-UMGMT-03** A user deactivated while they have open leads shows a clear warning, and their leads follow the rule in Phase 5.
 
 ---
@@ -802,8 +812,7 @@ Collected from the sections above. Answer a phase's questions before planning it
 
 | ID | Phase | Question |
 |:---|:---|:---|
-| Q-01 | 1 | How does a user get their first password or reset a forgotten one? This plan has no reset flow. |
-| Q-02 | 1 | Should changing a password end the user's other sessions? |
+| Q-21 | 1 | What happens if the only Super Admin forgets their password? |
 | Q-03 | 2 | Does "team" visibility include managers of managers? |
 | Q-04 | 2 | Can a user belong to more than one team? |
 | Q-05 | 3 | Does a returning customer reopen the old lead or start a new one? |

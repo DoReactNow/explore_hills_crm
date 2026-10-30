@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 **Before W-102 continues (Decision 47):** map every Phase 1 scenario in `test_scenarios.md` to a work item by its ID, answer Phase 1's open questions, and get the owner's approval of the revised plan. W-101 is complete.
 
-- [ ] Phase 1 plan revised against `test_scenarios.md` and re-approved by the owner
+- [ ] Phase 1 plan revised against `test_scenarios.md` and re-approved by the owner, including Decision 48: an Admin sets and changes passwords (API in W-104), a change signs the user out everywhere, no self-service or "forgot password" flow; confirm its listed details and Q-21
 - [ ] Create the missing `scripts/reset-db.ts` behind `db:reset:dev` and `db:reset:test` (`P0-OPS-01`, `P0-OPS-02`). W-001 and W-015 were ticked with this gap; it was found on 2026-10-30.
 
 **Definition of done for Phase 1:** a person signs in with email and password, works under their role's permissions, and signs out; the Super Admin protections hold; every user change and sign-in event is audited; RBAC is proven end to end with real sessions for every role, including `SUPER_ADMIN`; every box below is ticked.
@@ -995,7 +995,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 - [ ] Phase 1 set to **DONE** in the Progress Summary, Phase 2 set to **PENDING (next)**
 
 ### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — PENDING
-Manager → agent hierarchy, teams, scope resolution (`getVisibleAgentIds`, with Super Admin resolving to "all"), user management screens, and the **Roles & Permissions page** (Super Admin only, `roles:manage` reserved), exactly as in Decision 23:
+Manager → agent hierarchy, teams, scope resolution (`getVisibleAgentIds`, with Super Admin resolving to "all"), user management screens including the Admin's employee page (a list where clicking a record opens that person's details to edit them and set a new password, Decision 48), and the **Roles & Permissions page** (Super Admin only, `roles:manage` reserved), exactly as in Decision 23:
 - list roles with user counts; create, rename and delete custom roles (deleting a role still held by users → `CONFLICT`);
 - edit the permissions of every role except `SUPER_ADMIN`, including `ADMIN`; permissions grouped by module with human-readable labels and descriptions (codes only as small secondary text on this page);
 - "Reset to defaults" for system roles; every change audited; changes apply on the user's next request;

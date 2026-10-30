@@ -909,3 +909,22 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - Detailed work items are still written when a phase arrives, in the `TDD_INSTRUCTION_GUIDE.md` format, from the code that exists by then. Plans for all phases are not written in advance, because they would go stale and some depend on open decisions.
 - **Coverage rule:** every scenario of a phase maps to a real test in that phase's plan, by ID, or moves to a named later phase with the reason. New edge cases and production bugs are added to the catalogue in the same change.
 - The session prompt and the TDD guide carry these rules, so they apply in every new session.
+
+---
+
+### Decision 48: Passwords Are Set by an Admin; Employee Page
+
+**Date:** 2026-10-30
+**Status:** Accepted (chosen by the user; answers `test_scenarios.md` Q-01 and Q-02; amends Decision 46)
+
+#### Decision
+- **An Admin gives each user a default password when creating them, and afterwards only an Admin changes it,** from the Admin portal. There is no "forgot password" flow and users do not change their own password.
+- **The Admin portal has an employee (agent) page:** a list of employees where clicking a record opens that person's details to view and edit, including setting a new password. The page is built with the Phase 2 user management screens; its API arrives in W-104.
+- **Changing a password signs that user out of all their running sessions**, in the same transaction.
+
+#### Details to confirm when the Phase 1 plan is revised
+- The default password follows the Decision 46 strength rule, and is never shown again, logged or audited (the audit event records only that it changed).
+- Changing a password also clears that user's failed-attempt count and lock.
+- An Admin cannot change a Super Admin's password (Decision 23); a Super Admin can.
+- A user created with a password is `ACTIVE` immediately, so `INVITED` may go unused.
+- Recovery if the only Super Admin forgets their password is an open question (Q-21).
