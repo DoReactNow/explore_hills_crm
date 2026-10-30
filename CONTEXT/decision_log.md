@@ -878,7 +878,7 @@ In Phase 0 the diagnostics endpoint needs a signed-in user, which arrives in Pha
 ### Decision 46: Authentication — Own Sessions Table
 
 **Date:** 2026-10-30
-**Status:** Accepted (resolves Decision 20; choices confirmed by the user on 2026-10-30, technical details proposed with the Phase 1 plan)
+**Status:** Accepted (resolves Decision 20; choices confirmed by the user on 2026-10-30; technical details approved with the Phase 1 plan on 2026-10-30)
 
 #### Context
 Staff sign in with an email and password. Decision 4 requires the principal and its permissions to be resolved on the server for every request, which a database-backed session does directly.
@@ -888,7 +888,7 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Session length:** a session expires after **12 hours without activity**; activity extends it, up to **7 days** after sign-in, after which the user signs in again.
 - **Lockout:** **5 wrong passwords lock the account for 15 minutes**; a correct sign-in resets the count. Sign-in attempts are also limited per IP address.
 
-#### Technical details (part of the Phase 1 plan)
+#### Technical details (approved with the Phase 1 plan)
 - **Passwords:** argon2id through `@node-rs/argon2` (prebuilt binaries, no compiler needed in Docker). The strength rule is the one the real seed already applies (Decision 40), shared from one place.
 - **Session token:** 32 random bytes, sent only in an `HttpOnly`, `SameSite=Lax` cookie (`Secure` in production). The database stores only its SHA-256 hash (`identity_sessions.tokenHash`), never the token. Activity extends `expiresAt` at most once every 5 minutes, to avoid a write on every request.
 - **Cross-site requests:** requests that change data (POST, PUT, PATCH, DELETE) with a session cookie must come from the app's own origin (`APP_URL`); others are refused with `FORBIDDEN`.
