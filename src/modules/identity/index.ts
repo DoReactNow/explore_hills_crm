@@ -9,4 +9,6 @@ export {
   verifyPassword,
 } from "./identity.passwords";
 
+export { createSessionPrincipalResolver } from "./identity.session";
+
 export const buildPrincipalForRole = identityService.buildPrincipalForRole;

@@ -149,6 +149,45 @@ export const authRepository = {
     return session.user;
   },
 
+  /** A session with the user and role grants needed to build the principal on every request. */
+  findSessionForPrincipal(tokenHash: string) {
+    return getPrisma().identitySession.findUnique({
+      where: { tokenHash },
+      select: {
+        id: true,
+        expiresAt: true,
+        lastSeenAt: true,
+        revokedAt: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            status: true,
+            role: {
+              select: {
+                code: true,
+                bypassesAccess: true,
+                permissions: { select: { permission: { select: { code: true } } } },
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
+  /** Conditional, so requests arriving together cause one write. True if this one wrote. */
+  async extendSession(
+    id: string,
+    data: { seenBefore: Date; now: Date; expiresAt: Date },
+  ): Promise<boolean> {
+    const { count } = await getPrisma().identitySession.updateMany({
+      where: { id, revokedAt: null, lastSeenAt: { lte: data.seenBefore } },
+      data: { lastSeenAt: data.now, expiresAt: data.expiresAt },
+    });
+    return count === 1;
+  },
+
   getUser(tx: Tx, id: string): Promise<PublicUser> {
     return tx.identityUser.findUniqueOrThrow({ where: { id }, select: PUBLIC_USER });
   },

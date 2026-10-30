@@ -657,14 +657,14 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22) and **W-105** is done, on its own PR. **Then** W-106 onward, in the order above.
+> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30) and **W-106** are done. **Working locally by the owner's choice:** W-106 is committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-107 onward, in the order above.
 > 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN. **Three questions need the owner's answer before W-107:** the "Keep me signed in" checkbox (conflicts with Decision 46), the lockout countdown (conflicts with `P1-LOCK-08`), and approval of the theme and fonts.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -908,18 +908,20 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** The live-update stream (W-013) uses the same resolver.
 
 #### Step 2: RED tests
-- [ ] Unit (frozen clock): a session idle for 11 h 59 min is valid and is extended; at 12 h it is expired; past 7 days since sign-in it is expired however active; the extension writes at most once per 5 minutes
-- [ ] Integration: a valid cookie resolves to the user's principal (role code, bypass flag, permissions from the role's current grants)
-- [ ] Integration: removing a permission from the user's role takes effect on the very next request (Decision 4)
-- [ ] Integration: an expired, revoked or tampered cookie, or a deactivated user, gives 401 on a guarded route
-- [ ] Unit: the test-only role cookie is still refused outside `APP_ENV=test`
-- [ ] Integration: many requests at once with one cookie all work with at most one extension write; a request at the exact expiry moment is expired (`P1-SESSION-05`, `-07`)
+- [x] Unit (frozen clock): a session idle for 11 h 59 min is valid and is extended; at 12 h it is expired; past 7 days since sign-in it is expired however active; the extension writes at most once per 5 minutes
+- [x] Integration: a valid cookie resolves to the user's principal (role code, bypass flag, permissions from the role's current grants)
+- [x] Integration: removing a permission from the user's role takes effect on the very next request (Decision 4)
+- [x] Integration: an expired, revoked or tampered cookie, or a deactivated user, gives 401 on a guarded route
+- [x] Unit: the test-only role cookie is still refused outside `APP_ENV=test`
+- [x] Integration: many requests at once with one cookie all work with at most one extension write; a request at the exact expiry moment is expired (`P1-SESSION-05`, `-07`)
 
 #### Step 3: GREEN implementation
-- [ ] `createSessionPrincipalResolver()` in `identity`, installed by `instrumentation.ts`; composed with the test cookie resolver in tests
+- [x] `createSessionPrincipalResolver()` in `identity`, installed by `instrumentation.ts`; composed with the test cookie resolver in tests
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** `createSessionPrincipalResolver()` installed by `instrumentation.ts` in every environment, with the test role cookie layered on top only when `APP_ENV=test`. 22 new tests, run against real sign-ins and real routes. This also proves what W-104 and W-105 moved here: a request after sign-out, deactivation or a password change gets 401. The production image starts with the resolver and answers health as ok.
 
 ---
 
