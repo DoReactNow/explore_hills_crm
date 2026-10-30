@@ -10,7 +10,7 @@ import type { IdentityUserStatus } from "./identity.types";
 // cannot be read by two transactions at once (P1-SUPER-05).
 const USER_CHANGES_LOCK = 7_104_001;
 
-const PUBLIC_USER = {
+export const PUBLIC_USER = {
   id: true,
   email: true,
   name: true,

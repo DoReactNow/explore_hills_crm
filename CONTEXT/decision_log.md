@@ -981,3 +981,20 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Repeats:** deactivating someone already deactivated, reactivating someone already active, and an edit that changes nothing all succeed without writing or auditing.
 - **The list:** `GET /api/users` is paged (50 by default, 200 at most), sorted by name, and shows every user until team scope arrives in Phase 2. Phase 2 adds the sorting and filters its screens need.
 
+---
+
+### Decision 52: Sign-In Details Settled in W-105
+
+**Date:** 2026-10-30
+**Status:** Accepted (amends the W-105 plan)
+
+#### Decision
+- **Unknown emails lock too.** An unknown email and an inactive account behave alike: their failures are counted in `identity_login_throttle` under a keyed hash of the email, and lock after 5 for 15 minutes, so lockout cannot reveal which accounts exist (`P1-LOCK-08`). The email is never stored. One small difference remains: a real account's count never ages, while W-110 removes these rows a day after their last failure.
+- **The fifth wrong password** is itself answered with `RATE_LIMITED`, and is the attempt that starts the lock.
+- **Sign-out is public**, not `'authenticated'` as first planned, because `P1-SESSION-10` needs a repeat or an expired session to succeed quietly. It only ends the session named by its own cookie, and the Origin check still applies.
+- **Stale checks:** a sign-in succeeds only if the account is still active, unlocked and has the same password hash that was just verified, so a password changed at that moment shuts the old one out.
+- **Throttle keys** are HMAC-SHA-256 with `AUTH_SECRET`, so a leaked table cannot be checked against a list of addresses or emails.
+- **Sessions** leave `ip` and `userAgent` empty for now: nothing uses them, and it is personal data we would have to retain.
+- **Wording:** `INVALID_CREDENTIALS` uses the owner's design: "That email and password don't match. Check for typos and try again."
+- **Not decided here:** the lockout countdown in the design. `RATE_LIMITED` stays one fixed sentence until the owner answers.
+

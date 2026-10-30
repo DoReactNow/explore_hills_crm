@@ -4,10 +4,12 @@
 // envelope. Anything thrown becomes the friendly error envelope (W-004).
 import { randomUUID } from "node:crypto";
 import type { z } from "zod";
+import { getEnv } from "@/shared/config/env";
 import { AppError } from "@/shared/errors/AppError";
 import { GENERIC_FIELD_MESSAGE } from "@/shared/errors/errorCatalog";
 import { parseInput, toErrorResponse } from "@/shared/errors/toErrorResponse";
 import { logger as rootLogger, type Logger } from "@/shared/logger";
+import { readSessionToken } from "@/shared/http/sessionCookie";
 import { checkAccess, requiredPermissions, type Access } from "@/shared/rbac/guard";
 import type { Principal } from "@/shared/rbac/principal";
 import { resolvePrincipal } from "@/shared/rbac/principalResolver";
@@ -27,6 +29,7 @@ export interface RouteContext<I, P> {
 export interface HandlerResult<T> {
   data: T;
   status?: number;
+  headers?: Record<string, string>;
 }
 
 /** For responses that are not the JSON envelope, such as the live-update stream. */
@@ -47,6 +50,7 @@ export type NextRouteHandler<P> = (
 ) => Promise<Response>;
 
 const QUERY_METHODS = new Set(["GET", "HEAD", "DELETE"]);
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 async function readRawInput(request: Request): Promise<unknown> {
   if (QUERY_METHODS.has(request.method)) {
@@ -63,6 +67,17 @@ async function readRawInput(request: Request): Promise<unknown> {
   }
 }
 
+/**
+ * A write carrying a session cookie must come from the app's own address, and a missing Origin is
+ * refused too (Decisions 46 and 49). APP_URL is the public address, so this holds behind a proxy.
+ */
+function assertSameOrigin(request: Request): void {
+  if (!WRITE_METHODS.has(request.method) || !readSessionToken(request.headers)) return;
+  if (request.headers.get("origin") !== new URL(getEnv().APP_URL).origin) {
+    throw new AppError("FORBIDDEN", { logContext: { rule: "cross-site-write" } });
+  }
+}
+
 export function route<T, I = undefined, P extends object = Record<string, string>>(
   options: RouteOptions<T, I, P>,
 ): NextRouteHandler<P> {
@@ -71,6 +86,7 @@ export function route<T, I = undefined, P extends object = Record<string, string
     const logger = rootLogger.child({ requestId });
     const headers = { "x-request-id": requestId };
     try {
+      assertSameOrigin(request);
       const principal = await resolvePrincipal(request);
       const decision = checkAccess(options.access, principal);
       if (decision === "unauthenticated") throw new AppError("UNAUTHENTICATED");
@@ -99,7 +115,10 @@ export function route<T, I = undefined, P extends object = Record<string, string
         result.response.headers.set("x-request-id", requestId);
         return result.response;
       }
-      return Response.json({ data: result.data }, { status: result.status ?? 200, headers });
+      return Response.json(
+        { data: result.data },
+        { status: result.status ?? 200, headers: { ...headers, ...result.headers } },
+      );
     } catch (error) {
       const { status, body } = toErrorResponse(error, { requestId, logger });
       return Response.json(body, { status, headers });

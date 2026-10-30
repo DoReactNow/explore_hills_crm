@@ -121,6 +121,13 @@ export function createUserService(deps: UserServiceDeps = {}) {
       return user;
     },
 
+    /** The signed-in person's own profile; needs no permission. */
+    async getOwnProfile({ principal }: UserContext): Promise<PublicUser> {
+      const user = await repository.getUser(principal.userId);
+      if (!user) throw new AppError("UNAUTHENTICATED");
+      return user;
+    },
+
     async createUser(context: UserContext, input: CreateUserInput): Promise<PublicUser> {
       const { principal } = context;
       assertCan(principal, "users:create");
