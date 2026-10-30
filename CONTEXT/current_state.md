@@ -664,7 +664,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** to **W-110** and the local part of **W-111** are done. **Working locally by the owner's choice:** they are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then:** when the owner approves, push, get CI green, and finish W-111.
+> 3. **W-102** to **W-105** are merged (PRs #20 to #23). **W-106** to **W-110** and the local part of **W-111** are on `w-106-session-resolver`, with a pull request open against `main`. **Then:** once it is merged with all six jobs green, tick the last W-111 box, set Phase 1 to **DONE** and Phase 2 to **PENDING (next)**.
 > 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN; theme and fonts are settled (Decision 53).
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
