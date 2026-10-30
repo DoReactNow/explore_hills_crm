@@ -6,6 +6,10 @@ export const ERROR_CATALOG = {
     status: 400,
     message: "Some details need fixing. Please check the highlighted fields.",
   },
+  INVALID_CREDENTIALS: {
+    status: 401,
+    message: "That email and password don't match. Check for typos and try again.",
+  },
   UNAUTHENTICATED: { status: 401, message: "Please sign in to continue." },
   FORBIDDEN: { status: 403, message: "You don't have access to do this." },
   NOT_FOUND: { status: 404, message: "We couldn't find what you were looking for." },

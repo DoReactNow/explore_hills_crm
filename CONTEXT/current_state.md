@@ -657,15 +657,15 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** and **W-103** are merged (PRs #20, #21) and **W-104** is done, on its own PR. **Then** W-105 onward, in the order above.
-> 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
+> 3. **W-102** to **W-104** are merged (PRs #20 to #22) and **W-105** is done, on its own PR. **Then** W-106 onward, in the order above.
+> 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN. **Three questions need the owner's answer before W-107:** the "Keep me signed in" checkbox (conflicts with Decision 46), the lockout countdown (conflicts with `P1-LOCK-08`), and approval of the theme and fonts.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -858,34 +858,36 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 **Why now / dependencies:** W-102 to W-104.
 
-**Permissions and roles:** `POST /api/auth/sign-in` is `'public'` (added to `publicRoutes.ts`, with this decision as its log entry); `POST /api/auth/sign-out` and `GET /api/auth/me` are `'authenticated'`.
+**Permissions and roles:** `POST /api/auth/sign-in` and `POST /api/auth/sign-out` are `'public'` (in `publicRoutes.ts`; sign-out is public so a repeat succeeds quietly, Decision 52); `GET /api/auth/me` is `'authenticated'`.
 
 **Data and time:** `identity_sessions` (`expiresAt` = min(last activity + 12 h, sign-in + 7 days)); `identity_users.failedLoginCount`, `lockedUntil` (now + 15 min after the 5th failure), `lastLoginAt`; `identity_login_throttle` (20 attempts per hashed IP per 15-minute window). All instants from the injected `Clock`.
 
-**Errors the user can see:** New catalog code `INVALID_CREDENTIALS` (401, "That email and password don't match. Please try again.") for a wrong email, a wrong password, an inactive account or an unknown user, all alike; `RATE_LIMITED` for a locked account or a throttled IP; `VALIDATION_FAILED` for a missing field; `FORBIDDEN` for a cross-site POST.
+**Errors the user can see:** New catalog code `INVALID_CREDENTIALS` (401, "That email and password don't match. Check for typos and try again.") for a wrong email, a wrong password, an inactive account or an unknown user, all alike; `RATE_LIMITED` for a locked account or a throttled IP; `VALIDATION_FAILED` for a missing field; `FORBIDDEN` for a cross-site POST.
 
 **Module boundaries:** `identity` owns it; audits through `audit`.
 
 **Jobs, live updates, adapters:** None here (clean-up in W-110).
 
 #### Step 2: RED tests
-- [ ] Unit (frozen clock): 4 wrong passwords then a right one signs in and resets the count; the 5th wrong one locks for exactly 15 minutes; a right password during the lock still gives `RATE_LIMITED`; at 15 minutes it works again
-- [ ] Unit: the per-IP window allows 20 attempts and refuses the 21st until the window passes; the IP is stored only as a hash
-- [ ] Unit: the session token is 32 random bytes; only its SHA-256 hash is stored; expiry follows the 12 h / 7 day rule
-- [ ] Integration: correct credentials → 200 with `Set-Cookie: eh_session=…; HttpOnly; SameSite=Lax; Path=/` (and `Secure` when `APP_ENV=production`) and the user's public profile; the token does not appear in the body or the logs
-- [ ] Integration: wrong password, unknown email and a deactivated user each return the same `INVALID_CREDENTIALS` body
-- [ ] Integration: sign-out revokes the session (the same cookie then gives 401) and clears the cookie
-- [ ] Integration: a POST with a session cookie and a foreign `Origin` is refused with `FORBIDDEN`; the same POST from `APP_URL` passes
-- [ ] Integration: sign-in, failed sign-in and lockout write audit events (failed ones with no personal data in metadata)
-- [ ] Integration: five wrong passwords at the same moment all count; guesses during a lock do not extend it; two attempts at the limit cannot both pass (`P1-LOCK-05`, `-06`, `-07`, `-12`)
-- [ ] Unit: a faked `X-Forwarded-For` cannot dodge the limit or frame another address; an unreadable IP uses the limited "unknown" bucket (`P1-LOCK-10`, `-11`)
-- [ ] Integration: a write with a cookie and no `Origin` is refused; signing in while signed in, on two devices, and signing out twice all behave (`P1-CSRF-03`, `P1-SIGNIN-08`, `-09`, `P1-SESSION-10`)
+- [x] Unit (frozen clock): 4 wrong passwords then a right one signs in and resets the count; the 5th wrong one locks for exactly 15 minutes; a right password during the lock still gives `RATE_LIMITED`; at 15 minutes it works again
+- [x] Unit: the per-IP window allows 20 attempts and refuses the 21st until the window passes; the IP is stored only as a hash
+- [x] Unit: the session token is 32 random bytes; only its SHA-256 hash is stored; expiry follows the 12 h / 7 day rule
+- [x] Integration: correct credentials → 200 with `Set-Cookie: eh_session=…; HttpOnly; SameSite=Lax; Path=/` (and `Secure` when `APP_ENV=production`) and the user's public profile; the token does not appear in the body or the logs
+- [x] Integration: wrong password, unknown email and a deactivated user each return the same `INVALID_CREDENTIALS` body
+- [x] Integration: sign-out revokes the session and clears the cookie (the 401 for that cookie needs the session resolver, so W-106 proves it)
+- [x] Integration: a POST with a session cookie and a foreign `Origin` is refused with `FORBIDDEN`; the same POST from `APP_URL` passes
+- [x] Integration: sign-in, failed sign-in and lockout write audit events (failed ones with no personal data in metadata)
+- [x] Integration: five wrong passwords at the same moment all count; guesses during a lock do not extend it; two attempts at the limit cannot both pass (`P1-LOCK-05`, `-06`, `-07`, `-12`)
+- [x] Unit: a faked `X-Forwarded-For` cannot dodge the limit or frame another address; an unreadable IP uses the limited "unknown" bucket (`P1-LOCK-10`, `-11`)
+- [x] Integration: a write with a cookie and no `Origin` is refused; signing in while signed in, on two devices, and signing out twice all behave (`P1-CSRF-03`, `P1-SIGNIN-08`, `-09`, `P1-SESSION-10`)
 
 #### Step 3: GREEN implementation
-- [ ] Catalog entry `INVALID_CREDENTIALS` (catalog scan test stays green); session, throttle and sign-in services; `route()` Origin check for cookie-authenticated writes; route adapters under `src/app/api/auth/`
+- [x] Catalog entry `INVALID_CREDENTIALS` (catalog scan test stays green); session, throttle and sign-in services; `route()` Origin check for cookie-authenticated writes; route adapters under `src/app/api/auth/`
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** Sign-in, sign-out and `GET /api/auth/me`, the `route()` Origin check for cookie writes, `INVALID_CREDENTIALS`, `TRUSTED_PROXY_HOPS` and `plusDuration`. Most rules are proven against the real database on a frozen clock, not with a mocked repository, because the counters are atomic SQL. Details in Decision 52.
 
 ---
 

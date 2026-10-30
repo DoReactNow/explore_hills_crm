@@ -9,12 +9,13 @@ const EXPECTED_STATUS = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   RATE_LIMITED: 429,
+  INVALID_CREDENTIALS: 401,
   UPSTREAM_UNAVAILABLE: 503,
   INTERNAL_ERROR: 500,
 } as const;
 
 describe("error catalog", () => {
-  it("has exactly the eight initial codes", () => {
+  it("has exactly the expected codes", () => {
     expect([...ERROR_CODES].sort()).toEqual(Object.keys(EXPECTED_STATUS).sort());
   });
 

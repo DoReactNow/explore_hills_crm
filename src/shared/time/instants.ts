@@ -20,3 +20,9 @@ export function toIsoInstant(instant: Date): string {
 export function instantFromEpochMs(ms: number): Date {
   return new Date(ms);
 }
+
+/** An instant plus a fixed length of time, in real elapsed time (not calendar days). */
+export function plusDuration(instant: Date, duration: { hours?: number; days?: number }): Date {
+  const ms = ((duration.days ?? 0) * 24 + (duration.hours ?? 0)) * 3_600_000;
+  return instantFromEpochMs(instant.getTime() + ms);
+}

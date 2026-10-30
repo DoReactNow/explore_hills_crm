@@ -31,6 +31,8 @@ const baseSchema = z.object({
     .min(1)
     .max(65535, "APP_PORT must be between 1 and 65535"),
   APP_URL: z.url({ error: "APP_URL must be a full URL" }),
+  /** Proxies in front of the app that add to X-Forwarded-For (Decision 49). */
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
   LOG_LEVEL: z
     .enum(["silent", "fatal", "error", "warn", "info", "debug", "trace"], {
       error: "LOG_LEVEL must be silent, fatal, error, warn, info, debug or trace",

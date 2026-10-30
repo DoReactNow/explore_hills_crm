@@ -41,3 +41,10 @@ export const listUsersSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(200).default(50),
 });
 export type ListUsersInput = z.output<typeof listUsersSchema>;
+
+// No format or length rules here: a sign-in attempt learns nothing except "that didn't match".
+export const signInSchema = z.object({
+  email: z.string().trim().toLowerCase().min(1, "Please enter your email."),
+  password: z.string().min(1, "Please enter your password."),
+});
+export type SignInInput = z.output<typeof signInSchema>;
