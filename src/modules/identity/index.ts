@@ -2,5 +2,11 @@
 import { identityService } from "./identity.service";
 
 export { syncRbac, type SyncRbacOptions, type SyncRbacSummary } from "./rbac/syncRbac";
+export {
+  assertPasswordStrength,
+  checkPasswordStrength,
+  hashPassword,
+  verifyPassword,
+} from "./identity.passwords";
 
 export const buildPrincipalForRole = identityService.buildPrincipalForRole;
