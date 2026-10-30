@@ -1,7 +1,8 @@
-import { identityController } from "@/modules/identity/identity.controller";
+import { assignmentController, deactivateSchema } from "@/modules/assignment/assignment.controller";
 import { route } from "@/shared/http/route";
 
 export const POST = route({
   access: { permission: "users:deactivate" },
-  handler: identityController.deactivateUser,
+  input: deactivateSchema,
+  handler: assignmentController.deactivateUser,
 });

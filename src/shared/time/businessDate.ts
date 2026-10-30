@@ -62,3 +62,28 @@ export function parseBusinessLocalDateTime(
   });
   return parsed.toJSDate();
 }
+
+/** Where an instant falls in the business week: its date, weekday (0 = Sunday) and minute of day. */
+export function businessMoment(
+  instant: Date,
+  options: ZoneOption = {},
+): { date: BusinessDate; weekday: number; minute: number } {
+  const local = DateTime.fromJSDate(instant, { zone: businessZone(options) });
+  return {
+    date: local.toFormat("yyyy-MM-dd"),
+    weekday: local.weekday % 7,
+    minute: local.hour * 60 + local.minute,
+  };
+}
+
+/** The calendar day `days` after a business date (before it, when negative). */
+export function addBusinessDays(date: BusinessDate, days: number): BusinessDate {
+  return DateTime.fromISO(assertBusinessDate(date), { zone: "utc" })
+    .plus({ days })
+    .toFormat("yyyy-MM-dd");
+}
+
+/** The weekday of a business date (0 = Sunday). */
+export function businessWeekday(date: BusinessDate): number {
+  return DateTime.fromISO(assertBusinessDate(date), { zone: "utc" }).weekday % 7;
+}

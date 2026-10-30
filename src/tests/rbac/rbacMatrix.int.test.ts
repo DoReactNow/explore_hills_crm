@@ -25,6 +25,18 @@ import * as chatRead from "@/app/api/conversations/[id]/read/route";
 import * as chatTemplate from "@/app/api/conversations/[id]/template/route";
 import * as chatItem from "@/app/api/conversations/[id]/route";
 import * as chats from "@/app/api/conversations/route";
+import * as agentOpenLeads from "@/app/api/assignment/agents/[id]/open-leads/route";
+import * as agentItem from "@/app/api/assignment/agents/[id]/route";
+import * as agentsRoute from "@/app/api/assignment/agents/route";
+import * as autoRule from "@/app/api/assignment/auto-rule/route";
+import * as batchUndo from "@/app/api/assignment/batches/[id]/undo/route";
+import * as batches from "@/app/api/assignment/batches/route";
+import * as poolClaim from "@/app/api/assignment/pool/[id]/claim/route";
+import * as poolItem from "@/app/api/assignment/pool/[id]/route";
+import * as poolRoute from "@/app/api/assignment/pool/route";
+import * as previewRoute from "@/app/api/assignment/preview/route";
+import * as queueRoute from "@/app/api/assignment/queue/route";
+import * as leadReassign from "@/app/api/leads/[id]/reassign/route";
 import * as leadMerge from "@/app/api/leads/[id]/merge/route";
 import * as messageMedia from "@/app/api/messages/[id]/media/route";
 import * as messageRetry from "@/app/api/messages/[id]/retry/route";
@@ -77,6 +89,8 @@ const SUPER_ONLY: readonly Role[] = ["SUPER_ADMIN"];
 const LEAD_ROLES: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "AGENT"];
 const MERGE_ROLES: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
 const TEAM_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
+const ASSIGNERS: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
+const CLAIMERS: readonly Role[] = ["SUPER_ADMIN", "AGENT"];
 
 interface Case {
   method: string;
@@ -127,6 +141,7 @@ const CASES: Case[] = [
     handler: deactivate.POST,
     allowed: ADMINS,
     usesId: "user",
+    body: {},
   },
   {
     method: "POST",
@@ -317,6 +332,75 @@ const CASES: Case[] = [
     handler: templateItem.DELETE,
     allowed: ADMINS,
     usesId: "lead",
+  },
+  { method: "GET", path: "/api/assignment/queue", handler: queueRoute.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/assignment/agents", handler: agentsRoute.GET, allowed: ASSIGNERS },
+  {
+    method: "PUT",
+    path: "/api/assignment/agents/[id]",
+    handler: agentItem.PUT,
+    allowed: ASSIGNERS,
+    usesId: "user",
+    body: {},
+  },
+  {
+    method: "GET",
+    path: "/api/assignment/agents/[id]/open-leads",
+    handler: agentOpenLeads.GET,
+    allowed: ADMINS,
+    usesId: "user",
+  },
+  {
+    method: "POST",
+    path: "/api/assignment/preview",
+    handler: previewRoute.POST,
+    allowed: ASSIGNERS,
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/assignment/batches",
+    handler: batches.POST,
+    allowed: ASSIGNERS,
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/assignment/batches/[id]/undo",
+    handler: batchUndo.POST,
+    allowed: ASSIGNERS,
+    usesId: "lead",
+  },
+  { method: "GET", path: "/api/assignment/pool", handler: poolRoute.GET, allowed: CLAIMERS },
+  {
+    method: "DELETE",
+    path: "/api/assignment/pool/[id]",
+    handler: poolItem.DELETE,
+    allowed: ASSIGNERS,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/assignment/pool/[id]/claim",
+    handler: poolClaim.POST,
+    allowed: CLAIMERS,
+    usesId: "lead",
+  },
+  { method: "GET", path: "/api/assignment/auto-rule", handler: autoRule.GET, allowed: ASSIGNERS },
+  {
+    method: "PUT",
+    path: "/api/assignment/auto-rule",
+    handler: autoRule.PUT,
+    allowed: ASSIGNERS,
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/reassign",
+    handler: leadReassign.POST,
+    allowed: ASSIGNERS,
+    usesId: "lead",
+    body: {},
   },
   { method: "GET", path: "/api/teams", handler: teams.GET, allowed: TEAM_VIEW },
   { method: "POST", path: "/api/teams", handler: teams.POST, allowed: ADMINS, body: {} },

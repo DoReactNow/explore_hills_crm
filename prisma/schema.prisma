@@ -69,33 +69,40 @@ model IdentityRolePermission {
 // Owner: identity. Staff accounts. Never hard-deleted: deactivated instead (status DEACTIVATED).
 // managerId is the one reporting line; team membership is many-to-many (Decision 55).
 model IdentityUser {
-  id               String               @id @default(uuid(7)) @db.Uuid
-  email            String               @unique // stored lowercase; lower(email) is also unique (raw SQL)
-  name             String
-  phoneE164        String? // E.164, checked in SQL
-  passwordHash     String // argon2id; never returned by any API or written to any log
-  status           IdentityUserStatus   @default(INVITED)
-  roleId           String               @db.Uuid
-  role             IdentityRole         @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
-  failedLoginCount Int                  @default(0)
-  lockedUntil      DateTime?            @db.Timestamptz(3)
-  lastLoginAt      DateTime?            @db.Timestamptz(3)
-  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
-  deactivatedAt    DateTime?            @db.Timestamptz(3)
-  managerId        String?              @db.Uuid
-  manager          IdentityUser?        @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
-  reports          IdentityUser[]       @relation("UserManager")
-  managedTeams     IdentityTeam[]       @relation("TeamManager")
-  teamMemberships  IdentityTeamMember[]
-  sessions         IdentitySession[]
-  auditEvents      AuditEvent[] // back-relation from the audit module
-  ownedLeads       LeadsLead[]
-  notes            LeadsNote[]
-  tasks            LeadsTask[]
-  timelineEntries  LeadsTimelineEntry[]
-  updatedSettings  SystemSetting[]
-  sentMessages     MessagingMessage[]
+  id                 String                      @id @default(uuid(7)) @db.Uuid
+  email              String                      @unique // stored lowercase; lower(email) is also unique (raw SQL)
+  name               String
+  phoneE164          String? // E.164, checked in SQL
+  passwordHash       String // argon2id; never returned by any API or written to any log
+  status             IdentityUserStatus          @default(INVITED)
+  roleId             String                      @db.Uuid
+  role               IdentityRole                @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
+  failedLoginCount   Int                         @default(0)
+  lockedUntil        DateTime?                   @db.Timestamptz(3)
+  lastLoginAt        DateTime?                   @db.Timestamptz(3)
+  createdAt          DateTime                    @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime                    @updatedAt @db.Timestamptz(3)
+  deactivatedAt      DateTime?                   @db.Timestamptz(3)
+  managerId          String?                     @db.Uuid
+  manager            IdentityUser?               @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
+  reports            IdentityUser[]              @relation("UserManager")
+  managedTeams       IdentityTeam[]              @relation("TeamManager")
+  teamMemberships    IdentityTeamMember[]
+  sessions           IdentitySession[]
+  auditEvents        AuditEvent[] // back-relation from the audit module
+  ownedLeads         LeadsLead[]
+  notes              LeadsNote[]
+  tasks              LeadsTask[]
+  timelineEntries    LeadsTimelineEntry[]
+  updatedSettings    SystemSetting[]
+  sentMessages       MessagingMessage[]
+  assignmentSetting  AssignmentAgentSetting?
+  createdRules       AssignmentRule[]
+  requestedBatches   AssignmentBatch[]
+  assignmentsFrom    AssignmentRecord[]          @relation("AssignmentFrom")
+  assignmentsTo      AssignmentRecord[]          @relation("AssignmentTo")
+  claimedPoolEntries AssignmentPoolEntry[]
+  poolEligibility    AssignmentPoolEligibility[]
 
   @@index([roleId])
   @@index([status])
@@ -275,36 +282,39 @@ model LeadsContact {
 
 // Owner: leads. Unassigned means ownerUserId is null; it is never a stage.
 model LeadsLead {
-  id               String                  @id @default(uuid(7)) @db.Uuid
-  contactId        String                  @db.Uuid
-  contact          LeadsContact            @relation(fields: [contactId], references: [id], onDelete: Restrict)
-  source           LeadsSource             @default(WHATSAPP)
-  sourceDetail     String?
-  stageId          String                  @db.Uuid
-  stage            LeadsPipelineStage      @relation(fields: [stageId], references: [id], onDelete: Restrict)
-  ownerUserId      String?                 @db.Uuid
-  owner            IdentityUser?           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
-  assignedAt       DateTime?               @db.Timestamptz(3)
-  priorityScore    Int                     @default(0)
-  destination      String?
-  travelStartDate  DateTime?               @db.Date
-  travelEndDate    DateTime?               @db.Date
-  travellerCount   Int?
-  budgetAmount     Decimal?                @db.Decimal(12, 2)
-  customFields     Json                    @default("{}")
-  firstResponseAt  DateTime?               @db.Timestamptz(3)
-  lastActivityAt   DateTime?               @db.Timestamptz(3)
-  nextFollowUpDate DateTime?               @db.Date
-  closedAt         DateTime?               @db.Timestamptz(3)
-  lostReason       String?
-  createdAt        DateTime                @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime                @updatedAt @db.Timestamptz(3)
-  deletedAt        DateTime?               @db.Timestamptz(3)
-  mergedIntoLeadId String?                 @db.Uuid
-  conversations    MessagingConversation[]
-  notes            LeadsNote[]
-  tasks            LeadsTask[]
-  timeline         LeadsTimelineEntry[]
+  id                String                  @id @default(uuid(7)) @db.Uuid
+  contactId         String                  @db.Uuid
+  contact           LeadsContact            @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  source            LeadsSource             @default(WHATSAPP)
+  sourceDetail      String?
+  stageId           String                  @db.Uuid
+  stage             LeadsPipelineStage      @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  ownerUserId       String?                 @db.Uuid
+  owner             IdentityUser?           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  assignedAt        DateTime?               @db.Timestamptz(3)
+  priorityScore     Int                     @default(0)
+  destination       String?
+  travelStartDate   DateTime?               @db.Date
+  travelEndDate     DateTime?               @db.Date
+  travellerCount    Int?
+  budgetAmount      Decimal?                @db.Decimal(12, 2)
+  customFields      Json                    @default("{}")
+  firstResponseAt   DateTime?               @db.Timestamptz(3)
+  lastActivityAt    DateTime?               @db.Timestamptz(3)
+  nextFollowUpDate  DateTime?               @db.Date
+  closedAt          DateTime?               @db.Timestamptz(3)
+  lostReason        String?
+  createdAt         DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?               @db.Timestamptz(3)
+  mergedIntoLeadId  String?                 @db.Uuid
+  conversations     MessagingConversation[]
+  notes             LeadsNote[]
+  tasks             LeadsTask[]
+  timeline          LeadsTimelineEntry[]
+  assignmentRecords AssignmentRecord[]
+  poolEntries       AssignmentPoolEntry[]
+  escalation        AssignmentEscalation?
 
   @@index([ownerUserId, stageId])
   @@index([stageId])
@@ -501,4 +511,162 @@ model MessagingWebhookEvent {
   @@index([receivedAt])
   @@index([waMessageId])
   @@map("messaging_webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// assignment module
+// ---------------------------------------------------------------------------
+
+enum AssignmentMode {
+  MANUAL
+  ROUND_ROBIN
+  LEAST_LOADED
+  PRIORITY
+  RANDOM
+  BLAST
+}
+
+enum AssignmentBatchStatus {
+  COMMITTED
+  FAILED
+}
+
+enum AssignmentPoolStatus {
+  OPEN
+  CLAIMED
+  EXPIRED
+  CANCELLED
+}
+
+// Owner: assignment. No row means the defaults: available, no shifts, the default cap.
+model AssignmentAgentSetting {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  userId        String            @unique @db.Uuid
+  user          IdentityUser      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  isAvailable   Boolean           @default(true)
+  openLeadCap   Int? // null = the system default; 0 = no leads
+  priorityTier  Int               @default(0) // higher = served first
+  languages     String[]
+  destinations  String[]
+  leaveFromDate DateTime?         @db.Date
+  leaveToDate   DateTime?         @db.Date
+  createdAt     DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime          @updatedAt @db.Timestamptz(3)
+  shifts        AssignmentShift[]
+
+  @@map("assignment_agent_settings")
+}
+
+// Owner: assignment. endMinute <= startMinute means it crosses midnight, counted to weekday.
+model AssignmentShift {
+  id          String                 @id @default(uuid(7)) @db.Uuid
+  settingId   String                 @db.Uuid
+  setting     AssignmentAgentSetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
+  weekday     Int // 0 = Sunday ... 6 = Saturday, in the business timezone
+  startMinute Int
+  endMinute   Int
+
+  @@unique([settingId, weekday, startMinute])
+  @@map("assignment_shifts")
+}
+
+// Owner: assignment. At most one active auto-assign rule (partial unique index, raw SQL).
+model AssignmentRule {
+  id                String         @id @default(uuid(7)) @db.Uuid
+  name              String         @unique
+  mode              AssignmentMode
+  config            Json           @default("{}")
+  isAutoAssign      Boolean        @default(false)
+  isActive          Boolean        @default(true)
+  autoAssignedUntil DateTime?      @db.Timestamptz(3) // leads created before this have had their turn
+  createdByUserId   String         @db.Uuid
+  createdBy         IdentityUser   @relation(fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt         DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(3)
+
+  @@map("assignment_rules")
+}
+
+// Owner: assignment. One confirmation = one batch. No requester means auto-assign.
+model AssignmentBatch {
+  id                String                @id @default(uuid(7)) @db.Uuid
+  idempotencyKey    String                @unique
+  mode              AssignmentMode
+  requestedByUserId String?               @db.Uuid
+  requestedBy       IdentityUser?         @relation(fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  status            AssignmentBatchStatus
+  leadCount         Int
+  config            Json                  @default("{}")
+  createdAt         DateTime              @default(now()) @db.Timestamptz(3)
+  records           AssignmentRecord[]
+
+  @@index([createdAt])
+  @@map("assignment_batches")
+}
+
+// Owner: assignment. The history of who owned a lead, with its response timer.
+model AssignmentRecord {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  batchId       String?          @db.Uuid
+  batch         AssignmentBatch? @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  leadId        String           @db.Uuid
+  lead          LeadsLead        @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  fromUserId    String?          @db.Uuid
+  fromUser      IdentityUser?    @relation("AssignmentFrom", fields: [fromUserId], references: [id], onDelete: Restrict)
+  toUserId      String           @db.Uuid
+  toUser        IdentityUser     @relation("AssignmentTo", fields: [toUserId], references: [id], onDelete: Restrict)
+  actorUserId   String?          @db.Uuid // no FK target needed: audit holds the actor's history
+  mode          AssignmentMode
+  reason        String?
+  responseDueAt DateTime?        @db.Timestamptz(3) // null = no timer running
+  respondedAt   DateTime?        @db.Timestamptz(3)
+  timedOutAt    DateTime?        @db.Timestamptz(3)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(3)
+
+  @@index([leadId, createdAt])
+  @@index([toUserId, createdAt])
+  @@index([responseDueAt])
+  @@map("assignment_records")
+}
+
+// Owner: assignment. A lead that kept timing out and is waiting for a manager.
+model AssignmentEscalation {
+  leadId      String    @id @db.Uuid
+  lead        LeadsLead @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  timeouts    Int
+  escalatedAt DateTime  @db.Timestamptz(3)
+
+  @@map("assignment_escalations")
+}
+
+// Owner: assignment. A lead offered to several agents. One OPEN entry per lead (raw SQL index).
+model AssignmentPoolEntry {
+  id              String                      @id @default(uuid(7)) @db.Uuid
+  leadId          String                      @db.Uuid
+  lead            LeadsLead                   @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  batchId         String?                     @db.Uuid
+  status          AssignmentPoolStatus        @default(OPEN)
+  claimedByUserId String?                     @db.Uuid
+  claimedBy       IdentityUser?               @relation(fields: [claimedByUserId], references: [id], onDelete: Restrict)
+  claimedAt       DateTime?                   @db.Timestamptz(3)
+  expiresAt       DateTime                    @db.Timestamptz(3)
+  createdAt       DateTime                    @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime                    @updatedAt @db.Timestamptz(3)
+  eligibleUsers   AssignmentPoolEligibility[]
+
+  @@index([status, expiresAt])
+  @@index([leadId])
+  @@map("assignment_pool_entries")
+}
+
+// Owner: assignment. Who an open pool entry was offered to.
+model AssignmentPoolEligibility {
+  poolEntryId String              @db.Uuid
+  poolEntry   AssignmentPoolEntry @relation(fields: [poolEntryId], references: [id], onDelete: Cascade)
+  userId      String              @db.Uuid
+  user        IdentityUser        @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([poolEntryId, userId])
+  @@index([userId])
+  @@map("assignment_pool_eligibility")
 }

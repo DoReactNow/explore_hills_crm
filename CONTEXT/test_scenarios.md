@@ -521,7 +521,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P5-ELIG-05** An agent at their cap is skipped, and a personal cap overrides the default; a cap of zero means no leads.
 - **P5-ELIG-06** Language and destination filters match correctly, and a lead with no language or destination follows a stated rule.
 - **P5-ELIG-07** A user who is not an agent role cannot be assigned, and that test uses permissions rather than role names.
-- **Q-09 (needs an answer):** Can a shift cross midnight, and is it counted to the starting day?
+- **Q-09 (answered):** Overnight shifts count toward the starting day (Decision 59).
 
 ### Blast pool
 
@@ -560,9 +560,9 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P5-REASSIGN-05** The old owner loses access immediately after reassignment, except by scope, including an open screen.
 - **P5-REASSIGN-06** Every ownership change records actor, previous owner, new owner, mode, reason and time.
 - **P5-REASSIGN-07** Auto-assign, if on, applies to new leads once and never overrides a manager's choice; only one active rule exists.
-- **Q-10 (needs an answer):** When an agent is deactivated, what happens to their open leads?
-- **Q-11 (needs an answer):** Do timeouts pause overnight or outside shifts?
-- **Q-12 (needs an answer):** How many times may a lead time out before it goes to a manager?
+- **Q-10 (answered):** The person deactivating chooses, defaulting to the manager queue (Decision 59).
+- **Q-11 (answered):** The timer counts only during the agent's shifts (Decision 59).
+- **Q-12 (answered):** After 2 timeouts in a row, as a setting (Decision 59).
 
 ---
 
@@ -820,10 +820,10 @@ Collected from the sections above. Answer a phase's questions before planning it
 | Q-06 | 4 | Answered: no SMS (Decision 58) |
 | Q-07 | 4 | Meta or a reseller, chosen before go-live (Decisions 19, 58) |
 | Q-08 | 4 | Answered (Decision 58) |
-| Q-09 | 5 | Can a shift cross midnight, and is it counted to the starting day? |
-| Q-10 | 5 | When an agent is deactivated, what happens to their open leads? |
-| Q-11 | 5 | Do timeouts pause overnight or outside shifts? |
-| Q-12 | 5 | How many times may a lead time out before it goes to a manager? |
+| Q-09 | 5 | Answered: overnight shifts count toward the starting day (Decision 59) |
+| Q-10 | 5 | Answered: the person deactivating chooses, defaulting to the manager queue (Decision 59) |
+| Q-11 | 5 | Answered: the timer counts only during the agent's shifts (Decision 59) |
+| Q-12 | 5 | Answered: after 2 timeouts in a row, as a setting (Decision 59) |
 | Q-13 | 7 | What does a caller hear out of hours, and who gets the missed-call alert? |
 | Q-14 | 7 | Which calling provider (Decision 30), and does it support licensed browser calling to Indian numbers? |
 | Q-15 | 7 | What is the exact recording announcement? |

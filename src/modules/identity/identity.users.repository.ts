@@ -227,6 +227,19 @@ export const userRepository = {
    * The person and everyone below them: through reporting lines, and through the teams each person
    * manages, all the way down (Decision 55). UNION makes it safe even if a loop ever existed.
    */
+  /** Active people whose role holds a permission. Goes by the grant, so never by a role's name. */
+  listActiveHolders(code: string, ids: readonly string[] | "all", tx?: Tx) {
+    return (tx ?? getPrisma()).identityUser.findMany({
+      where: {
+        status: "ACTIVE",
+        role: { permissions: { some: { permission: { code } } } },
+        ...(ids === "all" ? {} : { id: { in: [...ids] } }),
+      },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+  },
+
   async visibleUserIds(rootId: string): Promise<string[]> {
     const rows = await getPrisma().$queryRaw<Array<{ id: string }>>`
       WITH RECURSIVE visible(id) AS (

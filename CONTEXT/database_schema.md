@@ -544,6 +544,8 @@ model MessagingWebhookEvent {
 
 ### 3.4 `assignment` module (Phase 5)
 
+> **As built (Decision 59); `prisma/schema.prisma` is the authority.** Added to the plan below: `AssignmentRecord.actorUserId` and `timedOutAt`, `AssignmentRule.autoAssignedUntil`, `AssignmentPoolEntry.batchId`, and the `AssignmentEscalation` table. `AssignmentBatch.requestedByUserId` is optional, because auto-assign has no requester.
+
 ```prisma
 enum AssignmentMode {
   MANUAL
@@ -1066,13 +1068,14 @@ Decision 21 (resolved 2026-10-29): the platform serves **one company, Explore Hi
 | Key | Proposed default | Used by |
 |:---|:---|:---|
 | `assignment.timeoutMinutes` | `30` | Return-to-pool or escalation job (`project_data.md` 3.3) |
-| `assignment.defaultOpenLeadCap` | `50` | Eligibility filter |
-| `assignment.poolExpiryMinutes` | `15` | BLAST pool expiry job |
+| `assignment.defaultOpenLeadCap` | `12` | Eligibility filter |
+| `assignment.poolExpiryMinutes` | `5` | BLAST pool expiry job |
+| `assignment.maxTimeouts` | `2` | Timeouts in a row before a lead is flagged for a manager |
 | `sla.firstResponseMinutes` | `15` | Phase 8 reminders |
 | `telephony.inboundFallback` | `"available_agent"` | Inbound call when the lead owner is offline: ring any available eligible agent; if none, log a missed call and notify the manager |
 | `recording.format` | `"mp3"` | Recording compression job |
 | `recording.bitrateKbps` | `24` | Recording compression job (mono) |
-| `retention.recordingDays` | `180` | `telephony_recordings.expiresAt` and the retention job |
+| `retention.recordingDays` | `90` | `telephony_recordings.expiresAt` and the retention job |
 | `retention.messageDays` | `730` | Message retention |
 | `retention.webhookEventDays` | `30` | Webhook log clean-up job |
 | `realtime.pollFallbackSeconds` | `15` | Polling interval when the live-update stream cannot connect |

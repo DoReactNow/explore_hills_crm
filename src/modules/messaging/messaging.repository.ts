@@ -52,6 +52,18 @@ const visible = (scope: LeadScope): Prisma.MessagingConversationWhereInput => ({
 });
 
 export const messagingRepository = {
+  /** The newest thing each lead's customer wrote, for the queue and the blast cards. */
+  async latestCustomerMessages(leadIds: readonly string[]): Promise<Map<string, string>> {
+    if (leadIds.length === 0) return new Map();
+    const rows = await getPrisma().$queryRaw<Array<{ leadId: string; body: string }>>`
+      SELECT DISTINCT ON (c."leadId") c."leadId", m.body
+      FROM messaging_conversations c
+      JOIN messaging_messages m ON m."conversationId" = c.id
+      WHERE c."leadId" = ANY(${[...leadIds]}::uuid[]) AND m.direction = 'INBOUND' AND m.body IS NOT NULL
+      ORDER BY c."leadId", m."createdAt" DESC`;
+    return new Map(rows.map((row) => [row.leadId, row.body]));
+  },
+
   transaction<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
     return getPrisma().$transaction(work);
   },

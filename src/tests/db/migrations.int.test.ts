@@ -17,6 +17,14 @@ describe("migrations", () => {
     );
     expect(rows.map((row) => row.table_name)).toEqual([
       "_prisma_migrations",
+      "assignment_agent_settings",
+      "assignment_batches",
+      "assignment_escalations",
+      "assignment_pool_eligibility",
+      "assignment_pool_entries",
+      "assignment_records",
+      "assignment_rules",
+      "assignment_shifts",
       "audit_events",
       "identity_login_throttle",
       "identity_permissions",
