@@ -18,8 +18,8 @@ This is the source of truth for what is done and what is next. **Check this file
 
 | Phase | Title | Status |
 |:---|:---|:---|
-| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **IN PROGRESS** (W-001, W-002, W-010 part A, W-007, W-008 part A, W-003, W-004, W-006, W-005, W-008, W-009, W-010, W-011, W-012, W-013, W-014 done) |
-| 1 | Identity: users, sessions, real RBAC end to end | PENDING |
+| 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **DONE** (2026-10-30) |
+| 1 | Identity: users, sessions, real RBAC end to end | **PENDING (next)** |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
 | 4 | WhatsApp integration (inbox, leads from messages) | PENDING |
@@ -35,7 +35,7 @@ This is the source of truth for what is done and what is next. **Check this file
 
 ---
 
-# Phase 0: Foundation — IN PROGRESS
+# Phase 0: Foundation — DONE
 
 **Goal:** A repository where a new developer can clone, copy two env files, start Docker, and run the entire quality suite green, with the architecture, RBAC mechanics (including the Super Admin bypass), error handling, date handling, background jobs, live updates, file storage and pipelines already in place. No product features yet.
 
@@ -634,17 +634,19 @@ jobs:
 
 **Dependencies:** W-001 to W-014.
 
-- [ ] On a clean machine or fresh clone: follow `local_setup.md` Section 2 exactly. Every command works as written.
-- [ ] `npm run ci:quality` is green, in order: lint → typecheck → build (app + worker) → unit → integration → e2e.
-- [ ] `npm run worker` runs beside `npm run dev`; the diagnostics endpoint shows the worker `up`; a live test event reaches an open browser tab; a file written through `FileStorage` lands in `storage/` and is git-ignored.
-- [ ] Running `ci:quality` leaves `explorehills_dev` untouched (verify row counts or a marker row).
-- [ ] `git status` is clean after the run: nothing generated is untracked-and-unignored.
-- [ ] `git ls-files` shows no `.env` (only the three `*.example` files) and nothing under `prisma/private/`.
-- [ ] The GitHub pipeline is green with separate jobs.
-- [ ] Local Docker full stack (`docker:local:up`) serves the health endpoint on port 47214 and its worker container is `up`.
-- [ ] Production image builds and its migrate-then-start order is proven.
-- [ ] Docs are in sync: `local_setup.md`, `project_data.md`, `database_schema.md` and `decision_log.md` match what was built (update any drift).
-- [ ] Phase 0 set to **DONE** in the Progress Summary, Phase 1 set to **PENDING (next)**.
+- [x] On a clean machine or fresh clone: follow `local_setup.md` Section 2 exactly. Every command works as written.
+- [x] `npm run ci:quality` is green, in order: lint → typecheck → build (app + worker) → unit → integration → e2e.
+- [x] `npm run worker` runs beside `npm run dev`; the diagnostics endpoint shows the worker `up`; a live test event reaches an open browser tab; a file written through `FileStorage` lands in `storage/` and is git-ignored.
+- [x] Running `ci:quality` leaves `explorehills_dev` untouched (verify row counts or a marker row).
+- [x] `git status` is clean after the run: nothing generated is untracked-and-unignored.
+- [x] `git ls-files` shows no `.env` (only the three `*.example` files) and nothing under `prisma/private/`.
+- [x] The GitHub pipeline is green with separate jobs.
+- [x] Local Docker full stack (`docker:local:up`) serves the health endpoint on port 47214 and its worker container is `up`.
+- [x] Production image builds and its migrate-then-start order is proven.
+- [x] Docs are in sync: `local_setup.md`, `project_data.md`, `database_schema.md` and `decision_log.md` match what was built (update any drift).
+- [x] Phase 0 set to **DONE** in the Progress Summary, Phase 1 set to **PENDING (next)**.
+
+> **Done 2026-10-30.** Fresh clone of `main` at `f33b3f2`, following `local_setup.md` Section 2: every step worked once `npm run db:generate` was added after `npm ci` (the drill failed at `db:sync-rbac` without it; Decision 45). `npm run ci:quality` passed in order (lint → typecheck → build → build:worker → 230 unit + the TZ matrix → 57 integration → 6 E2E). `explorehills_dev` was unchanged afterwards (same row counts, marker row intact); `git status` was clean; only the three `*.example` env files and nothing under `prisma/private/` are tracked. `npm run dev` served health OK and `npm run worker` heartbeated beside it (diagnostics answers 401 in development until sign-in arrives in Phase 1). Against the test environment, `GET /api/diagnostics` reported `worker: up`, and an open browser tab switched to "Worker: up" without a reload when the worker started (a live notice from the worker). A file written through `getFileStorage()` landed in `storage/` and is git-ignored. GitHub: the latest CI run on `main` passed all six jobs with `build` before the tests; the deploy workflow was skipped, as designed. Docker: with fresh dependency volumes, `docker:local:up` served health on 47214 and the worker container heartbeated; the production images built from the clone, `migrate` exited 0 before `app` and `worker` started, the app was healthy and the worker heartbeated (temporary database and env file removed afterwards). Docs: three gaps fixed in `local_setup.md` (the generate step, the Playwright browser, and "complete Section 2 first" for the Docker stack); the other documents match what was built.
 
 ---
 
@@ -652,7 +654,7 @@ jobs:
 
 > **For every phase below:** do not code from this summary. First investigate the current code, then write detailed work items with `TDD_INSTRUCTION_GUIDE.md`, put them in this file under the phase, get the user's approval, and only then execute. Every list or table screen must have correct sorting and filtering on all columns, state kept when going back, smooth scrolling, and friendly errors.
 
-### Phase 1: Identity — PENDING
+### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Resolve Open Decision 20 (authentication) first and log it (tenancy is resolved: single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
 ### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — PENDING

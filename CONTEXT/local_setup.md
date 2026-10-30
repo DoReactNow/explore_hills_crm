@@ -33,6 +33,7 @@ If you use `nvm`: `nvm install && nvm use` (reads `.nvmrc`).
 git clone <repository-url> explore-hills-crm
 cd explore-hills-crm
 npm ci
+npm run db:generate          # generates the Prisma client (src/generated/, git-ignored); repeat after schema changes
 
 # 1. Env files (macOS / Linux / Git Bash)
 cp .env.example .env
@@ -57,6 +58,10 @@ npm run db:test:prepare
 # 6. Run the app and the worker (two terminals)
 npm run dev        # http://127.0.0.1:47213
 npm run worker     # background jobs; writes a heartbeat every few seconds
+
+# 7. Before the first E2E run (once per machine): the Chromium browser for Playwright
+npx playwright install chromium
+npm run ci:quality # the full local suite: lint, typecheck, build, unit, integration, e2e
 ```
 
 Health check: open `http://127.0.0.1:47213/api/health`. You should see `{"data":{"status":"ok", ...}}`. From Phase 1, signed in as the Super Admin, the diagnostics page shows the worker as `up`. In Phase 0 the integration tests check this with a test principal.
@@ -431,7 +436,7 @@ You can run any step alone: `npm run lint`, `npm run typecheck`, `npm run build`
 
 ## 9. Docker: Local Full Stack (optional)
 
-The default workflow is "database in Docker, app on your machine". To run the app in Docker as well:
+The default workflow is "database in Docker, app on your machine". To run the app in Docker as well, first complete Section 2: the containers use your checkout's source and its generated Prisma client (`src/generated/`).
 
 ```bash
 npm run docker:local:up      # db + app + worker (docker compose --profile app up -d --build)
