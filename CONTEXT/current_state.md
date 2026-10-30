@@ -20,8 +20,8 @@ This is the source of truth for what is done and what is next. **Check this file
 |:---|:---|:---|
 | 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **DONE** (2026-10-30) |
 | 1 | Identity: users, sessions, real RBAC end to end | **DONE** (2026-10-31) |
-| 2 | Teams, hierarchy and the Roles & Permissions page | **IN PROGRESS** (built and tested; waiting on the pull request) |
-| 3 | Lead core and agent-facing lead screens | PENDING |
+| 2 | Teams, hierarchy and the Roles & Permissions page | **DONE** (2026-10-31) |
+| 3 | Lead core and agent-facing lead screens | **PENDING (next)** |
 | 4 | WhatsApp integration (inbox, leads from messages) | PENDING |
 | 5 | Manager queue and assignment engine | PENDING |
 | 6 | Agent workspace | PENDING |
@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 and 2 are built; Phase 2 is on its pull request. Next is Phase 3, which needs the owner's answer to `Q-05` first. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 and 2 are complete. Next is Phase 3, which needs the owner's answer to `Q-05` first. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1061,7 +1061,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 > **Done 2026-10-31.** Fresh clone of the local branch at `15e3850`, following `local_setup.md` Section 2 with `.env` pointed at a throwaway `explorehills_drill` database, so the owner's dev data stayed as it was. Every step worked as written. `npm run ci:quality` passed in the clone (349 unit plus the TZ matrix, 278 integration, 15 E2E). `npm run dev` and `npm run worker` ran side by side; signing in through the form as the seeded Super Admin opened diagnostics showing the worker `up` and live updates `live`. `explorehills_dev` was unchanged afterwards; `git status` was clean; only the three `*.example` env files and nothing under `prisma/private/` are tracked. The clone and the throwaway database are removed. The test role cookie stays: it is refused outside `APP_ENV=test`, and later phases' E2E specs can use it where the sign-in is not what is under test. **GitHub pipeline, 2026-10-31:** PRs #23 and #24 passed all six jobs and are merged, which completes Phase 1.
 
-### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — IN PROGRESS
+### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — DONE
 Manager → agent hierarchy, teams, scope resolution (`getVisibleAgentIds`, with Super Admin resolving to "all"), user management screens including the Admin's employee page (a list where clicking a record opens that person's details to edit them and set a new password, Decision 48), and the **Roles & Permissions page** (Super Admin only, `roles:manage` reserved), exactly as in Decision 23:
 - list roles with user counts; create, rename and delete custom roles (deleting a role still held by users → `CONFLICT`);
 - edit the permissions of every role except `SUPER_ADMIN`, including `ADMIN`; permissions grouped by module with human-readable labels and descriptions (codes only as small secondary text on this page);
@@ -1083,12 +1083,12 @@ Moved: `P2-UMGMT-03` to Phase 5, because leads do not exist yet and the rule liv
 
 - [x] W-201 to W-206, built and tested
 - [x] `npm run ci:quality` green
-- [ ] GitHub pipeline green and merged
-- [ ] Phase 2 set to **DONE**, Phase 3 set to **PENDING (next)**
+- [x] GitHub pipeline green and merged (PR #26)
+- [x] Phase 2 set to **DONE**, Phase 3 set to **PENDING (next)**
 
 > **Test evidence.** This phase's code was written before its tests, against `TDD_INSTRUCTION_GUIDE.md`'s test-first rule for RBAC. To check the tests really bite, 12 rules were broken one at a time: 11 were caught at once; removing the lock on user edits was missed by the race test, so a deterministic ordering test was added, which catches it. Checked in the browser: Roles, Employees and Teams as the Super Admin, including phone width. The production images were not rebuilt in this phase (no new dependencies or Docker changes); CI builds the app.
 
-### Phase 3: Lead Core — PENDING
+### Phase 3: Lead Core — PENDING (next)
 Lead and contact records, pipeline stages as configuration, travel-specific custom fields, notes, tasks and follow-ups (business dates), lead list and detail screens with full sorting, filtering and back-button state preserved, scoped by own/team/all. Cross-module foreign keys to `identity_users` with `Restrict` (Decision 22). "Unassigned" means `ownerUserId = null`, not a stage. Adds `system_settings` with the defaults in `database_schema.md` Section 10.
 
 ### Phase 4: WhatsApp Integration — PENDING
