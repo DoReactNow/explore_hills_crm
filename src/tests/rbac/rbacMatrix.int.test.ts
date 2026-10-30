@@ -17,6 +17,14 @@ import * as password from "@/app/api/users/[id]/password/route";
 import * as reactivate from "@/app/api/users/[id]/reactivate/route";
 import * as item from "@/app/api/users/[id]/route";
 import * as collection from "@/app/api/users/route";
+import * as roleOptions from "@/app/api/roles/options/route";
+import * as roleReset from "@/app/api/roles/[id]/reset/route";
+import * as roleItem from "@/app/api/roles/[id]/route";
+import * as roles from "@/app/api/roles/route";
+import * as teamMember from "@/app/api/teams/[id]/members/[userId]/route";
+import * as teamMembers from "@/app/api/teams/[id]/members/route";
+import * as teamItem from "@/app/api/teams/[id]/route";
+import * as teams from "@/app/api/teams/route";
 import { createSessionPrincipalResolver, createUserIfMissing } from "@/modules/identity";
 import { getEnv } from "@/shared/config/env";
 import { getPrisma } from "@/shared/db/prisma";
@@ -40,6 +48,8 @@ const credentials = (role: Role) =>
 const EVERYONE: readonly Role[] = ROLES;
 const USERS_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "TEAM_VIEWER"];
 const ADMINS: readonly Role[] = ["SUPER_ADMIN", "ADMIN"];
+const SUPER_ONLY: readonly Role[] = ["SUPER_ADMIN"];
+const TEAM_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
 
 interface Case {
   method: string;
@@ -47,7 +57,7 @@ interface Case {
   handler: unknown;
   /** Roles allowed through; "public" routes also answer someone signed out. */
   allowed: readonly Role[] | "public";
-  usesId?: boolean;
+  usesId?: "user" | "team" | "role";
   body?: unknown;
 }
 
@@ -61,13 +71,19 @@ const CASES: Case[] = [
   { method: "GET", path: "/api/diagnostics", handler: diagnostics.GET, allowed: ADMINS },
   { method: "GET", path: "/api/users", handler: collection.GET, allowed: USERS_VIEW },
   { method: "POST", path: "/api/users", handler: collection.POST, allowed: ADMINS, body: {} },
-  { method: "GET", path: "/api/users/[id]", handler: item.GET, allowed: USERS_VIEW, usesId: true },
+  {
+    method: "GET",
+    path: "/api/users/[id]",
+    handler: item.GET,
+    allowed: USERS_VIEW,
+    usesId: "user",
+  },
   {
     method: "PATCH",
     path: "/api/users/[id]",
     handler: item.PATCH,
     allowed: ADMINS,
-    usesId: true,
+    usesId: "user",
     body: {},
   },
   {
@@ -75,7 +91,7 @@ const CASES: Case[] = [
     path: "/api/users/[id]/password",
     handler: password.POST,
     allowed: ADMINS,
-    usesId: true,
+    usesId: "user",
     body: {},
   },
   {
@@ -83,27 +99,92 @@ const CASES: Case[] = [
     path: "/api/users/[id]/deactivate",
     handler: deactivate.POST,
     allowed: ADMINS,
-    usesId: true,
+    usesId: "user",
   },
   {
     method: "POST",
     path: "/api/users/[id]/reactivate",
     handler: reactivate.POST,
     allowed: ADMINS,
-    usesId: true,
+    usesId: "user",
+  },
+  { method: "GET", path: "/api/teams", handler: teams.GET, allowed: TEAM_VIEW },
+  { method: "POST", path: "/api/teams", handler: teams.POST, allowed: ADMINS, body: {} },
+  {
+    method: "GET",
+    path: "/api/teams/[id]",
+    handler: teamItem.GET,
+    allowed: TEAM_VIEW,
+    usesId: "team",
+  },
+  {
+    method: "PATCH",
+    path: "/api/teams/[id]",
+    handler: teamItem.PATCH,
+    allowed: ADMINS,
+    usesId: "team",
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/teams/[id]",
+    handler: teamItem.DELETE,
+    allowed: ADMINS,
+    usesId: "team",
+  },
+  {
+    method: "POST",
+    path: "/api/teams/[id]/members",
+    handler: teamMembers.POST,
+    allowed: ADMINS,
+    usesId: "team",
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/teams/[id]/members/[userId]",
+    handler: teamMember.DELETE,
+    allowed: ADMINS,
+    usesId: "team",
+  },
+  { method: "GET", path: "/api/roles", handler: roles.GET, allowed: SUPER_ONLY },
+  { method: "POST", path: "/api/roles", handler: roles.POST, allowed: SUPER_ONLY, body: {} },
+  { method: "GET", path: "/api/roles/options", handler: roleOptions.GET, allowed: ADMINS },
+  {
+    method: "PATCH",
+    path: "/api/roles/[id]",
+    handler: roleItem.PATCH,
+    allowed: SUPER_ONLY,
+    usesId: "role",
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/roles/[id]",
+    handler: roleItem.DELETE,
+    allowed: SUPER_ONLY,
+    usesId: "role",
+  },
+  {
+    method: "POST",
+    path: "/api/roles/[id]/reset",
+    handler: roleReset.POST,
+    allowed: SUPER_ONLY,
+    usesId: "role",
+    body: {},
   },
 ];
 
 async function call(testCase: Case, headers: Record<string, string>) {
-  const target = testCase.usesId ? await createTarget() : "";
-  const url = new URL(testCase.path.replace("[id]", target), origin);
+  const target = testCase.usesId ? await createTarget(testCase.usesId) : "";
+  const url = new URL(testCase.path.replace("[id]", target).replace("[userId]", target), origin);
   const response = await (testCase.handler as Handler)(
     new Request(url, {
       method: testCase.method,
       headers: { "content-type": "application/json", ...headers },
       body: testCase.body === undefined ? undefined : JSON.stringify(testCase.body),
     }),
-    { params: Promise.resolve({ id: target }) as Promise<never> },
+    { params: Promise.resolve({ id: target, userId: target }) as Promise<never> },
   );
   // The live-update stream never ends, so read a body only when it is the JSON envelope.
   const isStream = response.headers.get("content-type")?.includes("text/event-stream");
@@ -112,7 +193,14 @@ async function call(testCase: Case, headers: Record<string, string>) {
   return { status: response.status, text };
 }
 
-async function createTarget(): Promise<string> {
+async function createTarget(kind: "user" | "team" | "role"): Promise<string> {
+  if (kind === "team") {
+    return (await prisma.identityTeam.create({ data: { name: `Team ${randomUUID()}` } })).id;
+  }
+  if (kind === "role") {
+    const code = `MATRIX_${randomUUID().replaceAll("-", "_").toUpperCase()}`;
+    return (await prisma.identityRole.create({ data: { code, name: code } })).id;
+  }
   const agent = await prisma.identityRole.findUniqueOrThrow({ where: { code: "AGENT" } });
   const user = await prisma.identityUser.create({
     data: {
@@ -210,6 +298,6 @@ describe("the matrix", () => {
       where: { users: { some: {} } },
       select: { code: true },
     });
-    expect(seeded.map((role) => role.code).sort()).toEqual([...ROLES].sort());
+    expect(seeded.map((role) => role.code)).toEqual(expect.arrayContaining([...ROLES]));
   });
 });

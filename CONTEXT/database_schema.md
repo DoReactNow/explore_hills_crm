@@ -154,8 +154,7 @@ model IdentityUser {
   managerId        String?            @db.Uuid       // reporting line
   manager          IdentityUser?      @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
   reports          IdentityUser[]     @relation("UserManager")
-  teamId           String?            @db.Uuid
-  team             IdentityTeam?      @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
+  teamMemberships  IdentityTeamMember[] // several teams (Decision 55)
   managedTeams     IdentityTeam[]     @relation("TeamManager")
   sessions         IdentitySession[]
   failedLoginCount Int                @default(0)
@@ -187,7 +186,6 @@ model IdentityUser {
 
   @@index([roleId])
   @@index([managerId])
-  @@index([teamId])
   @@index([status])
   @@map("identity_users")
 }
@@ -198,11 +196,24 @@ model IdentityTeam {
   name          String         @unique
   managerUserId String?        @db.Uuid
   manager       IdentityUser?  @relation("TeamManager", fields: [managerUserId], references: [id], onDelete: Restrict)
-  members       IdentityUser[] @relation("TeamMembers")
+  members       IdentityTeamMember[]
   createdAt     DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
 
   @@map("identity_teams")
+}
+
+// A person may belong to several teams (Decision 55). A team with members cannot be deleted.
+model IdentityTeamMember {
+  teamId    String       @db.Uuid
+  team      IdentityTeam @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  userId    String       @db.Uuid
+  user      IdentityUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("identity_team_members")
 }
 
 // PHASE 1 — own sessions table (Decision 46): 12 h sliding, 7-day cap; only the token's hash is stored
@@ -1028,7 +1039,7 @@ Decision 21 (resolved 2026-10-29): the platform serves **one company, Explore Hi
 | **RBAC sync** (`db:sync-rbac`) | Every environment | All permissions from the registry (code, label, description, module, reserved flag); system roles `SUPER_ADMIN` (`bypassesAccess = true`, no grants), `ADMIN`, `MANAGER`, `AGENT`. Default grants are applied only when a role is created or a permission is new; grants edited on the Roles & Permissions page are never overwritten (Decision 23). | Yes (code); no secrets |
 | **Reference data** | Run by both seeds through shared functions | Default pipeline stages (Phase 3); default `system_settings` values (below); a `telephony_provider_accounts` row for the active provider (Phase 7) | Yes (code); no secrets |
 | **Real seed** (`db:seed`) | Dev and production only | The **first Super Admin** (from `SEED_SUPER_ADMIN_*` env values) and real team members. Phase 0 builds the file and its guards; it creates users from Phase 1, when `identity_users` exists. | **No.** `prisma/private/seed.ts`, git-ignored |
-| **Test seed** (`db:seed:test`) | Test database only | RBAC data, the fake users and custom role below (Phase 1), and the other fixtures below, added phase by phase as their tables arrive. | Yes; credentials come from `.env.test` |
+| **Test seed** (`db:seed:test`) | Test database only | RBAC data, the fake users and custom role (Phase 1), the manager's team `Sales North` (Phase 2), and the other fixtures below, added phase by phase as their tables arrive. | Yes; credentials come from `.env.test` |
 
 ### Default pipeline stages (travel)
 
@@ -1080,7 +1091,7 @@ Test fixtures never contain real names, phone numbers or emails (use obviously f
 |:---|:---|:---|
 | 0 | `identity_permissions`, `identity_roles`, `identity_role_permissions`, `system_worker_heartbeats` (pg-boss creates its own `pgboss` schema at worker start) | |
 | 1 | `identity_users`, `identity_sessions` (Decision 46), `identity_login_throttle`, `audit_events` (table and writer) | `IdentityRole`: users; `IdentityUser`: auditEvents |
-| 2 | `identity_teams`, hierarchy columns | |
+| 2 | `identity_teams`, `identity_team_members`, `identity_users.managerId`; raw SQL: no self-manager check, unique `lower(name)` on teams and roles | |
 | 3 | `leads_pipeline_stages`, `leads_contacts`, `leads_leads`, `leads_notes`, `leads_tasks`, `leads_timeline_entries`, `system_settings` | `IdentityUser`: ownedLeads, leadNotes, leadTasks, timelineEntries, updatedSettings |
 | 4 | `messaging_conversations`, `messaging_messages`, `messaging_templates`, `messaging_webhook_events` | `IdentityUser`, `LeadsLead`, `LeadsContact`: conversations / sent messages |
 | 5 | `assignment_agent_settings`, `assignment_shifts`, `assignment_rules`, `assignment_batches`, `assignment_records`, `assignment_pool_entries`, `assignment_pool_eligibility` | `IdentityUser`, `LeadsLead`: assignment relations |

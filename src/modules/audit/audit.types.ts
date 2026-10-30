@@ -11,5 +11,16 @@ export const AUDIT_ACTIONS = [
   "user.deactivated",
   "user.reactivated",
   "user.password_changed",
+  "user.manager_changed",
+  "user.teams_changed",
+  "team.created",
+  "team.updated",
+  "team.deleted",
+  "team.member_added",
+  "team.member_removed",
+  "role.created",
+  "role.updated",
+  "role.permissions_changed",
+  "role.deleted",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

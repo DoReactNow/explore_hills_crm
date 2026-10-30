@@ -23,6 +23,8 @@ describe("migrations", () => {
       "identity_role_permissions",
       "identity_roles",
       "identity_sessions",
+      "identity_team_members",
+      "identity_teams",
       "identity_users",
       "system_worker_heartbeats",
     ]);

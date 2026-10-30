@@ -1,6 +1,6 @@
 // Maps every failure the browser can see to a fixed friendly sentence (Decision 8).
 // Messages always come from the catalog by code; text sent by the server is never shown,
-// except the friendly per-field messages of a VALIDATION_FAILED response.
+// except the friendly per-field messages of a VALIDATION_FAILED or CONFLICT response.
 import {
   ERROR_CATALOG,
   NETWORK_ERROR_MESSAGE,
@@ -73,7 +73,8 @@ export function toFriendlyError(input: FailureInput): FriendlyError {
   const reference = [input.reference, error?.requestId].find(
     (value): value is string => typeof value === "string" && REFERENCE.test(value),
   );
-  const fieldErrors = code === "VALIDATION_FAILED" ? readFieldErrors(error?.fieldErrors) : [];
+  const fieldErrors =
+    code === "VALIDATION_FAILED" || code === "CONFLICT" ? readFieldErrors(error?.fieldErrors) : [];
 
   return {
     code,

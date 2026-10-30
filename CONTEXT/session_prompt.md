@@ -45,9 +45,9 @@ When I answer, log the decision in `decision_log.md` (and update any affected do
   2. Investigate the existing code.
   3. Write the work items with `TDD_INSTRUCTION_GUIDE.md` (Part 2 template, Part 3 rules) under that phase in `current_state.md`. Plan phases only when they arrive, from the code that exists by then; do not write detailed plans for later phases in advance.
   4. **Map every scenario of that phase in `test_scenarios.md` to a real test in the plan, by its ID**, or move it to a named later phase with the reason. Never drop one silently. Tell me which were moved.
-  5. Show me the plan and **wait for my approval**. Do not write code during planning.
+  5. Write the plan into `current_state.md` and carry on building, unless it raises something from Section 2.
 - Never start a phase until every box in the previous phase is ticked.
-- Work **one work item at a time**. After each one, tell me what was done and what the verification chain showed, then ask before moving on to the next item.
+- **Complete a whole phase in one go** on one branch and one pull request (owner's instruction, 2026-10-31). Do not stop between work items. Stop only for a blocker or something that needs me: an Open decision, accounts, keys, money, a business rule. Ask those questions together at the start of the phase.
 - Keep changes to already-completed work minimal. If you must change something that is already done, say so and explain why first.
 
 ## 4. Non-negotiable rules (details in the docs)

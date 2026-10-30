@@ -67,7 +67,7 @@ model IdentityRolePermission {
 }
 
 // Owner: identity. Staff accounts. Never hard-deleted: deactivated instead (status DEACTIVATED).
-// Hierarchy and team columns (managerId, teamId) arrive in Phase 2.
+// managerId is the one reporting line; team membership is many-to-many (Decision 55).
 model IdentityUser {
   id               String             @id @default(uuid(7)) @db.Uuid
   email            String             @unique // stored lowercase; lower(email) is also unique (raw SQL)
@@ -83,12 +83,46 @@ model IdentityUser {
   createdAt        DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
   deactivatedAt    DateTime?          @db.Timestamptz(3)
+  managerId        String?            @db.Uuid
+  manager          IdentityUser?      @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
+  reports          IdentityUser[]     @relation("UserManager")
+  managedTeams     IdentityTeam[]     @relation("TeamManager")
+  teamMemberships  IdentityTeamMember[]
   sessions         IdentitySession[]
   auditEvents      AuditEvent[] // back-relation from the audit module
 
   @@index([roleId])
   @@index([status])
+  @@index([managerId])
   @@map("identity_users")
+}
+
+// Owner: identity. A team; a person may belong to several (Decision 55). The name is unique in any
+// case (raw SQL). A team with members cannot be deleted: its members must move first.
+model IdentityTeam {
+  id            String               @id @default(uuid(7)) @db.Uuid
+  name          String               @unique
+  managerUserId String?              @db.Uuid
+  manager       IdentityUser?        @relation("TeamManager", fields: [managerUserId], references: [id], onDelete: Restrict)
+  members       IdentityTeamMember[]
+  createdAt     DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime             @updatedAt @db.Timestamptz(3)
+
+  @@index([managerUserId])
+  @@map("identity_teams")
+}
+
+// Owner: identity. Who belongs to which team.
+model IdentityTeamMember {
+  teamId    String       @db.Uuid
+  team      IdentityTeam @relation(fields: [teamId], references: [id], onDelete: Restrict)
+  userId    String       @db.Uuid
+  user      IdentityUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@id([teamId, userId])
+  @@index([userId])
+  @@map("identity_team_members")
 }
 
 // Owner: identity. A signed-in browser (Decision 46): 12 h sliding expiry, capped at 7 days.

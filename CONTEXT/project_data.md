@@ -104,7 +104,7 @@ Each user has a role (bundle of permissions) and a place in the team hierarchy (
 | Scope permission | Sees |
 |:---|:---|
 | `*:view-own` | Records assigned to or created by the user |
-| `*:view-team` | Own records plus records of agents who report to the user |
+| `*:view-team` | Own records plus those of everyone below the user: their reporting chain and the members of teams they manage (Decision 55) |
 | `*:view-all` | Every record |
 
 The service layer resolves the visible agent IDs once (`getVisibleAgentIds(principal)`) and passes them to the repository as a filter. Controllers and repositories never decide scope on their own.
@@ -352,7 +352,10 @@ Only `system:view-diagnostics` is implemented in Phase 0. Every other permission
 | `dashboard:view-all` | Company-wide metrics | YES | NO | NO |
 | `reports:view` | View reports | YES | YES | NO |
 | `reports:export` | Export reports | YES | YES | NO |
-| `users:view` / `users:create` / `users:edit` / `users:deactivate` | User management | YES | view only | NO |
+| `users:view` / `users:create` / `users:edit` / `users:deactivate` | User management | YES | view only (own branch) | NO |
+| `users:view-all` | See every user, not only their branch | YES | NO | NO |
+| `teams:view` | See the teams in their branch | YES | YES | NO |
+| `teams:view-all` / `teams:manage` | See every team; create, rename and delete teams and change members | YES | NO | NO |
 | `roles:manage` | Create roles and edit permission bundles (**reserved**: Super Admin only, never grantable) | NO | NO | NO |
 | `users:manage-super-admins` | Create, edit or deactivate Super Admins; give the `SUPER_ADMIN` role (**reserved**) | NO | NO | NO |
 | `settings:manage` | System settings | YES | NO | NO |

@@ -24,6 +24,12 @@ export const PERMISSIONS = {
     module: "identity",
     reserved: false,
   },
+  "users:view-all": {
+    label: "View all users",
+    description: "See every user. Without this, a person with View users sees only their branch.",
+    module: "identity",
+    reserved: false,
+  },
   "users:create": {
     label: "Create users",
     description: "Add a user and give them a default password.",
@@ -39,6 +45,24 @@ export const PERMISSIONS = {
   "users:deactivate": {
     label: "Deactivate users",
     description: "Deactivate and reactivate users. Deactivating signs them out everywhere.",
+    module: "identity",
+    reserved: false,
+  },
+  "teams:view": {
+    label: "View teams",
+    description: "See the teams in their own branch, and who belongs to them.",
+    module: "identity",
+    reserved: false,
+  },
+  "teams:view-all": {
+    label: "View all teams",
+    description: "See every team, not only those in their own branch.",
+    module: "identity",
+    reserved: false,
+  },
+  "teams:manage": {
+    label: "Manage teams",
+    description: "Create, rename and delete teams, and change their manager and members.",
     module: "identity",
     reserved: false,
   },

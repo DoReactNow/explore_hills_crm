@@ -96,7 +96,7 @@ describe("recordAudit", () => {
 });
 
 describe("AUDIT_ACTIONS", () => {
-  it("lists exactly the Phase 1 actions", () => {
+  it("lists exactly the expected actions", () => {
     expect([...AUDIT_ACTIONS].sort()).toEqual(
       [
         "auth.signed_in",
@@ -109,6 +109,17 @@ describe("AUDIT_ACTIONS", () => {
         "user.deactivated",
         "user.reactivated",
         "user.password_changed",
+        "user.manager_changed",
+        "user.teams_changed",
+        "team.created",
+        "team.updated",
+        "team.deleted",
+        "team.member_added",
+        "team.member_removed",
+        "role.created",
+        "role.updated",
+        "role.permissions_changed",
+        "role.deleted",
       ].sort(),
     );
   });
