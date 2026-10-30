@@ -18,6 +18,30 @@ export const PERMISSIONS = {
     module: "system",
     reserved: false,
   },
+  "users:view": {
+    label: "View users",
+    description: "See the list of users and their details.",
+    module: "identity",
+    reserved: false,
+  },
+  "users:create": {
+    label: "Create users",
+    description: "Add a user and give them a default password.",
+    module: "identity",
+    reserved: false,
+  },
+  "users:edit": {
+    label: "Edit users",
+    description: "Change a user's details and role, and set a new password for them.",
+    module: "identity",
+    reserved: false,
+  },
+  "users:deactivate": {
+    label: "Deactivate users",
+    description: "Deactivate and reactivate users. Deactivating signs them out everywhere.",
+    module: "identity",
+    reserved: false,
+  },
   "roles:manage": {
     label: "Manage roles and permissions",
     description: "Create, edit and delete roles and choose what each role may do.",

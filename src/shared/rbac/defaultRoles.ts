@@ -25,13 +25,19 @@ export const DEFAULT_ROLES = {
     name: "Admin",
     description: "Runs the platform day to day: users, settings, templates and reports.",
     bypassesAccess: false,
-    permissions: ["system:view-diagnostics"],
+    permissions: [
+      "system:view-diagnostics",
+      "users:view",
+      "users:create",
+      "users:edit",
+      "users:deactivate",
+    ],
   },
   MANAGER: {
     name: "Manager",
     description: "Distributes leads, watches the team and views reports.",
     bypassesAccess: false,
-    permissions: [],
+    permissions: ["users:view"],
   },
   AGENT: {
     name: "Agent",
