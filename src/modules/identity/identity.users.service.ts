@@ -301,7 +301,12 @@ export function createUserService(deps: UserServiceDeps = {}) {
       });
     },
 
-    async deactivateUser(context: UserContext, id: string): Promise<PublicUser> {
+    /** `alsoDo` lets another module act in the same transaction, such as moving the person's leads. */
+    async deactivateUser(
+      context: UserContext,
+      id: string,
+      alsoDo?: (tx: Tx) => Promise<void>,
+    ): Promise<PublicUser> {
       const { principal } = context;
       assertCan(principal, "users:deactivate");
       assertUuid(id);
@@ -318,6 +323,7 @@ export function createUserService(deps: UserServiceDeps = {}) {
         await assertNotLastSuperAdmin(tx, target);
         const { reports, teams } = await repository.supervisionOf(tx, id);
         if (reports + teams > 0) throw stillSupervising();
+        await alsoDo?.(tx);
 
         const now = clock.now();
         const user = await repository.updateUser(tx, id, {

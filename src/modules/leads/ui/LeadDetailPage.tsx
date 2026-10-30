@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { apiRequest } from "@/shared/api/client";
 import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePageAccess, usePrincipal } from "@/shared/rbac/usePrincipal";
+import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
 import { Dialog } from "@/shared/ui/Dialog";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
 import { LOST_REASONS, SOURCE_LABELS, type LeadSource } from "../leads.types";
@@ -277,6 +278,95 @@ function LostDialog({
   );
 }
 
+const OWNER_NOTICES = ["assignment.leadOwnerChanged"];
+
+function ReassignDialog({
+  leadId,
+  currentOwnerId,
+  onClose,
+  onDone,
+}: {
+  leadId: string;
+  currentOwnerId: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [agents, setAgents] = useState<
+    Array<{ id: string; name: string; openLeads: number; cap: number }>
+  >([]);
+  const [toUserId, setToUserId] = useState("");
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<FriendlyError | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    apiRequest<{ items: typeof agents }>("/api/assignment/agents", {
+      signal: controller.signal,
+    }).then((result) => {
+      if (result.ok) setAgents(result.data.items.filter((agent) => agent.id !== currentOwnerId));
+      else if (!controller.signal.aborted) setError(result.error);
+    });
+    return () => controller.abort();
+  }, [currentOwnerId]);
+
+  async function reassign(event: FormEvent) {
+    event.preventDefault();
+    const result = await apiRequest(`/api/leads/${leadId}/reassign`, {
+      method: "POST",
+      body: { toUserId, reason },
+    });
+    if (result.ok) onDone();
+    else setError(result.error);
+  }
+
+  return (
+    <Dialog title="Reassign this lead" onClose={onClose}>
+      <form onSubmit={reassign} className={styles.form} noValidate>
+        <p className={styles.dialogText}>
+          Its open follow-ups and chat move to the new owner, and the customer sees no change.
+        </p>
+        <FormError error={error} fields={["toUserId", "reason"]} />
+        <Field id="reassign-to" label="New owner">
+          <select
+            id="reassign-to"
+            className={styles.control}
+            value={toUserId}
+            onChange={(event) => setToUserId(event.target.value)}
+          >
+            <option value="">Choose…</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name} · {agent.openLeads} of {agent.cap} open
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field id="reassign-reason" label="Reason">
+          <input
+            id="reassign-reason"
+            className={styles.control}
+            maxLength={500}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </Field>
+        <div className={styles.actions}>
+          <button type="button" className={styles.button} onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={`${styles.button} ${styles.primary}`}
+            disabled={!toUserId || !reason.trim()}
+          >
+            Reassign
+          </button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
 function MergeDialog({
   leadId,
   onClose,
@@ -378,7 +468,9 @@ export function LeadDetailPage({ id }: { id: string }) {
   const [taskDue, setTaskDue] = useState("");
   const [taskError, setTaskError] = useState<FriendlyError | null>(null);
   const [actionError, setActionError] = useState<FriendlyError | null>(null);
-  const [dialog, setDialog] = useState<"edit" | "lost" | "delete" | "merge" | null>(null);
+  const [dialog, setDialog] = useState<"edit" | "lost" | "delete" | "merge" | "reassign" | null>(
+    null,
+  );
 
   const reload = useCallback(async () => {
     const result = await apiRequest<LeadDetail>(`/api/leads/${id}`);
@@ -387,6 +479,15 @@ export function LeadDetailPage({ id }: { id: string }) {
       setLoadError(null);
     } else setLoadError(result.error);
   }, [id]);
+
+  // A new owner shows at once, and someone who has just lost the lead loses this screen too.
+  useLiveEvents({
+    types: OWNER_NOTICES,
+    onEvent: (_type, payload) => {
+      if ((payload as { leadId?: string }).leadId === id) reload();
+    },
+    onResync: reload,
+  });
 
   useEffect(() => {
     if (access !== "allowed") return;
@@ -522,6 +623,11 @@ export function LeadDetailPage({ id }: { id: string }) {
         {can("messaging:view") ? (
           <button type="button" className={`${styles.button} ${styles.primary}`} onClick={openChat}>
             Open chat
+          </button>
+        ) : null}
+        {can("leads:reassign") && lead.closedAt === null ? (
+          <button type="button" className={styles.button} onClick={() => setDialog("reassign")}>
+            Reassign…
           </button>
         ) : null}
         {can("leads:merge") ? (
@@ -756,6 +862,17 @@ export function LeadDetailPage({ id }: { id: string }) {
           stageCode={lostStage.code}
           onClose={() => setDialog(null)}
           onSaved={async () => {
+            setDialog(null);
+            await reload();
+          }}
+        />
+      ) : null}
+      {dialog === "reassign" ? (
+        <ReassignDialog
+          leadId={id}
+          currentOwnerId={lead.owner?.id ?? null}
+          onClose={() => setDialog(null)}
+          onDone={async () => {
             setDialog(null);
             await reload();
           }}

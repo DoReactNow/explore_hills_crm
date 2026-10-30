@@ -3,6 +3,7 @@
 // person (Decision 55).
 import type { Principal } from "@/shared/rbac/principal";
 import { resolveScope, type ScopePermissions } from "@/shared/rbac/scope";
+import type { Tx } from "./identity.repository";
 import { userRepository } from "./identity.users.repository";
 
 export async function getVisibleAgentIds(
@@ -22,3 +23,7 @@ export async function getUserSummary(
   const user = await userRepository.getUser(id);
   return user && { id: user.id, name: user.name, status: user.status };
 }
+
+/** Active people who can be given leads, among those listed. */
+export const listAssignableUsers = (ids: readonly string[] | "all", tx?: Tx) =>
+  userRepository.listActiveHolders("leads:claim", ids, tx);

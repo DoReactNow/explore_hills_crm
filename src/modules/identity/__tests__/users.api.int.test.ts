@@ -111,7 +111,7 @@ describe("access to every user route", () => {
     ["create", () => post(newUser()), "users:create"],
     ["edit", (id) => patch(id, { name: "New Name" }), "users:edit"],
     ["password", (id) => setPassword(id), "users:edit"],
-    ["deactivate", (id) => callAction(deactivate, id), "users:deactivate"],
+    ["deactivate", (id) => callAction(deactivate, id, { openLeads: "queue" }), "users:deactivate"],
     ["reactivate", (id) => callAction(reactivate, id), "users:deactivate"],
   ];
 
@@ -150,7 +150,7 @@ describe("access to every user route", () => {
     expect((await callRoute<Body>(collection.GET, { path: "/api/users" })).status).toBe(200);
     expect((await patch(target.id, { name: "New Name" })).status).toBe(403);
     expect((await post(newUser())).status).toBe(403);
-    expect((await callAction(deactivate, target.id)).status).toBe(403);
+    expect((await callAction(deactivate, target.id, { openLeads: "queue" })).status).toBe(403);
   });
 });
 
@@ -305,7 +305,7 @@ describe("deactivating and reactivating", () => {
     await addSession(target.id);
     await signInAs("ADMIN");
 
-    expect((await callAction(deactivate, target.id)).status).toBe(200);
+    expect((await callAction(deactivate, target.id, { openLeads: "queue" })).status).toBe(200);
     let row = await prisma.identityUser.findUniqueOrThrow({ where: { id: target.id } });
     expect(row.status).toBe("DEACTIVATED");
     expect(row.deactivatedAt).not.toBeNull();
@@ -383,7 +383,7 @@ describe("Super Admin protections", () => {
     const results = await Promise.all([
       patch(target.id, { name: "Changed" }),
       patch(target.id, { roleCode: "AGENT" }),
-      callAction(deactivate, target.id),
+      callAction(deactivate, target.id, { openLeads: "queue" }),
       setPassword(target.id),
       post(newUser({ roleCode: "SUPER_ADMIN" })),
     ]);
@@ -405,7 +405,7 @@ describe("Super Admin protections", () => {
     const actor = await makeUser("ADMIN");
     actAs({ ...(await testPrincipal("SUPER_ADMIN", actor.id)) });
     expect((await patch(last.id, { roleCode: "AGENT" })).status).toBe(409);
-    expect((await callAction(deactivate, last.id)).status).toBe(409);
+    expect((await callAction(deactivate, last.id, { openLeads: "queue" })).status).toBe(409);
   });
 
   it("two Super Admins deactivating each other leave one active (P1-SUPER-05)", async () => {
@@ -417,9 +417,9 @@ describe("Super Admin protections", () => {
     ]);
     // Each request resolves its principal first, so switch cards between the two calls.
     actAs(firstCard);
-    const removeSecond = callAction(deactivate, second.id);
+    const removeSecond = callAction(deactivate, second.id, { openLeads: "queue" });
     actAs(secondCard);
-    const removeFirst = callAction(deactivate, first.id);
+    const removeFirst = callAction(deactivate, first.id, { openLeads: "queue" });
     const statuses = (await Promise.all([removeSecond, removeFirst])).map(
       (result) => result.status,
     );

@@ -133,6 +133,12 @@ describe("AUDIT_ACTIONS", () => {
         "template.created",
         "template.updated",
         "template.deleted",
+        "assignment.batch_committed",
+        "assignment.reassigned",
+        "assignment.timed_out",
+        "assignment.settings_changed",
+        "assignment.rule_changed",
+        "assignment.pool_cancelled",
       ].sort(),
     );
   });

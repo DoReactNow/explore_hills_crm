@@ -116,10 +116,33 @@ function ConfirmDeactivate({
 }) {
   const [error, setError] = useState<FriendlyError | null>(null);
   const [busy, setBusy] = useState(false);
+  const [openLeads, setOpenLeads] = useState<number | null>(null);
+  const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
+  const [choice, setChoice] = useState<"queue" | "agent" | "keep">("queue");
+  const [toUserId, setToUserId] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+    apiRequest<{ openLeads: number }>(`/api/assignment/agents/${person.id}/open-leads`, {
+      signal,
+    }).then((result) => {
+      if (result.ok) setOpenLeads(result.data.openLeads);
+    });
+    apiRequest<{ items: Array<{ id: string; name: string }> }>("/api/assignment/agents", {
+      signal,
+    }).then((result) => {
+      if (result.ok) setAgents(result.data.items.filter((agent) => agent.id !== person.id));
+    });
+    return () => controller.abort();
+  }, [person.id]);
 
   async function confirm() {
     setBusy(true);
-    const result = await apiRequest(`/api/users/${person.id}/deactivate`, { method: "POST" });
+    const result = await apiRequest(`/api/users/${person.id}/deactivate`, {
+      method: "POST",
+      body: choice === "agent" ? { openLeads: choice, toUserId } : { openLeads: choice },
+    });
     setBusy(false);
     if (result.ok) onDone();
     else setError(result.error);
@@ -130,6 +153,64 @@ function ConfirmDeactivate({
       <p className={styles.dialogText}>
         They&apos;ll be signed out and won&apos;t be able to sign in. You can reactivate them later.
       </p>
+      {openLeads ? (
+        <fieldset className={styles.dialogText}>
+          <legend>
+            <b>
+              They have {openLeads} open {openLeads === 1 ? "lead" : "leads"}.
+            </b>{" "}
+            What should happen to {openLeads === 1 ? "it" : "them"}?
+          </legend>
+          <p>
+            <label>
+              <input
+                type="radio"
+                name="open-leads"
+                checked={choice === "queue"}
+                onChange={() => setChoice("queue")}
+              />{" "}
+              Move to the manager queue
+            </label>
+          </p>
+          <p>
+            <label>
+              <input
+                type="radio"
+                name="open-leads"
+                checked={choice === "agent"}
+                onChange={() => setChoice("agent")}
+              />{" "}
+              Give them all to one agent
+            </label>
+          </p>
+          {choice === "agent" ? (
+            <p>
+              <label>
+                Agent{" "}
+                <select value={toUserId} onChange={(event) => setToUserId(event.target.value)}>
+                  <option value="">Choose…</option>
+                  {agents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </p>
+          ) : null}
+          <p>
+            <label>
+              <input
+                type="radio"
+                name="open-leads"
+                checked={choice === "keep"}
+                onChange={() => setChoice("keep")}
+              />{" "}
+              Leave them with this person
+            </label>
+          </p>
+        </fieldset>
+      ) : null}
       <FormError error={error} />
       <div className={styles.actions}>
         <button type="button" className={styles.button} onClick={onClose}>
@@ -138,7 +219,7 @@ function ConfirmDeactivate({
         <button
           type="button"
           className={`${styles.button} ${styles.dangerSolid}`}
-          disabled={busy}
+          disabled={busy || (choice === "agent" && !toUserId)}
           onClick={confirm}
         >
           Deactivate

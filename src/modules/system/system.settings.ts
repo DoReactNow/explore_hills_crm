@@ -24,14 +24,21 @@ export const SETTINGS = {
     label: "Default open-lead cap",
     help: "How many open leads an agent can hold unless their own cap says otherwise.",
     group: "Assignment",
-    defaultValue: 50,
+    defaultValue: 12,
     schema: z.number().int().min(1).max(10000),
+  },
+  "assignment.maxTimeouts": {
+    label: "Timeouts before a manager steps in",
+    help: "After this many missed responses in a row, a lead is flagged for a manager.",
+    group: "Assignment",
+    defaultValue: 2,
+    schema: z.number().int().min(1).max(20),
   },
   "assignment.poolExpiryMinutes": {
     label: "Blast pool expiry",
     help: "Minutes a blast offer stays open before it expires.",
     group: "Assignment",
-    defaultValue: 15,
+    defaultValue: 5,
     schema: minutes(1440),
   },
   "telephony.inboundFallback": {
@@ -61,7 +68,7 @@ export const SETTINGS = {
     label: "Keep recordings for (days)",
     help: "Older recordings are deleted for good.",
     group: "Data & retention",
-    defaultValue: 180,
+    defaultValue: 90,
     schema: z.number().int().min(1).max(3650),
   },
   "retention.messageDays": {

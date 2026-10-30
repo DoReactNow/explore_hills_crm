@@ -70,6 +70,8 @@ export interface LeadListQuery {
   travelTo?: Date;
   sort: LeadSort;
   direction: "asc" | "desc";
+  openOnly?: boolean;
+  createdBefore?: Date;
 }
 
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
@@ -82,6 +84,16 @@ export interface NewTimelineEntry {
   refId: string;
   actorUserId?: string | null;
   occurredAt: Date;
+}
+
+export interface LockedLead {
+  id: string;
+  ownerUserId: string | null;
+  destination: string | null;
+  budgetAmount: Prisma.Decimal | null;
+  customFields: unknown;
+  createdAt: Date;
+  isOpen: boolean;
 }
 
 export const leadRepository = {
@@ -205,6 +217,107 @@ export const leadRepository = {
     });
   },
 
+  /** Locks the leads in id order, so two batches can't wait on each other. */
+  lockLeads(tx: Tx, ids: readonly string[]) {
+    return tx.$queryRaw<LockedLead[]>`
+      SELECT l.id, l."ownerUserId", l.destination, l."budgetAmount", l."customFields",
+             l."createdAt", (l."deletedAt" IS NULL AND s.kind = 'OPEN') AS "isOpen"
+      FROM leads_leads l
+      JOIN leads_pipeline_stages s ON s.id = l."stageId"
+      WHERE l.id = ANY(${[...ids]}::uuid[])
+      ORDER BY l.id
+      FOR UPDATE OF l`;
+  },
+
+  /** Unassigned open leads in scope, oldest first. */
+  findWaitingLeads(
+    scope: LeadScope,
+    filter: { ids?: readonly string[]; createdFrom?: Date; createdTo?: Date; take: number },
+    tx?: Tx,
+  ) {
+    return (tx ?? getPrisma()).leadsLead.findMany({
+      where: {
+        ...(filter.ids ? { id: { in: [...filter.ids] } } : {}),
+        ...(filter.createdFrom || filter.createdTo
+          ? { createdAt: { gte: filter.createdFrom, lte: filter.createdTo } }
+          : {}),
+        ownerUserId: null,
+        deletedAt: null,
+        stage: { kind: "OPEN" },
+        ...scopeWhere(scope),
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      take: filter.take,
+      select: {
+        id: true,
+        destination: true,
+        budgetAmount: true,
+        customFields: true,
+        createdAt: true,
+        contact: { select: { name: true } },
+      },
+    });
+  },
+
+  async setOwner(tx: Tx, ids: readonly string[], ownerUserId: string | null, at: Date) {
+    await tx.leadsLead.updateMany({
+      where: { id: { in: [...ids] } },
+      data: { ownerUserId, assignedAt: ownerUserId ? at : null },
+    });
+  },
+
+  /** Open follow-ups move from each earlier owner to the new one. Finished ones keep their history. */
+  async moveOpenTasks(
+    tx: Tx,
+    moves: ReadonlyArray<{ leadId: string; fromUserId: string; toUserId: string }>,
+  ): Promise<void> {
+    if (moves.length === 0) return;
+    await tx.$executeRaw`
+      UPDATE leads_tasks t SET "assigneeUserId" = m.to_user
+      FROM unnest(
+        ${moves.map((move) => move.leadId)}::uuid[],
+        ${moves.map((move) => move.fromUserId)}::uuid[],
+        ${moves.map((move) => move.toUserId)}::uuid[]
+      ) AS m(lead, from_user, to_user)
+      WHERE t."leadId" = m.lead AND t."assigneeUserId" = m.from_user AND t."completedAt" IS NULL`;
+  },
+
+  /** When the owner first acted on the lead since `since`. Customers and colleagues don't count. */
+  async firstOwnerAction(tx: Tx, leadId: string, userId: string, since: Date) {
+    const entry = await tx.leadsTimelineEntry.findFirst({
+      where: {
+        leadId,
+        actorUserId: userId,
+        occurredAt: { gte: since },
+        kind: { in: ["NOTE", "MESSAGE", "CALL", "STAGE_CHANGED", "TASK"] },
+      },
+      orderBy: { occurredAt: "asc" },
+      select: { occurredAt: true },
+    });
+    return entry?.occurredAt ?? null;
+  },
+
+  async countOpenLeads(userIds: readonly string[], tx?: Tx): Promise<Map<string, number>> {
+    const groups = await (tx ?? getPrisma()).leadsLead.groupBy({
+      by: ["ownerUserId"],
+      where: { ownerUserId: { in: [...userIds] }, deletedAt: null, stage: { kind: "OPEN" } },
+      _count: { _all: true },
+    });
+    return new Map(groups.map((group) => [group.ownerUserId as string, group._count._all]));
+  },
+
+  async openLeadIdsOf(tx: Tx, userId: string): Promise<string[]> {
+    const rows = await tx.leadsLead.findMany({
+      where: { ownerUserId: userId, deletedAt: null, stage: { kind: "OPEN" } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  },
+
+  async addTimelines(tx: Tx, entries: readonly NewTimelineEntry[]): Promise<void> {
+    await tx.leadsTimelineEntry.createMany({ data: [...entries], skipDuplicates: true });
+  },
+
   async listLeads(
     query: LeadListQuery,
   ): Promise<{ items: LeadRow[]; total: number; openCount: number }> {
@@ -235,6 +348,10 @@ export const leadRepository = {
       conditions.push(Prisma.sql`l."travelStartDate" >= ${query.travelFrom}::date`);
     }
     if (query.travelTo) conditions.push(Prisma.sql`l."travelStartDate" <= ${query.travelTo}::date`);
+    if (query.openOnly) conditions.push(Prisma.sql`s.kind = 'OPEN'`);
+    if (query.createdBefore) {
+      conditions.push(Prisma.sql`l."createdAt" <= ${query.createdBefore}::timestamptz`);
+    }
     const where = Prisma.join(conditions, " AND ");
     const from = Prisma.sql`FROM leads_leads l
       JOIN leads_contacts c ON c.id = l."contactId"

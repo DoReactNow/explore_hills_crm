@@ -196,7 +196,10 @@ export function createLeadService({
       });
     },
 
-    async listLeads({ principal }: LeadContext, input: ListLeadsInput) {
+    async listLeads(
+      { principal }: LeadContext,
+      input: ListLeadsInput & { openOnly?: boolean; createdBefore?: Date },
+    ) {
       const { page, pageSize, search, owner, travelFrom, travelTo, ...filters } = input;
       const scope = await leadScopeOf(principal);
       const digits = search ? (normalisePhone(search) ?? search.replace(/\D/g, "")) : "";

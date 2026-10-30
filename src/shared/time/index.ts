@@ -2,8 +2,11 @@
 export { createTestClock, systemClock, type Clock, type TestClock } from "./clock";
 export { instantFromEpochMs, parseInstant, plusDuration, toIsoInstant } from "./instants";
 export {
+  addBusinessDays,
   assertBusinessDate,
   businessDateToDbDate,
+  businessMoment,
+  businessWeekday,
   businessZone,
   dbDateToBusinessDate,
   isBusinessDate,

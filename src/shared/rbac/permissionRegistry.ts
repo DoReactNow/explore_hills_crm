@@ -105,8 +105,26 @@ export const PERMISSIONS = {
   },
   "leads:assign": {
     label: "Assign leads",
-    description: "Choose who owns a new lead, or leave it for the queue.",
+    description: "Choose who owns a new lead, and share out leads from the queue.",
     module: "leads",
+    reserved: false,
+  },
+  "leads:reassign": {
+    label: "Reassign leads",
+    description: "Move a lead from one agent to another.",
+    module: "leads",
+    reserved: false,
+  },
+  "leads:claim": {
+    label: "Take leads",
+    description: "Be given leads, and accept leads from a blast pool.",
+    module: "leads",
+    reserved: false,
+  },
+  "assignment:manage-rules": {
+    label: "Manage assignment rules",
+    description: "Set agents' caps, tiers, shifts and leave, and the auto-assign rule.",
+    module: "assignment",
     reserved: false,
   },
   "settings:manage": {

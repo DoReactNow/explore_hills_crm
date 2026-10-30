@@ -1090,3 +1090,27 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Files:** received files up to 25 MB of an allowed type (images, PDF, Office documents, audio, video) are stored, and always downloaded rather than shown in the browser. Sending: images 5 MB, audio and video 16 MB, documents 25 MB (WhatsApp allows 100 MB for documents; 25 MB protects the server).
 - **Merging leads** needs a new permission, `leads:merge` (Admin and Manager). The other lead's notes, follow-ups, timeline and chats move to the survivor, and the other lead is soft-deleted with a pointer to it.
 
+
+---
+
+### Decision 59: Assignment Rules Settled for Phase 5
+
+**Date:** 2026-10-31
+**Status:** Accepted (the first four chosen by the owner, answering `test_scenarios.md` Q-09 to Q-12; the rest set with the Phase 5 plan and reported to the owner)
+
+#### Decision
+- **Overnight shifts (Q-09):** a shift may cross midnight and counts toward the day it started. So leave is checked against that starting day: at 02:00 on Tuesday, a Monday-night shift is a Monday shift. A shift's start minute is inside the shift and its end minute is outside.
+- **Leaving staff (Q-10):** the person deactivating chooses: move the open leads to the manager queue (the default), give them all to one agent, or leave them with the person. Follow-ups move with the leads.
+- **Timeouts and shifts (Q-11):** the response timer counts only during the agent's shifts. An agent with no shifts set is always counting. The deadline is worked out once, at assignment, so a later change to a setting or a shift does not move it.
+- **Bounce limit (Q-12):** `assignment.maxTimeouts`, default 2. An earlier timeout returns the lead to the queue. Reaching the limit in a row returns it and flags it for a manager. A response resets the count.
+- **Defaults confirmed by the owner:** blast pool 5 minutes, default cap 12 open leads, recordings kept 90 days.
+- **Who can be given leads:** an active person whose role holds `leads:claim`. It is checked by permission, never by role name.
+- **Eligibility:** available, not on leave, on shift, under their cap (a cap of zero means no leads). An agent's languages and destinations limit what they get. An empty list means anything, and a lead with no language or destination can go to anyone.
+- **Preview and confirm:** a preview changes nothing. Confirming sends the previewed plan, and each row is checked again. A lead someone else took is skipped, and a lead whose agent can no longer take it stays in the queue. The manager is told both counts. An unexpected failure rolls back the whole batch.
+- **Fairness:** round-robin starts with whoever has waited longest since their last assignment, and people never assigned come first. Least-loaded breaks ties the same way. Priority fills the highest tier first. By value, the highest budget goes first, leads with no budget go last, and equal values go oldest first.
+- **What counts as a response:** a reply, a call, a note, a stage change or a new follow-up by the owner. Editing lead details does not count, and neither does a customer message.
+- **Timed-out leads go back to the queue.** That also holds with no eligible agents left, and auto-assign does not pick them up again.
+- **Blast:** a lead in a pool stays in the queue, marked and not selectable. The first valid claim wins, and a claim needs `leads:claim` and current eligibility. An unclaimed entry expires back to the queue. Assigning a lead closes its entry, and a deleted or merged lead can't be claimed.
+- **Reassigning** needs `leads:reassign` and a reason. The new owner must be an active agent in scope, but may be off shift or over their cap, because a manager is overriding. Reassigning to the current owner does nothing. Open follow-ups of earlier owners move to the new owner.
+- **On leave:** an agent keeps their leads. Timers keep running, so unanswered leads return to the queue.
+- **Auto-assign:** one active rule at most. A sweep checks every minute, so a new lead is assigned within about a minute. It applies to each new lead once, and only to leads that are still unassigned.

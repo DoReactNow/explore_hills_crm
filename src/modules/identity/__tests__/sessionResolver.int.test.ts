@@ -232,6 +232,7 @@ describe("real requests through real routes", () => {
       path: "/x",
       params: { id: user.id },
       headers: cookieHeaders(adminToken),
+      body: { openLeads: "queue" },
     });
     expect(done.status).toBe(200);
     expect((await me(userToken)).status).toBe(401);

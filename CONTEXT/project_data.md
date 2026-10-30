@@ -140,7 +140,7 @@ Full design: `decision_log.md` Decisions 25 and 26. Storage target: Decision 31 
 - When the recording is ready, a job downloads it while the provider's link is still valid, converts it to **mono MP3 at about 24 kbps** (about 180 KB per minute; codec and bitrate are settings), and saves it through `FileStorage`.
 - **The database stores metadata only:** storage key, size, duration, checksum, recording status. Never audio bytes.
 - **Playback** needs `telephony:view-recordings` plus scope. Audio is served through a short-lived signed link where the driver supports it, otherwise streamed by the app after the check. Every playback is audited.
-- **Retention:** `retention.recordingDays` (default 180). A scheduled job deletes expired files and clears the key; the call log stays.
+- **Retention:** `retention.recordingDays` (default 90). A scheduled job deletes expired files and clears the key; the call log stays.
 - **Failures:** retries with backoff; an expired provider link marks the recording `FAILED` and alerts managers. A recording failure never changes the call log.
 - **Storage drivers:** `local` (disk folder; dev, tests, or a single VPS with off-server backups), `s3` (any S3-compatible service: AWS S3, Cloudflare R2, Backblaze B2, Wasabi, or self-hosted on our VPS with Garage, SeaweedFS or MinIO), `gdrive` (optional, later). Chosen by `STORAGE_DRIVER`. Switching is a config change; `npm run storage:copy` moves existing files.
 - **Keys** are ours and contain no personal data, e.g. `recordings/2026/12/<callId>.mp3`.

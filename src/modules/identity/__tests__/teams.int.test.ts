@@ -333,6 +333,7 @@ describe("teams", () => {
         method: "POST",
         path: "/x",
         params: { id: manager.id },
+        body: { openLeads: "queue" },
       });
 
     const refused = await off();
@@ -360,6 +361,7 @@ describe("teams", () => {
       method: "POST",
       path: "/x",
       params: { id: manager.id },
+      body: { openLeads: "queue" },
     });
     expect(off.status).toBe(200);
   });
