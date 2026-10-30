@@ -18,6 +18,12 @@ datasource db {
 // identity module
 // ---------------------------------------------------------------------------
 
+enum IdentityUserStatus {
+  INVITED
+  ACTIVE
+  DEACTIVATED
+}
+
 // Owner: identity. One row per code in src/shared/rbac/permissionRegistry.ts.
 model IdentityPermission {
   id          String                   @id @default(uuid(7)) @db.Uuid
@@ -43,6 +49,7 @@ model IdentityRole {
   createdAt      DateTime                 @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime                 @updatedAt @db.Timestamptz(3)
   permissions    IdentityRolePermission[] // SUPER_ADMIN holds none: it bypasses every check
+  users          IdentityUser[]
 
   @@map("identity_roles")
 }
@@ -57,6 +64,89 @@ model IdentityRolePermission {
   @@id([roleId, permissionId])
   @@index([permissionId])
   @@map("identity_role_permissions")
+}
+
+// Owner: identity. Staff accounts. Never hard-deleted: deactivated instead (status DEACTIVATED).
+// Hierarchy and team columns (managerId, teamId) arrive in Phase 2.
+model IdentityUser {
+  id               String             @id @default(uuid(7)) @db.Uuid
+  email            String             @unique // stored lowercase; lower(email) is also unique (raw SQL)
+  name             String
+  phoneE164        String? // E.164, checked in SQL
+  passwordHash     String // argon2id; never returned by any API or written to any log
+  status           IdentityUserStatus @default(INVITED)
+  roleId           String             @db.Uuid
+  role             IdentityRole       @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
+  failedLoginCount Int                @default(0)
+  lockedUntil      DateTime?          @db.Timestamptz(3)
+  lastLoginAt      DateTime?          @db.Timestamptz(3)
+  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
+  deactivatedAt    DateTime?          @db.Timestamptz(3)
+  sessions         IdentitySession[]
+  auditEvents      AuditEvent[] // back-relation from the audit module
+
+  @@index([roleId])
+  @@index([status])
+  @@map("identity_users")
+}
+
+// Owner: identity. A signed-in browser (Decision 46): 12 h sliding expiry, capped at 7 days.
+// Only the SHA-256 hash of the session token is stored, never the token.
+model IdentitySession {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  userId     String       @db.Uuid
+  user       IdentityUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String       @unique
+  expiresAt  DateTime     @db.Timestamptz(3)
+  lastSeenAt DateTime     @db.Timestamptz(3)
+  revokedAt  DateTime?    @db.Timestamptz(3)
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("identity_sessions")
+}
+
+// Owner: identity. Sign-in attempts per IP address in the current window (Decision 46).
+// The key is a hash of the IP address, never the address itself.
+model IdentityLoginThrottle {
+  key         String   @id
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([windowStart])
+  @@map("identity_login_throttle")
+}
+
+// ---------------------------------------------------------------------------
+// audit module
+// ---------------------------------------------------------------------------
+
+// Owner: audit. Append-only (a trigger refuses UPDATE and DELETE). Metadata holds IDs, never
+// names, emails or phone numbers. entityType/entityId are polymorphic, so they have no foreign key.
+model AuditEvent {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  occurredAt    DateTime      @db.Timestamptz(3)
+  actorUserId   String?       @db.Uuid // → identity.identity_users (null = system: job or webhook)
+  actor         IdentityUser? @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  actorRoleCode String? // role at the time, e.g. SUPER_ADMIN
+  action        String // from AUDIT_ACTIONS, e.g. "user.created"
+  entityType    String
+  entityId      String
+  summary       String
+  metadata      Json          @default("{}")
+  requestId     String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz(3)
+
+  @@index([entityType, entityId, occurredAt])
+  @@index([actorUserId, occurredAt])
+  @@index([action, occurredAt])
+  @@map("audit_events")
 }
 
 // ---------------------------------------------------------------------------
