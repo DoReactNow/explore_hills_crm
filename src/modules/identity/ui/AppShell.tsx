@@ -27,6 +27,7 @@ const NAV_ITEMS: ReadonlyArray<{
   anyOf?: readonly PermissionCode[];
 }> = [
   { href: "/", label: "Home" },
+  { href: "/inbox", label: "Inbox", permission: "messaging:view" },
   {
     href: "/leads",
     label: "Leads",
@@ -39,6 +40,7 @@ const NAV_ITEMS: ReadonlyArray<{
   },
   { href: "/employees", label: "Employees", permission: "users:edit" },
   { href: "/teams", label: "Teams", permission: "teams:view" },
+  { href: "/templates", label: "Templates", permission: "messaging:manage-templates" },
   { href: "/settings", label: "Settings", permission: "settings:manage" },
   { href: "/diagnostics", label: "Diagnostics", permission: "system:view-diagnostics" },
   { href: "/roles", label: "Roles & Permissions", permission: "roles:manage" },

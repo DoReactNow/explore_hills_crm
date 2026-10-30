@@ -32,6 +32,10 @@ describe("migrations", () => {
       "leads_pipeline_stages",
       "leads_tasks",
       "leads_timeline_entries",
+      "messaging_conversations",
+      "messaging_messages",
+      "messaging_templates",
+      "messaging_webhook_events",
       "system_settings",
       "system_worker_heartbeats",
     ]);

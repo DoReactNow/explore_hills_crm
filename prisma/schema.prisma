@@ -69,24 +69,24 @@ model IdentityRolePermission {
 // Owner: identity. Staff accounts. Never hard-deleted: deactivated instead (status DEACTIVATED).
 // managerId is the one reporting line; team membership is many-to-many (Decision 55).
 model IdentityUser {
-  id               String             @id @default(uuid(7)) @db.Uuid
-  email            String             @unique // stored lowercase; lower(email) is also unique (raw SQL)
+  id               String               @id @default(uuid(7)) @db.Uuid
+  email            String               @unique // stored lowercase; lower(email) is also unique (raw SQL)
   name             String
   phoneE164        String? // E.164, checked in SQL
   passwordHash     String // argon2id; never returned by any API or written to any log
-  status           IdentityUserStatus @default(INVITED)
-  roleId           String             @db.Uuid
-  role             IdentityRole       @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
-  failedLoginCount Int                @default(0)
-  lockedUntil      DateTime?          @db.Timestamptz(3)
-  lastLoginAt      DateTime?          @db.Timestamptz(3)
-  createdAt        DateTime           @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime           @updatedAt @db.Timestamptz(3)
-  deactivatedAt    DateTime?          @db.Timestamptz(3)
-  managerId        String?            @db.Uuid
-  manager          IdentityUser?      @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
-  reports          IdentityUser[]     @relation("UserManager")
-  managedTeams     IdentityTeam[]     @relation("TeamManager")
+  status           IdentityUserStatus   @default(INVITED)
+  roleId           String               @db.Uuid
+  role             IdentityRole         @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
+  failedLoginCount Int                  @default(0)
+  lockedUntil      DateTime?            @db.Timestamptz(3)
+  lastLoginAt      DateTime?            @db.Timestamptz(3)
+  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
+  deactivatedAt    DateTime?            @db.Timestamptz(3)
+  managerId        String?              @db.Uuid
+  manager          IdentityUser?        @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
+  reports          IdentityUser[]       @relation("UserManager")
+  managedTeams     IdentityTeam[]       @relation("TeamManager")
   teamMemberships  IdentityTeamMember[]
   sessions         IdentitySession[]
   auditEvents      AuditEvent[] // back-relation from the audit module
@@ -95,6 +95,7 @@ model IdentityUser {
   tasks            LeadsTask[]
   timelineEntries  LeadsTimelineEntry[]
   updatedSettings  SystemSetting[]
+  sentMessages     MessagingMessage[]
 
   @@index([roleId])
   @@index([status])
@@ -255,49 +256,52 @@ model LeadsPipelineStage {
 
 // Owner: leads. Personal data. One row per phone number: the duplicate-merge key.
 model LeadsContact {
-  id           String           @id @default(uuid(7)) @db.Uuid
-  phoneE164    String           @unique
-  name         String?
-  email        String?
-  optInStatus  LeadsOptInStatus @default(UNKNOWN)
-  optInAt      DateTime?        @db.Timestamptz(3)
-  optInSource  String?
-  anonymisedAt DateTime?        @db.Timestamptz(3)
-  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
-  deletedAt    DateTime?        @db.Timestamptz(3)
-  leads        LeadsLead[]
+  id            String                  @id @default(uuid(7)) @db.Uuid
+  phoneE164     String                  @unique
+  name          String?
+  email         String?
+  optInStatus   LeadsOptInStatus        @default(UNKNOWN)
+  optInAt       DateTime?               @db.Timestamptz(3)
+  optInSource   String?
+  anonymisedAt  DateTime?               @db.Timestamptz(3)
+  createdAt     DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime                @updatedAt @db.Timestamptz(3)
+  deletedAt     DateTime?               @db.Timestamptz(3)
+  leads         LeadsLead[]
+  conversations MessagingConversation[]
 
   @@map("leads_contacts")
 }
 
 // Owner: leads. Unassigned means ownerUserId is null; it is never a stage.
 model LeadsLead {
-  id               String               @id @default(uuid(7)) @db.Uuid
-  contactId        String               @db.Uuid
-  contact          LeadsContact         @relation(fields: [contactId], references: [id], onDelete: Restrict)
-  source           LeadsSource          @default(WHATSAPP)
+  id               String                  @id @default(uuid(7)) @db.Uuid
+  contactId        String                  @db.Uuid
+  contact          LeadsContact            @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  source           LeadsSource             @default(WHATSAPP)
   sourceDetail     String?
-  stageId          String               @db.Uuid
-  stage            LeadsPipelineStage   @relation(fields: [stageId], references: [id], onDelete: Restrict)
-  ownerUserId      String?              @db.Uuid
-  owner            IdentityUser?        @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
-  assignedAt       DateTime?            @db.Timestamptz(3)
-  priorityScore    Int                  @default(0)
+  stageId          String                  @db.Uuid
+  stage            LeadsPipelineStage      @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  ownerUserId      String?                 @db.Uuid
+  owner            IdentityUser?           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  assignedAt       DateTime?               @db.Timestamptz(3)
+  priorityScore    Int                     @default(0)
   destination      String?
-  travelStartDate  DateTime?            @db.Date
-  travelEndDate    DateTime?            @db.Date
+  travelStartDate  DateTime?               @db.Date
+  travelEndDate    DateTime?               @db.Date
   travellerCount   Int?
-  budgetAmount     Decimal?             @db.Decimal(12, 2)
-  customFields     Json                 @default("{}")
-  firstResponseAt  DateTime?            @db.Timestamptz(3)
-  lastActivityAt   DateTime?            @db.Timestamptz(3)
-  nextFollowUpDate DateTime?            @db.Date
-  closedAt         DateTime?            @db.Timestamptz(3)
+  budgetAmount     Decimal?                @db.Decimal(12, 2)
+  customFields     Json                    @default("{}")
+  firstResponseAt  DateTime?               @db.Timestamptz(3)
+  lastActivityAt   DateTime?               @db.Timestamptz(3)
+  nextFollowUpDate DateTime?               @db.Date
+  closedAt         DateTime?               @db.Timestamptz(3)
   lostReason       String?
-  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
-  deletedAt        DateTime?            @db.Timestamptz(3)
+  createdAt        DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime                @updatedAt @db.Timestamptz(3)
+  deletedAt        DateTime?               @db.Timestamptz(3)
+  mergedIntoLeadId String?                 @db.Uuid
+  conversations    MessagingConversation[]
   notes            LeadsNote[]
   tasks            LeadsTask[]
   timeline         LeadsTimelineEntry[]
@@ -373,4 +377,128 @@ model SystemSetting {
   updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
 
   @@map("system_settings")
+}
+
+// ---------------------------------------------------------------------------
+// messaging module
+// ---------------------------------------------------------------------------
+
+enum MessagingDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessagingMessageType {
+  TEXT
+  IMAGE
+  DOCUMENT
+  AUDIO
+  VIDEO
+  TEMPLATE
+  INTERACTIVE
+  UNSUPPORTED
+}
+
+enum MessagingMessageStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+enum MessagingTemplateCategory {
+  UTILITY
+  MARKETING
+  AUTHENTICATION
+}
+
+// Owner: messaging. Personal data. Who may see it follows its lead (Decision 58).
+model MessagingConversation {
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  businessPhoneNumberId String
+  waId                  String
+  contactId             String             @db.Uuid
+  contact               LeadsContact       @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  leadId                String?            @db.Uuid
+  lead                  LeadsLead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  lastInboundAt         DateTime?          @db.Timestamptz(3)
+  lastMessageAt         DateTime?          @db.Timestamptz(3)
+  unreadCount           Int                @default(0)
+  createdAt             DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime           @updatedAt @db.Timestamptz(3)
+  messages              MessagingMessage[]
+
+  @@unique([businessPhoneNumberId, waId])
+  @@index([lastMessageAt])
+  @@index([leadId])
+  @@index([contactId])
+  @@map("messaging_conversations")
+}
+
+// Owner: messaging. Personal data. File bytes live in FileStorage, never here.
+model MessagingMessage {
+  id                String                 @id @default(uuid(7)) @db.Uuid
+  conversationId    String                 @db.Uuid
+  conversation      MessagingConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction         MessagingDirection
+  type              MessagingMessageType
+  waMessageId       String?                @unique
+  clientRef         String?                @unique
+  replyToWaId       String?
+  body              String?
+  mediaRef          String?
+  mediaStatus       String? // PENDING, STORED or FAILED
+  mediaMimeType     String?
+  mediaFilename     String?
+  templateName      String?
+  templateId        String?                @db.Uuid
+  templateVariables Json?
+  status            MessagingMessageStatus
+  failureCode       String?
+  sentByUserId      String?                @db.Uuid
+  sentBy            IdentityUser?          @relation(fields: [sentByUserId], references: [id], onDelete: Restrict)
+  occurredAt        DateTime               @db.Timestamptz(3)
+  deliveredAt       DateTime?              @db.Timestamptz(3)
+  readAt            DateTime?              @db.Timestamptz(3)
+  createdAt         DateTime               @default(now()) @db.Timestamptz(3)
+
+  @@index([conversationId, occurredAt])
+  @@index([sentByUserId])
+  @@map("messaging_messages")
+}
+
+// Owner: messaging. status is the provider's approval state, such as APPROVED or REJECTED.
+model MessagingTemplate {
+  id             String                    @id @default(uuid(7)) @db.Uuid
+  name           String
+  language       String
+  category       MessagingTemplateCategory
+  status         String
+  body           String
+  variables      Json                      @default("[]")
+  providerRef    String?
+  rejectedReason String?
+  createdAt      DateTime                  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime                  @updatedAt @db.Timestamptz(3)
+
+  @@unique([name, language])
+  @@map("messaging_templates")
+}
+
+// Owner: messaging. Webhook deliveries, one row per event; processing runs as a job (Decision 27).
+model MessagingWebhookEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  eventKey    String    @unique
+  kind        String
+  waMessageId String?
+  payload     Json
+  receivedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  processedAt DateTime? @db.Timestamptz(3)
+  error       String?
+
+  @@index([receivedAt])
+  @@index([waMessageId])
+  @@map("messaging_webhook_events")
 }

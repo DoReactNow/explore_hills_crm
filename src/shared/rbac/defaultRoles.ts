@@ -43,6 +43,10 @@ export const DEFAULT_ROLES = {
       "leads:delete",
       "leads:assign",
       "settings:manage",
+      "leads:merge",
+      "messaging:view",
+      "messaging:send",
+      "messaging:manage-templates",
     ],
   },
   MANAGER: {
@@ -57,12 +61,21 @@ export const DEFAULT_ROLES = {
       "leads:view-team",
       "leads:edit",
       "leads:assign",
+      "leads:merge",
+      "messaging:view",
+      "messaging:send",
     ],
   },
   AGENT: {
     name: "Agent",
     description: "Works their own leads: chat, calls, notes and claiming from a pool.",
     bypassesAccess: false,
-    permissions: ["leads:create", "leads:view-own", "leads:edit"],
+    permissions: [
+      "leads:create",
+      "leads:view-own",
+      "leads:edit",
+      "messaging:view",
+      "messaging:send",
+    ],
   },
 } as const satisfies Record<SystemRoleCode, RoleDefinition<PermissionCode>>;

@@ -7,6 +7,8 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: FriendlyE
 export interface ApiRequestOptions {
   method?: string;
   body?: unknown;
+  /** A file upload. The browser sets its own content type. */
+  formData?: FormData;
   headers?: Record<string, string>;
   signal?: AbortSignal;
 }
@@ -27,7 +29,8 @@ export async function apiRequest<T>(
     response = await fetch(path, {
       method: options.method ?? "GET",
       headers,
-      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      body:
+        options.formData ?? (options.body === undefined ? undefined : JSON.stringify(options.body)),
       credentials: "same-origin",
       signal: options.signal,
     });

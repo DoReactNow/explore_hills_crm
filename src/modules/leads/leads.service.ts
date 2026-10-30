@@ -351,6 +351,45 @@ export function createLeadService({
       });
     },
 
+    /**
+     * Combines two leads, keeping all history on the survivor (Decision 58). Other modules move what
+     * they own through `alsoMove`, in the same transaction. Repeating it changes nothing more.
+     */
+    async mergeLeads(
+      context: LeadContext,
+      id: string,
+      intoLeadId: string,
+      alsoMove?: (tx: Tx, fromId: string, toId: string) => Promise<void>,
+    ): Promise<LeadView> {
+      assertCan(context.principal, "leads:merge");
+      if (id === intoLeadId) throw invalid("intoLeadId", "Please choose a different lead.");
+      if (!isUuid(id) || !isUuid(intoLeadId)) throw notFound();
+      const scope = await leadScopeOf(context.principal);
+      const now = clock.now();
+      return repository.transaction(async (tx) => {
+        const survivor = await loadLead(tx, intoLeadId, scope);
+        const earlier = await repository.findMergeTarget(tx, id);
+        if (earlier?.mergedIntoLeadId === intoLeadId) return toLeadView(survivor);
+        await loadLead(tx, id, scope);
+        await repository.moveLeadHistory(tx, id, intoLeadId);
+        await alsoMove?.(tx, id, intoLeadId);
+        await repository.updateLead(tx, id, { deletedAt: now, mergedIntoLeadId: intoLeadId });
+        await repository.refreshNextFollowUp(tx, intoLeadId);
+        await repository.touchActivity(tx, intoLeadId, now);
+        await timeline(tx, {
+          leadId: intoLeadId,
+          kind: "LEAD_CREATED",
+          summary: "Another lead was merged into this one",
+          refType: "lead_merge",
+          refId: id,
+          actorUserId: context.principal.userId,
+          occurredAt: now,
+        });
+        await audit(tx, context, "lead.merged", intoLeadId, "Leads merged", { mergedLeadId: id });
+        return toLeadView(await loadLead(tx, intoLeadId, scope));
+      });
+    },
+
     /** For other modules' events. The same source event recorded twice appears once. */
     async recordTimelineEvent(entry: NewTimelineEntry): Promise<void> {
       await timeline(null, entry);

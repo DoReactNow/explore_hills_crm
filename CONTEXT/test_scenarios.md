@@ -470,11 +470,11 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 
 - **P4-MERGE-01** Formats of the same number (+91, 91, 0, spaces) all resolve to one contact.
 - **P4-MERGE-02** Two leads being merged keep all notes, tasks, messages, calls and history, with one survivor.
-- **P4-MERGE-03** A merge while one lead is mid-call or in a blast pool follows a stated rule.
+- **P4-MERGE-03** A merge while one lead is mid-call or in a blast pool follows a stated rule. (Moved to Phases 5 and 7: pools and calls don't exist yet.)
 - **P4-MERGE-04** Merging twice does nothing more, and a merge is audited.
-- **Q-06 (needs an answer):** Do agents need SMS as well as WhatsApp?
-- **Q-07 (needs an answer):** Which WhatsApp route: direct Meta API or a provider (Decision 19)?
-- **Q-08 (needs an answer):** What opt-out words count, and how is opt-in captured?
+- **Q-06 (answered, Decision 58):** No SMS.
+- **Q-07 (answered for now, Decision 58):** Meta or a reseller, chosen before go-live; built against the fake gateway.
+- **Q-08 (answered, Decision 58):** STOP, UNSUBSCRIBE and Hindi equivalents; a customer messaging first is opted in.
 
 ### Gateway
 
@@ -817,9 +817,9 @@ Collected from the sections above. Answer a phase's questions before planning it
 | Q-03 | 2 | Answered: whole chain below a person (Decision 55) |
 | Q-04 | 2 | Answered: yes, several teams (Decision 55) |
 | Q-05 | 3 | Answered: a new lead linked to the same contact (Decision 57) |
-| Q-06 | 4 | Do agents need SMS as well as WhatsApp? |
-| Q-07 | 4 | Which WhatsApp route: direct Meta API or a provider (Decision 19)? |
-| Q-08 | 4 | What opt-out words count, and how is opt-in captured? |
+| Q-06 | 4 | Answered: no SMS (Decision 58) |
+| Q-07 | 4 | Meta or a reseller, chosen before go-live (Decisions 19, 58) |
+| Q-08 | 4 | Answered (Decision 58) |
 | Q-09 | 5 | Can a shift cross midnight, and is it counted to the starting day? |
 | Q-10 | 5 | When an agent is deactivated, what happens to their open leads? |
 | Q-11 | 5 | Do timeouts pause overnight or outside shifts? |

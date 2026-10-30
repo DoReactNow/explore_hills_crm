@@ -170,7 +170,6 @@ model IdentityUser {
   leadTasks          LeadsTask[]                     // Phase 3
   timelineEntries    LeadsTimelineEntry[]            // Phase 3
   updatedSettings    SystemSetting[]                 // Phase 3
-  ownedConversations MessagingConversation[]         // Phase 4
   sentMessages       MessagingMessage[]              // Phase 4
   assignmentSetting  AssignmentAgentSetting?         // Phase 5
   createdRules       AssignmentRule[]                // Phase 5
@@ -348,6 +347,7 @@ model LeadsLead {
   createdAt         DateTime             @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime             @updatedAt @db.Timestamptz(3)
   deletedAt         DateTime?            @db.Timestamptz(3)
+  mergedIntoLeadId  String?              @db.Uuid          // set when merged into another lead
   notes             LeadsNote[]
   tasks             LeadsTask[]
   timeline          LeadsTimelineEntry[]
@@ -463,8 +463,6 @@ model MessagingConversation {
   contact               LeadsContact       @relation(fields: [contactId], references: [id], onDelete: Restrict)
   leadId                String?            @db.Uuid           // → leads.leads_leads
   lead                  LeadsLead?         @relation(fields: [leadId], references: [id], onDelete: SetNull)   // the conversation outlives a merged or erased lead
-  ownerUserId           String?            @db.Uuid           // → identity.identity_users
-  owner                 IdentityUser?      @relation(fields: [ownerUserId], references: [id], onDelete: SetNull) // denormalised lead owner for inbox filtering; synced by the lead.assigned event
   lastInboundAt         DateTime?          @db.Timestamptz(3) // the 24-hour window starts here (computed in the service)
   lastMessageAt         DateTime?          @db.Timestamptz(3)
   unreadCount           Int                @default(0)
@@ -473,7 +471,7 @@ model MessagingConversation {
   messages              MessagingMessage[]
 
   @@unique([businessPhoneNumberId, waId])
-  @@index([ownerUserId, lastMessageAt])
+  @@index([lastMessageAt])
   @@index([leadId])
   @@index([contactId])
   @@map("messaging_conversations")
@@ -488,9 +486,15 @@ model MessagingMessage {
   type           MessagingMessageType
   waMessageId    String?                @unique                 // Meta's message ID: webhook idempotency
   clientRef      String?                @unique                 // our idempotency key for outbound sends
+  replyToWaId    String?
   body           String?
   mediaRef       String?                                         // provider media ID or our FileStorage key
+  mediaStatus    String?                                         // PENDING, STORED or FAILED
+  mediaMimeType  String?
+  mediaFilename  String?
   templateName   String?
+  templateId     String?                @db.Uuid
+  templateVariables Json?
   status         MessagingMessageStatus
   failureCode    String?                                         // internal; never shown to users
   sentByUserId   String?                @db.Uuid                 // → identity.identity_users (null for inbound)
@@ -514,6 +518,7 @@ model MessagingTemplate {
   body           String
   variables      Json                      @default("[]")
   providerRef    String?
+  rejectedReason String?
   createdAt      DateTime                  @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime                  @updatedAt @db.Timestamptz(3)
 
@@ -525,6 +530,8 @@ model MessagingTemplate {
 model MessagingWebhookEvent {
   id          String    @id @default(uuid(7)) @db.Uuid
   eventKey    String    @unique                                  // provider message/status ID + type
+  kind        String
+  waMessageId String?                                            // lets a status wait for its message
   payload     Json
   receivedAt  DateTime  @default(now()) @db.Timestamptz(3)
   processedAt DateTime? @db.Timestamptz(3)

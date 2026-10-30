@@ -1,4 +1,5 @@
 // GET /api/events/stream: the live-update stream for the signed-in user (Decision 28).
+import { messagingEventTypes } from "@/modules/messaging";
 import { systemEventTypes, systemTestEventTypes } from "@/modules/system";
 import { route } from "@/shared/http/route";
 import { isTestEnvironment } from "@/shared/http/testOnly";
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 let eventTypes: Map<string, AnyEventType> | undefined;
 function allEventTypes() {
   eventTypes ??= assembleEventTypes({
+    messaging: messagingEventTypes,
     system: [...systemEventTypes, ...(isTestEnvironment() ? systemTestEventTypes : [])],
   });
   return eventTypes;

@@ -184,6 +184,29 @@ async function seedLeads(): Promise<void> {
   }
 }
 
+async function seedTemplates(): Promise<void> {
+  await getPrisma().messagingTemplate.createMany({
+    data: [
+      {
+        name: "Trip reminder",
+        language: "en",
+        category: "UTILITY",
+        status: "APPROVED",
+        body: "Hi {{1}}, your {{2}} trip is coming up. Reply YES for your day-by-day plan.",
+      },
+      {
+        name: "Festive offer",
+        language: "en",
+        category: "MARKETING",
+        status: "REJECTED",
+        rejectedReason: "Marketing messages need a way to opt out.",
+        body: "Hi {{1}}! Ask us about festive offers.",
+      },
+    ],
+    skipDuplicates: true,
+  });
+}
+
 /** Idempotent: running it again leaves the data unchanged. */
 export async function runTestSeed(): Promise<void> {
   assertTestSeedTarget(getEnv());
@@ -195,6 +218,7 @@ export async function runTestSeed(): Promise<void> {
   await seedUsers();
   await seedTeam();
   await seedLeads();
+  await seedTemplates();
   // Repeated local test runs would otherwise trip the per-IP sign-in limit.
   await getPrisma().identityLoginThrottle.deleteMany();
 }

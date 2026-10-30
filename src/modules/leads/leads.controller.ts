@@ -28,6 +28,7 @@ export {
   setTaskSchema,
   updateLeadSchema,
   updateStageSchema,
+  mergeLeadSchema,
 } from "./leads.schemas";
 
 type NoParams = Record<string, string>;

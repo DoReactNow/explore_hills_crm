@@ -49,7 +49,8 @@
     "docker:local:down": "docker compose -f docker/docker-compose.local.yml --profile app down",
     "docker:prod:build": "docker compose --env-file .env.production -f docker/docker-compose.prod.yml build",
     "docker:prod:up": "docker compose --env-file .env.production -f docker/docker-compose.prod.yml up -d",
-    "user:reset-super-admin-password": "dotenv run -q --override -f .env -- tsx src/modules/identity/resetSuperAdminPassword.cli.ts"
+    "user:reset-super-admin-password": "dotenv run -q --override -f .env -- tsx src/modules/identity/resetSuperAdminPassword.cli.ts",
+    "whatsapp:simulate": "dotenv run -q --override -f .env -- tsx scripts/simulate-whatsapp.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "2.2.2",

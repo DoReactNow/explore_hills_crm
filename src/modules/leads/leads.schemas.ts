@@ -165,3 +165,8 @@ export const updateStageSchema = z.object({
   isActive: z.boolean().optional(),
 });
 export type UpdateStageInput = z.output<typeof updateStageSchema>;
+
+export const mergeLeadSchema = z.object({
+  intoLeadId: z.string({ error: "Please choose a lead." }).trim().min(1, "Please choose a lead."),
+});
+export type MergeLeadInput = z.output<typeof mergeLeadSchema>;

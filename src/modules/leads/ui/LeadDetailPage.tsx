@@ -277,6 +277,93 @@ function LostDialog({
   );
 }
 
+function MergeDialog({
+  leadId,
+  onClose,
+  onMerged,
+}: {
+  leadId: string;
+  onClose: () => void;
+  onMerged: (target: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [matches, setMatches] = useState<LeadRow[]>([]);
+  const [target, setTarget] = useState("");
+  const [error, setError] = useState<FriendlyError | null>(null);
+
+  useEffect(() => {
+    if (search.trim().length < 2) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      apiRequest<{ items: LeadRow[] }>(
+        `/api/leads?pageSize=10&search=${encodeURIComponent(search)}`,
+        {
+          signal: controller.signal,
+        },
+      ).then((result) => {
+        if (result.ok) setMatches(result.data.items.filter((item) => item.id !== leadId));
+      });
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [search, leadId]);
+
+  async function merge(event: FormEvent) {
+    event.preventDefault();
+    const result = await apiRequest(`/api/leads/${leadId}/merge`, {
+      method: "POST",
+      body: { intoLeadId: target },
+    });
+    if (result.ok) onMerged(target);
+    else setError(result.error);
+  }
+
+  return (
+    <Dialog title="Merge into another lead" onClose={onClose}>
+      <form onSubmit={merge} className={styles.form} noValidate>
+        <p className={styles.dialogText}>
+          Its notes, follow-ups, chats and history move to the lead you choose, and this one
+          disappears from lists.
+        </p>
+        <FormError error={error} fields={["intoLeadId"]} />
+        <Field id="merge-search" label="Find the other lead" hint="Name or phone">
+          <input
+            id="merge-search"
+            className={styles.control}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </Field>
+        {matches.map((item) => (
+          <label key={item.id} className={styles.choice}>
+            <input
+              type="radio"
+              name="merge-target"
+              checked={target === item.id}
+              onChange={() => setTarget(item.id)}
+            />
+            {item.contact.name ?? "Unnamed customer"} · {phoneLabel(item.contact.phoneE164)} ·{" "}
+            {item.stage.name}
+          </label>
+        ))}
+        {fieldMessage(error, "intoLeadId") ? (
+          <span className={styles.fieldError}>{fieldMessage(error, "intoLeadId")}</span>
+        ) : null}
+        <div className={styles.actions}>
+          <button type="button" className={styles.button} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className={`${styles.button} ${styles.primary}`} disabled={!target}>
+            Merge
+          </button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
 export function LeadDetailPage({ id }: { id: string }) {
   const access = usePageAccess(VIEW_LEADS);
   const { can } = usePrincipal();
@@ -291,7 +378,7 @@ export function LeadDetailPage({ id }: { id: string }) {
   const [taskDue, setTaskDue] = useState("");
   const [taskError, setTaskError] = useState<FriendlyError | null>(null);
   const [actionError, setActionError] = useState<FriendlyError | null>(null);
-  const [dialog, setDialog] = useState<"edit" | "lost" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"edit" | "lost" | "delete" | "merge" | null>(null);
 
   const reload = useCallback(async () => {
     const result = await apiRequest<LeadDetail>(`/api/leads/${id}`);
@@ -381,6 +468,14 @@ export function LeadDetailPage({ id }: { id: string }) {
     else setActionError(result.error);
   }
 
+  async function openChat() {
+    const result = await apiRequest<{ id: string }>(`/api/leads/${id}/conversation`, {
+      method: "POST",
+    });
+    if (result.ok) router.push(`/inbox?c=${result.data.id}`);
+    else setActionError(result.error);
+  }
+
   async function remove() {
     const result = await apiRequest(`/api/leads/${id}`, { method: "DELETE" });
     if (result.ok) router.push("/leads");
@@ -424,6 +519,16 @@ export function LeadDetailPage({ id }: { id: string }) {
             {tripDates(lead)}
           </span>
         </div>
+        {can("messaging:view") ? (
+          <button type="button" className={`${styles.button} ${styles.primary}`} onClick={openChat}>
+            Open chat
+          </button>
+        ) : null}
+        {can("leads:merge") ? (
+          <button type="button" className={styles.button} onClick={() => setDialog("merge")}>
+            Merge…
+          </button>
+        ) : null}
         {can("leads:delete") ? (
           <button
             type="button"
@@ -654,6 +759,13 @@ export function LeadDetailPage({ id }: { id: string }) {
             setDialog(null);
             await reload();
           }}
+        />
+      ) : null}
+      {dialog === "merge" ? (
+        <MergeDialog
+          leadId={id}
+          onClose={() => setDialog(null)}
+          onMerged={(target) => router.push(`/leads/${target}`)}
         />
       ) : null}
       {dialog === "delete" ? (
