@@ -1,19 +1,12 @@
-// Critical journey 8 (Decision 29): the friendly 403, through the real guard on the built app.
-// The test-only eh_test_role cookie makes the server act as a role (APP_ENV=test only).
-import { expect, test, type BrowserContext } from "@playwright/test";
+// Critical journey 8 (Decision 29): the friendly 403, through the real guard on the built app, with
+// real sign-ins.
+import { expect, test } from "@playwright/test";
 import { expectNoTechnicalText } from "./support/pageText";
+import { seededUser, signInThroughForm } from "./support/signInUser";
 
-async function actAs(context: BrowserContext, baseURL: string | undefined, role: string) {
-  await context.addCookies([{ name: "eh_test_role", value: role, url: baseURL! }]);
-}
-
-test("a manager opening diagnostics sees the friendly forbidden message", async ({
-  page,
-  context,
-  baseURL,
-}) => {
-  await actAs(context, baseURL, "MANAGER");
-  await page.goto("/diagnostics");
+test("a manager opening diagnostics sees the friendly forbidden message", async ({ page }) => {
+  await page.goto("/sign-in?next=/diagnostics");
+  await signInThroughForm(page, seededUser("MANAGER"));
   await expect(page.locator("main").getByRole("alert")).toContainText(
     "You don't have access to do this.",
   );
@@ -23,9 +16,9 @@ test("a manager opening diagnostics sees the friendly forbidden message", async 
   await expectNoTechnicalText(page);
 });
 
-test("an admin opening diagnostics sees the system status", async ({ page, context, baseURL }) => {
-  await actAs(context, baseURL, "ADMIN");
-  await page.goto("/diagnostics");
+test("an admin opening diagnostics sees the system status", async ({ page }) => {
+  await page.goto("/sign-in?next=/diagnostics");
+  await signInThroughForm(page, seededUser("ADMIN"));
   await expect(page.getByText("Database: up")).toBeVisible();
 });
 

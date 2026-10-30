@@ -657,14 +657,14 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 (done) → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106**, **W-107** and **W-108** are done. **Working locally by the owner's choice:** W-106 to W-108 are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-109 onward, in the order above.
+> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** to **W-109** are done. **Working locally by the owner's choice:** W-106 to W-109 are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-110 onward, in the order above.
 > 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN; theme and fonts are settled (Decision 53).
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -1008,16 +1008,18 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** The live-update stream is part of the matrix.
 
 #### Step 2: RED tests
-- [ ] Integration: a table-driven matrix signs in as each seeded role and calls every guarded API route; each result matches the role's grants (allowed → not 401/403; refused → 403 with no permission code), signed out → 401, and `SUPER_ADMIN` passes everything through the bypass
-- [ ] Integration: a guard-matrix scan fails if a new guarded route is not in the matrix
-- [ ] E2E (journey 1): sign in through the form as `SUPER_ADMIN`, `ADMIN`, `MANAGER` and `AGENT`; each sees their name and only the pages they may use; diagnostics is shown to Super Admin and Admin and refused with the friendly message to Manager and Agent; sign out returns to the sign-in page
-- [ ] E2E: the existing specs move from the test-only role cookie to real sign-in where it matters
+- [x] Integration: a table-driven matrix signs in as each seeded role and calls every guarded API route; each result matches the role's grants (allowed → not 401/403; refused → 403 with no permission code), signed out → 401, and `SUPER_ADMIN` passes everything through the bypass
+- [x] Integration: a guard-matrix scan fails if a new guarded route is not in the matrix
+- [x] E2E (journey 1): sign in through the form as `SUPER_ADMIN`, `ADMIN`, `MANAGER` and `AGENT`; each sees their name and only the pages they may use; diagnostics is shown to Super Admin and Admin and refused with the friendly message to Manager and Agent; sign out returns to the sign-in page
+- [x] E2E: the existing specs move from the test-only role cookie to real sign-in where it matters
 
 #### Step 3: GREEN implementation
-- [ ] Shared E2E sign-in helper using the seeded credentials from `.env.test`
+- [x] Shared E2E sign-in helper using the seeded credentials from `.env.test`
 
 #### Step 4: Verification chain
-- [ ] Full chain including E2E; `current_state.md` updated
+- [x] Full chain including E2E; `current_state.md` updated
+
+> **Done 2026-10-30.** `src/tests/rbac/rbacMatrix.int.test.ts` signs in for real and calls all 14 route handlers as all 5 seeded roles (including the custom role and the Super Admin) and signed out: 86 tests. Its scan fails when a route is missing from the matrix (proven with a temporary route, since removed). `e2e/roles.e2e.ts` is journey 1 for the four system roles, and `e2e/forbidden.e2e.ts` now signs in for real. No E2E spec uses the test role cookie any more; it stays available until W-111 decides otherwise.
 
 ---
 
