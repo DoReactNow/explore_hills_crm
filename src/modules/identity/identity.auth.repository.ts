@@ -188,6 +188,20 @@ export const authRepository = {
     return count === 1;
   },
 
+  async deleteOldSessions(endedBefore: Date): Promise<number> {
+    const { count } = await getPrisma().identitySession.deleteMany({
+      where: { OR: [{ expiresAt: { lt: endedBefore } }, { revokedAt: { lt: endedBefore } }] },
+    });
+    return count;
+  },
+
+  async deleteOldThrottleRows(startedBefore: Date): Promise<number> {
+    const { count } = await getPrisma().identityLoginThrottle.deleteMany({
+      where: { windowStart: { lt: startedBefore } },
+    });
+    return count;
+  },
+
   getUser(tx: Tx, id: string): Promise<PublicUser> {
     return tx.identityUser.findUniqueOrThrow({ where: { id }, select: PUBLIC_USER });
   },

@@ -10,6 +10,7 @@ export {
 } from "./identity.passwords";
 
 export { createUserIfMissing, ensureFirstSuperAdmin } from "./identity.operator";
+export { identityJobs, identitySchedules } from "./identity.jobs";
 export { createSessionPrincipalResolver } from "./identity.session";
 
 export const buildPrincipalForRole = identityService.buildPrincipalForRole;

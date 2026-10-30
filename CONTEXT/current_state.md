@@ -657,14 +657,14 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 (done) → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 (done) → W-110 (done) → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** to **W-109** are done. **Working locally by the owner's choice:** W-106 to W-109 are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-110 onward, in the order above.
+> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** to **W-110** are done. **Working locally by the owner's choice:** W-106 to W-110 are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-111, the Phase 1 acceptance.
 > 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN; theme and fonts are settled (Decision 53).
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -1040,14 +1040,16 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** One recurring job; idempotent.
 
 #### Step 2: RED tests
-- [ ] Unit: the cut-off times are computed from the injected clock
-- [ ] Integration (pg-boss `TestClock`): the job deletes only what is past the cut-off; running it twice changes nothing more; the schedule uses the business timezone
+- [x] Unit: the cut-off times are computed from the injected clock
+- [x] Integration (pg-boss `TestClock`): the job deletes only what is past the cut-off; running it twice changes nothing more; the schedule uses the business timezone
 
 #### Step 3: GREEN implementation
-- [ ] Job, schedule registration in the worker, `identity` exports it from `index.ts`
+- [x] Job, schedule registration in the worker, `identity` exports it from `index.ts`
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** `identity.cleanupSessions`, the first recurring job. `JobSchedule` and `collectWorkerSchedules()` let the worker register any module's schedules at start. 6 new tests, with exact cut-off boundaries on a frozen clock. Checked in the production images on a throwaway database: the worker started and registered `30 3 * * *` in `Asia/Kolkata`. The job itself ran through the real queue in tests; it has not been waited for at 03:30.
 
 ---
 

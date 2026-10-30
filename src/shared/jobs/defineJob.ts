@@ -34,6 +34,13 @@ export type AnyJobDefinition = Omit<JobDefinition<unknown>, "handler"> & {
   handler: (payload: never, context: JobContext) => Promise<void>;
 };
 
+/** A recurring job; the worker registers it at start. The cron runs in the business timezone. */
+export interface JobSchedule {
+  job: AnyJobDefinition;
+  cron: string;
+  payload: unknown;
+}
+
 const JOB_NAME = /^[a-z]+\.[a-zA-Z][a-zA-Z0-9]*$/;
 
 export function defineJob<P>(definition: JobDefinition<P>): JobDefinition<P> {
