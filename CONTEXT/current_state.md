@@ -657,14 +657,14 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** is merged (PR #20) and **W-103** is done, on its own PR. **Then** W-104 onward, in the order above.
+> 3. **W-102** and **W-103** are merged (PRs #20, #21) and **W-104** is done, on its own PR. **Then** W-105 onward, in the order above.
 > 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -829,24 +829,26 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** Deactivation revokes the user's sessions in the same transaction. No jobs.
 
 #### Step 2: RED tests
-- [ ] Unit (service, mocked repository): create normalises the email to lowercase and hashes the password; a taken email gives `CONFLICT`
-- [ ] Unit: an Admin cannot create, edit, deactivate or change the role of a Super Admin, nor give anyone the `SUPER_ADMIN` role (`FORBIDDEN`, the code only in the log); a Super Admin can
-- [ ] Unit: deactivating, demoting or changing the role of the last **active** Super Admin gives `CONFLICT`; with two it succeeds
-- [ ] Integration: `POST /api/users`, `GET /api/users`, `GET /api/users/:id`, `PATCH /api/users/:id`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate`: success, validation, 401, 403 (no permission code in the body), 404, and the Super Admin bypass for each
-- [ ] Integration: each change writes the matching audit event in the same transaction; a refused change writes none
-- [ ] Integration: deactivating a user revokes their sessions; their next request is 401
-- [ ] Integration: there is no route or service method that hard-deletes a user
-- [ ] Integration: `POST /api/users` takes a default password (strength rule, user `ACTIVE`); `POST /api/users/:id/password` sets a new one, signs that user out everywhere (including a request at the same moment), clears the lock and audits `user.password_changed` without the password; the old password fails and the new one works (`P1-PASS-07`, `-09`, `-10`, `-12`)
-- [ ] Integration: a user cannot change their own password, role or status; no "forgot password" route exists; an Admin cannot change a Super Admin's password, by any route including bulk (`P1-PASS-08`, `-11`, `P1-USER-10`, `P1-SUPER-02`)
-- [ ] Integration: two Super Admins deactivating each other at the same moment leave one active; simultaneous creates with one email give one user; a deactivated user's email stays taken (`P1-SUPER-05`, `P1-USER-02`, `-03`)
+- [x] Unit (service, mocked repository): create normalises the email to lowercase and hashes the password; a taken email gives `CONFLICT`
+- [x] Unit: an Admin cannot create, edit, deactivate or change the role of a Super Admin, nor give anyone the `SUPER_ADMIN` role (`FORBIDDEN`, the code only in the log); a Super Admin can
+- [x] Unit: deactivating, demoting or changing the role of the last **active** Super Admin gives `CONFLICT`; with two it succeeds
+- [x] Integration: `POST /api/users`, `GET /api/users`, `GET /api/users/:id`, `PATCH /api/users/:id`, `POST /api/users/:id/deactivate`, `POST /api/users/:id/reactivate`: success, validation, 401, 403 (no permission code in the body), 404, and the Super Admin bypass for each
+- [x] Integration: each change writes the matching audit event in the same transaction; a refused change writes none
+- [x] Integration: deactivating a user revokes their sessions (the 401 on their next request needs the session resolver, so W-106 proves it)
+- [x] Integration: there is no route or service method that hard-deletes a user
+- [x] Integration: `POST /api/users` takes a default password (strength rule, user `ACTIVE`); `POST /api/users/:id/password` sets a new one, signs that user out everywhere (including a request at the same moment), clears the lock and audits `user.password_changed` without the password; the old password fails and the new one works (`P1-PASS-07`, `-09`, `-10`, `-12`)
+- [x] Integration: a user cannot change their own password, role or status; no "forgot password" route exists; an Admin cannot change a Super Admin's password, by any route including bulk (`P1-PASS-08`, `-11`, `P1-USER-10`, `P1-SUPER-02`)
+- [x] Integration: two Super Admins deactivating each other at the same moment leave one active; simultaneous creates with one email give one user; a deactivated user's email stays taken (`P1-SUPER-05`, `P1-USER-02`, `-03`)
 
 #### Step 3: GREEN implementation
-- [ ] Registry codes and default bundles; `db:sync-rbac` grants the new codes to ADMIN and MANAGER (Decision 23 rule 1)
-- [ ] `identity.repository.ts` user queries, `identity.service.ts` user rules, `identity.schemas.ts` with friendly messages, controller, route adapters under `src/app/api/users/`
-- [ ] Responses never include `passwordHash`, `failedLoginCount` or `lockedUntil`
+- [x] Registry codes and default bundles; `db:sync-rbac` grants the new codes to ADMIN and MANAGER (Decision 23 rule 1)
+- [x] `identity.repository.ts` user queries, `identity.service.ts` user rules, `identity.schemas.ts` with friendly messages, controller, route adapters under `src/app/api/users/`
+- [x] Responses never include `passwordHash`, `failedLoginCount` or `lockedUntil`
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** `identity.users.service.ts`, its repository, schemas, controller and six route handlers under `src/app/api/users/`; `users:view`, `users:create`, `users:edit` and `users:deactivate` added with their default bundles. 24 unit and 53 integration tests, the integration ones also in three shuffled runs. Simultaneous Super Admin removals queue on a transaction lock, and two creates with one email give one user. `users:view` shows every user for now: team scope arrives in Phase 2. Details in Decision 51.
 
 ---
 

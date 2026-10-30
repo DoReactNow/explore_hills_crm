@@ -965,3 +965,19 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Personal details:** a password is refused if it contains the user's full email, the part before the `@`, their full name, or any part of their name of 3 or more characters, ignoring case.
 - **Non-Latin characters** count as symbols, so the Decision 40 rule gives the same results as before. A password written only in Hindi has one character class and is refused as weak; one that also has Latin letters or digits is accepted.
 - **Unknown user:** a dummy hash, built once from random bytes when first needed, is verified so the response time does not reveal which accounts exist.
+
+---
+
+### Decision 51: User Rules Settled in W-104
+
+**Date:** 2026-10-30
+**Status:** Accepted
+
+#### Decision
+- **Your own account:** you can edit your own name, email and phone. You cannot change your own role, deactivate yourself or set your own password, and this applies to a Super Admin too. The operator command (Decision 49) covers a forgotten Super Admin password.
+- **Permissions:** setting a password needs `users:edit`; reactivating needs `users:deactivate`.
+- **Admins and Super Admins:** an Admin can see Super Admin accounts but cannot change them.
+- **Simultaneous changes:** every user change takes one Postgres transaction lock, so the count of active Super Admins cannot be read by two changes at once. User changes are rare, so the queue costs nothing noticeable.
+- **Repeats:** deactivating someone already deactivated, reactivating someone already active, and an edit that changes nothing all succeed without writing or auditing.
+- **The list:** `GET /api/users` is paged (50 by default, 200 at most), sorted by name, and shows every user until team scope arrives in Phase 2. Phase 2 adds the sorting and filters its screens need.
+
