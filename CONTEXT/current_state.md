@@ -22,8 +22,8 @@ This is the source of truth for what is done and what is next. **Check this file
 | 1 | Identity: users, sessions, real RBAC end to end | **DONE** (2026-10-31) |
 | 2 | Teams, hierarchy and the Roles & Permissions page | **DONE** (2026-10-31) |
 | 3 | Lead core and agent-facing lead screens | **DONE** (2026-10-31) |
-| 4 | WhatsApp integration (inbox, leads from messages) | **IN PROGRESS** (built and tested on the fake gateway; waiting on the pull request) |
-| 5 | Manager queue and assignment engine | PENDING |
+| 4 | WhatsApp integration (inbox, leads from messages) | **DONE** (2026-10-31, on the fake gateway; a real adapter is needed before go-live) |
+| 5 | Manager queue and assignment engine | **PENDING (next)** |
 | 6 | Agent workspace | PENDING |
 | 7 | Browser calling (telephony adapters), call logging and recordings | PENDING |
 | 8 | Notifications and SLA automation | PENDING |
@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 3 are complete, and Phase 4 is on its pull request. Next is Phase 5; check `test_scenarios.md` for its open question (`Q-09`). The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 4 are complete, with WhatsApp on the fake gateway. Next is Phase 5; check `test_scenarios.md` for its open question (`Q-09`). The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1115,7 +1115,7 @@ Left out of the design for later phases: bulk actions, export and saved filters 
 
 **Known cleanup:** `identity.roles.service.ts`, `leads.stages.service.ts` and `system.settings.service.ts` call Prisma directly instead of through a repository. `lint:arch` does not catch it because they use `getPrisma()`. It works and is tested, but breaks the layering rule (Decision 2), so it should move into repositories.
 
-### Phase 4: WhatsApp Integration — IN PROGRESS
+### Phase 4: WhatsApp Integration — DONE
 Resolve Open Decision 19 (direct Meta API or provider) and the SMS question in `project_data.md` Section 11. Webhook with signature verification → raw event stored → processing **job** (Decision 27), idempotent by Meta message ID; lead creation and duplicate merge by E.164 phone; conversation inbox with **live updates** (Decision 28); 24-hour window enforcement; templates; opt-in capture; delivery status; media stored through `FileStorage`; `WhatsAppGateway` interface with a `fake` gateway and a contract suite. E2E journey 4.
 
 > **Built 2026-10-31 in one go** (branch `phase-4-whatsapp`). Q-06, Q-07 and Q-08 and the other rules are in Decision 58. **Decision 19 stays open for go-live:** a real Meta or reseller adapter must be added to `gateway/registry.ts` and pass `gatewayContract`, because production refuses `fake`.
@@ -1137,12 +1137,12 @@ Left out of the design for later phases: Call buttons (7), notifications (8), qu
 
 - [x] W-401 to W-408, built and tested
 - [x] `npm run ci:quality` green
-- [ ] GitHub pipeline green and merged
-- [ ] Phase 4 set to **DONE**, Phase 5 set to **PENDING (next)**
+- [x] GitHub pipeline green and merged (PR #30)
+- [x] Phase 4 set to **DONE**, Phase 5 set to **PENDING (next)**
 
 > **Test evidence.** Integration tests were written before the backend and seen to fail; the screens' E2E tests were written with them. Then 24 rules were broken one at a time, and 20 were caught at once. Three misses were real test gaps, now closed and re-proven: an opt-out after a message is queued, simultaneous first messages, and the first-reply time. The fourth, a double click, is also stopped by a unique index. Checked in the browser with the simulator and a real worker: a Hindi message reaching the inbox, at desktop and phone width, which found the reply box sitting below the fold, now fixed.
 
-### Phase 5: Manager Queue and Assignment Engine — PENDING
+### Phase 5: Manager Queue and Assignment Engine — PENDING (next)
 Unassigned queue, bulk selection, all six modes (manual, round-robin, least-loaded, priority, random, blast), preview before confirm, atomic claim pool with the `assignment_pool_eligibility` join table, caps, shifts and eligibility, timeouts with return-to-pool or escalation as **delayed jobs plus a sweeper** (Decision 27), pool expiry jobs, idempotent assignment, audit events, **live updates** so a claimed lead disappears for other agents and new leads appear in the queue. Heavy concurrency tests. E2E journeys 2 and 3.
 
 ### Phase 6: Agent Workspace — PENDING
