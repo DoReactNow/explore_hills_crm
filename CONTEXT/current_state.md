@@ -657,9 +657,9 @@ jobs:
 ### Phase 1: Identity — PENDING (next)
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), awaiting the owner's re-approval.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 → W-102 → W-103 → W-104 → W-105 → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
 
-- [ ] Revised plan re-approved by the owner
+- [x] Revised plan re-approved by the owner
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
