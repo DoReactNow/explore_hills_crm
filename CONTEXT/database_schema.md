@@ -6,7 +6,7 @@ This document is the authoritative **target** schema for Explore Hills CRM: ever
 > - **Last updated 2026-10-29** to match `decision_log.md` Decisions 21–31.
 > - **Phase 0 implements** the `identity` RBAC tables (`identity_permissions`, `identity_roles`, `identity_role_permissions`) and `system_worker_heartbeats`.
 > - Every other table is **planned**. Each phase's detailed plan (written with `TDD_INSTRUCTION_GUIDE.md`) may adjust its tables, and must update this file in the same change.
-> - One open decision affects the schema: **Decision 20** (authentication approach, affects `identity_sessions`). Resolve it in the Phase 1 plan.
+> - Authentication is decided (own sessions table, Decision 46); Phase 1 adds `identity_users`, `identity_sessions`, `identity_login_throttle` and `audit_events`.
 > - **Tenancy is resolved:** single company, Explore Hills (Decision 21). No `tenant` table and no `tenantId` column anywhere.
 > - **Background jobs:** pg-boss creates and manages its own tables in the Postgres schema `pgboss` (Decision 27). They are not in `schema.prisma` or in this document, and Prisma's drift check ignores them.
 
@@ -205,7 +205,7 @@ model IdentityTeam {
   @@map("identity_teams")
 }
 
-// PHASE 1 — shape depends on Decision 20 (authentication approach)
+// PHASE 1 — own sessions table (Decision 46): 12 h sliding, 7-day cap; only the token's hash is stored
 model IdentitySession {
   id         String       @id @default(uuid(7)) @db.Uuid
   userId     String       @db.Uuid
@@ -1065,7 +1065,7 @@ Test fixtures never contain real names, phone numbers or emails (use obviously f
 | Phase | Tables added | Back-relation fields added (no SQL) |
 |:---|:---|:---|
 | 0 | `identity_permissions`, `identity_roles`, `identity_role_permissions`, `system_worker_heartbeats` (pg-boss creates its own `pgboss` schema at worker start) | |
-| 1 | `identity_users`, `identity_sessions` (shape per Decision 20), `audit_events` (table and writer) | `IdentityRole`: users; `IdentityUser`: auditEvents |
+| 1 | `identity_users`, `identity_sessions` (Decision 46), `identity_login_throttle`, `audit_events` (table and writer) | `IdentityRole`: users; `IdentityUser`: auditEvents |
 | 2 | `identity_teams`, hierarchy columns | |
 | 3 | `leads_pipeline_stages`, `leads_contacts`, `leads_leads`, `leads_notes`, `leads_tasks`, `leads_timeline_entries`, `system_settings` | `IdentityUser`: ownedLeads, leadNotes, leadTasks, timelineEntries, updatedSettings |
 | 4 | `messaging_conversations`, `messaging_messages`, `messaging_templates`, `messaging_webhook_events` | `IdentityUser`, `LeadsLead`, `LeadsContact`: conversations / sent messages |
