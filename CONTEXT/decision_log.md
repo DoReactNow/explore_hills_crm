@@ -922,9 +922,32 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **The Admin portal has an employee (agent) page:** a list of employees where clicking a record opens that person's details to view and edit, including setting a new password. The page is built with the Phase 2 user management screens; its API arrives in W-104.
 - **Changing a password signs that user out of all their running sessions**, in the same transaction.
 
-#### Details to confirm when the Phase 1 plan is revised
+#### Details (confirmed by the user on 2026-10-30, Decision 49)
 - The default password follows the Decision 46 strength rule, and is never shown again, logged or audited (the audit event records only that it changed).
 - Changing a password also clears that user's failed-attempt count and lock.
 - An Admin cannot change a Super Admin's password (Decision 23); a Super Admin can.
 - A user created with a password is `ACTIVE` immediately, so `INVITED` may go unused.
-- Recovery if the only Super Admin forgets their password is an open question (Q-21).
+- Recovery if the only Super Admin forgets their password: a private operator command (Decision 49).
+
+---
+
+### Decision 49: Phase 1 Rules Settled With the Revised Plan
+
+**Date:** 2026-10-30
+**Status:** Accepted (the first four confirmed by the user; the rest proposed with the revised Phase 1 plan)
+
+#### Decision
+**Confirmed by the user**
+- A forgotten password of the only Super Admin is reset by a private operator command on the server. No web route can do it.
+- Default passwords follow the same strength rule as every other password.
+- Guesses during a lock are refused and do not extend it, so a lock always ends after 15 minutes. An attacker can re-lock an account afterwards; the per-IP limit slows this and every lockout is audited.
+- A user created with a default password is `ACTIVE` immediately.
+
+**Proposed with the plan**
+- Passwords longer than 1024 bytes are refused before hashing, and hashing runs with limited concurrency.
+- The client IP is read from `X-Forwarded-For`, counted from the right by a `TRUSTED_PROXY_HOPS` setting (default 0: the value our own server added), so a value faked by the caller is ignored. If no address can be read, attempts share one limited "unknown" bucket.
+- A write with a session cookie and no `Origin` header is refused.
+- A deactivated user's email stays taken, and reactivation restores the account.
+- Nobody can change their own role or deactivate themselves.
+- Two simultaneous removals of Super Admins are serialised inside the transaction, so at least one active Super Admin always remains.
+- Only if there is no active Super Admin does the real seed create one; if the email belongs to a deactivated account, it refuses with a clear message.
