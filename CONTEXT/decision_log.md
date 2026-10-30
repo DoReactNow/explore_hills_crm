@@ -857,3 +857,18 @@ On 2026-10-30 npm's `latest` tag for `prisma` points to a release candidate (`8.
 - **Local driver:** writes to a hidden temporary file in the same folder, syncs it to disk, then renames it into place; on any failure the temporary file is removed and an existing file under the key is left untouched. Reads stream in 64 KB chunks.
 - **Startup checks:** the app (in `instrumentation.ts`) and the worker resolve the configured storage when they start, so a wrong or unbuilt driver stops them immediately. `STORAGE_DRIVER=s3` is accepted by the environment check but refused until the driver is built in Phase 7.
 - **Contract suite:** `src/shared/storage/__tests__/storageContract.ts`; each driver's test calls `runStorageContract()`. The local driver runs it against `storage/test` in the integration tier.
+
+---
+
+### Decision 45: Phase 0 Acceptance (Fresh-Clone Drill) Findings
+
+**Date:** 2026-10-30
+**Status:** Accepted
+
+#### Decision
+The W-015 drill followed `local_setup.md` Section 2 in a fresh clone of `main` (`f33b3f2`). Three gaps were fixed in the guide:
+- **`npm run db:generate` after `npm ci`.** Without it, step 3 (`db:sync-rbac`) fails with "Cannot find module '@/generated/prisma/client'". A `postinstall` hook was rejected: the Docker images run `npm ci` before the schema is copied, and the production-only install has no Prisma CLI. Every CI job already runs `db:generate` explicitly.
+- **`npx playwright install chromium`** is now step 7 of the quick start, with `npm run ci:quality`. The drill passed only because the browser was already cached on this machine.
+- **Section 9 (local Docker full stack)** now says to complete Section 2 first: the containers use the checkout's source and its generated Prisma client.
+
+In Phase 0 the diagnostics endpoint needs a signed-in user, which arrives in Phase 1, so "the worker shows as up" was checked through the test environment (the test-only admin cookie), as Section 2 already says.
