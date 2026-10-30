@@ -30,5 +30,10 @@ export const AUDIT_ACTIONS = [
   "stage.updated",
   "stage.deleted",
   "setting.updated",
+  "lead.merged",
+  "contact.opt_changed",
+  "template.created",
+  "template.updated",
+  "template.deleted",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

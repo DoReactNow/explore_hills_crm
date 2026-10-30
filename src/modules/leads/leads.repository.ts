@@ -98,7 +98,7 @@ export const leadRepository = {
     return tx.leadsContact.findUnique({ where: { phoneE164 } });
   },
 
-  createContact(tx: Tx, data: { phoneE164: string; name: string }) {
+  createContact(tx: Tx, data: { phoneE164: string; name: string | null }) {
     return tx.leadsContact.create({ data });
   },
 
@@ -120,6 +120,33 @@ export const leadRepository = {
       },
       select: { id: true, ownerUserId: true },
     });
+  },
+
+  async setContactOpt(
+    tx: Tx,
+    id: string,
+    data: { optInStatus: "OPTED_IN" | "OPTED_OUT"; optInAt: Date; optInSource: string },
+  ): Promise<void> {
+    await tx.leadsContact.update({ where: { id }, data });
+  },
+
+  /** The first reply: records the time once. True only for the call that set it. */
+  async markFirstResponse(tx: Tx, id: string, at: Date): Promise<boolean> {
+    const count = await tx.$executeRaw`
+      UPDATE leads_leads SET "firstResponseAt" = ${at}::timestamptz
+      WHERE id = ${id}::uuid AND "firstResponseAt" IS NULL`;
+    return count === 1;
+  },
+
+  /** Absorbs one lead into another. Nothing is deleted: only the parent changes. */
+  async moveLeadHistory(tx: Tx, fromId: string, toId: string): Promise<void> {
+    await tx.leadsNote.updateMany({ where: { leadId: fromId }, data: { leadId: toId } });
+    await tx.leadsTask.updateMany({ where: { leadId: fromId }, data: { leadId: toId } });
+    await tx.leadsTimelineEntry.updateMany({ where: { leadId: fromId }, data: { leadId: toId } });
+  },
+
+  findMergeTarget(tx: Tx, id: string) {
+    return tx.leadsLead.findUnique({ where: { id }, select: { mergedIntoLeadId: true } });
   },
 
   findStage(tx: Tx, code: string) {

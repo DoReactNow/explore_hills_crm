@@ -17,7 +17,11 @@ export async function executeJob(
   const fields = { jobId: attempt.id, job: job.name, attempt: attempt.retryCount + 1 };
   try {
     const payload = parsePayload(job, attempt.data);
-    await job.handler(payload as never, { jobId: attempt.id, logger });
+    await job.handler(payload as never, {
+      jobId: attempt.id,
+      isFinalAttempt: attempt.retryCount >= attempt.retryLimit,
+      logger,
+    });
     logger.info("job completed", fields);
   } catch (error) {
     if (attempt.retryCount >= attempt.retryLimit) {

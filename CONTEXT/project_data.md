@@ -338,6 +338,7 @@ Only `system:view-diagnostics` is implemented in Phase 0. Every other permission
 | `leads:view-all` | View all leads | YES | NO | NO |
 | `leads:edit` | Edit lead details and stage (within scope) | YES | YES | YES |
 | `leads:delete` | Delete a lead | YES | NO | NO |
+| `leads:merge` | Merge two leads | YES | YES | NO |
 | `leads:assign` | Choose a new lead's owner (Phase 3) and assign leads from the queue (Phase 5) | YES | YES | NO |
 | `leads:reassign` | Move a lead to a different agent | YES | YES | NO |
 | `leads:claim` | Claim a lead from a blast pool | NO | NO | YES |
@@ -462,8 +463,7 @@ A value that is meant to be the same everywhere is defined **once** and referenc
 
 | Question | Needed by |
 |:---|:---|
-| Direct Meta Cloud API integration or through a WhatsApp provider (BSP)? (Decision 19) | Phase 4 |
-| Do agents need SMS as well as WhatsApp, or WhatsApp only? | Phase 4 |
+| Direct Meta Cloud API or a reseller? (Decision 19) Built against the `fake` gateway; a real adapter is needed before production. | Before go-live |
 | Which calling provider? Use the comparison checklist in Decision 30, including browser calling to Indian numbers and DoT/TRAI compliance. | Before the first real adapter in Phase 7 |
 | Where are recordings stored in production (S3 cloud, self-hosted S3 on the VPS, local disk, Google Drive)? (Decision 31) | Before production go-live |
 | Recording announcement wording and DPDP consent/notice | Phase 10 |

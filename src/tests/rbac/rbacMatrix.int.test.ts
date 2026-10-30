@@ -17,6 +17,20 @@ import * as password from "@/app/api/users/[id]/password/route";
 import * as reactivate from "@/app/api/users/[id]/reactivate/route";
 import * as item from "@/app/api/users/[id]/route";
 import * as collection from "@/app/api/users/route";
+import * as chatStart from "@/app/api/leads/[id]/conversation/route";
+import * as chatMedia from "@/app/api/conversations/[id]/media/route";
+import * as chatMessages from "@/app/api/conversations/[id]/messages/route";
+import * as chatOptIn from "@/app/api/conversations/[id]/opt-in/route";
+import * as chatRead from "@/app/api/conversations/[id]/read/route";
+import * as chatTemplate from "@/app/api/conversations/[id]/template/route";
+import * as chatItem from "@/app/api/conversations/[id]/route";
+import * as chats from "@/app/api/conversations/route";
+import * as leadMerge from "@/app/api/leads/[id]/merge/route";
+import * as messageMedia from "@/app/api/messages/[id]/media/route";
+import * as messageRetry from "@/app/api/messages/[id]/retry/route";
+import * as templateItem from "@/app/api/templates/[id]/route";
+import * as templates from "@/app/api/templates/route";
+import * as whatsapp from "@/app/api/webhooks/whatsapp/route";
 import * as followUps from "@/app/api/follow-ups/route";
 import * as leadNotes from "@/app/api/leads/[id]/notes/route";
 import * as leadStage from "@/app/api/leads/[id]/stage/route";
@@ -61,6 +75,7 @@ const USERS_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "TEAM_VI
 const ADMINS: readonly Role[] = ["SUPER_ADMIN", "ADMIN"];
 const SUPER_ONLY: readonly Role[] = ["SUPER_ADMIN"];
 const LEAD_ROLES: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER", "AGENT"];
+const MERGE_ROLES: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
 const TEAM_VIEW: readonly Role[] = ["SUPER_ADMIN", "ADMIN", "MANAGER"];
 
 interface Case {
@@ -68,7 +83,7 @@ interface Case {
   path: string;
   handler: unknown;
   /** Roles allowed through; "public" routes also answer someone signed out. */
-  allowed: readonly Role[] | "public";
+  allowed: readonly Role[] | "public" | "signed";
   usesId?: "user" | "team" | "role" | "lead" | "stage";
   body?: unknown;
 }
@@ -202,6 +217,106 @@ const CASES: Case[] = [
     handler: settingStage.DELETE,
     allowed: ADMINS,
     usesId: "stage",
+  },
+  { method: "GET", path: "/api/webhooks/whatsapp", handler: whatsapp.GET, allowed: "signed" },
+  {
+    method: "POST",
+    path: "/api/webhooks/whatsapp",
+    handler: whatsapp.POST,
+    allowed: "signed",
+    body: {},
+  },
+  { method: "GET", path: "/api/conversations", handler: chats.GET, allowed: LEAD_ROLES },
+  {
+    method: "GET",
+    path: "/api/conversations/[id]",
+    handler: chatItem.GET,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/conversations/[id]/read",
+    handler: chatRead.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/conversations/[id]/messages",
+    handler: chatMessages.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/conversations/[id]/template",
+    handler: chatTemplate.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/conversations/[id]/media",
+    handler: chatMedia.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/conversations/[id]/opt-in",
+    handler: chatOptIn.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/conversation",
+    handler: chatStart.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/merge",
+    handler: leadMerge.POST,
+    allowed: MERGE_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/messages/[id]/retry",
+    handler: messageRetry.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "GET",
+    path: "/api/messages/[id]/media",
+    handler: messageMedia.GET,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  { method: "GET", path: "/api/templates", handler: templates.GET, allowed: LEAD_ROLES },
+  { method: "POST", path: "/api/templates", handler: templates.POST, allowed: ADMINS, body: {} },
+  {
+    method: "PATCH",
+    path: "/api/templates/[id]",
+    handler: templateItem.PATCH,
+    allowed: ADMINS,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/templates/[id]",
+    handler: templateItem.DELETE,
+    allowed: ADMINS,
+    usesId: "lead",
   },
   { method: "GET", path: "/api/teams", handler: teams.GET, allowed: TEAM_VIEW },
   { method: "POST", path: "/api/teams", handler: teams.POST, allowed: ADMINS, body: {} },
@@ -371,6 +486,10 @@ describe("every route, as every role, with a real session", () => {
 
   it.each(rows)("$name as $role", async ({ role, testCase }) => {
     const { status, text } = await call(testCase, await signedInHeaders(role));
+    if (testCase.allowed === "signed") {
+      expect(status).toBeLessThan(500); // the provider's signature guards it, not a session
+      return;
+    }
     const allowed = testCase.allowed === "public" || testCase.allowed.includes(role);
     if (allowed) {
       expect([401, 403]).not.toContain(status);
@@ -384,7 +503,8 @@ describe("every route, as every role, with a real session", () => {
     "$name signed out",
     async ({ testCase }) => {
       const { status } = await call(testCase, {});
-      if (testCase.allowed === "public") expect(status).not.toBe(401);
+      if (testCase.allowed === "signed") expect(status).toBeLessThan(500);
+      else if (testCase.allowed === "public") expect(status).not.toBe(401);
       else expect(status).toBe(401);
     },
   );

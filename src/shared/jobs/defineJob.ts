@@ -15,6 +15,8 @@ export interface RetryPolicy {
 
 export interface JobContext {
   jobId: string;
+  /** True on the last attempt: if this one fails, no retry follows. */
+  isFinalAttempt?: boolean;
   logger: Pick<Logger, "info" | "warn" | "error">;
 }
 

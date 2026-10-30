@@ -318,10 +318,10 @@ Not built now. When added, there are three routes: buy calling through a WhatsAp
 
 ---
 
-### Decision 19: Open — WhatsApp Integration Route
+### Decision 19: WhatsApp Integration Route
 
-**Date:** 2026-10-28
-**Status:** Open (needed by Phase 4)
+**Date:** 2026-10-28 (updated 2026-10-31)
+**Status:** Open for go-live only: the owner will use Meta directly or a reseller. Phase 4 is built behind the gateway with the `fake` implementation (Decision 58). The real adapter is needed before production.
 
 Options: direct Meta Cloud API (no platform fee, more integration work) or through a WhatsApp provider (faster start, platform fee and dependency). The messaging module hides the choice behind a `WhatsAppGateway` interface so the decision can change without touching leads or assignment.
 
@@ -1070,4 +1070,23 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Notes can't be edited or deleted,** so the history stays trustworthy. The design's Edit link is left out.
 - **Follow-ups are tasks.** A task needs an assignee who is active and in the actor's scope. A past due date is refused at creation. Completing twice changes nothing, and a done task can be reopened. A lead's next follow-up is its earliest open task, cleared when the lead closes, so closed leads stop reminding.
 - **A changed setting applies to new work only;** work already running keeps the value it started with.
+
+---
+
+### Decision 58: WhatsApp Rules Settled for Phase 4
+
+**Date:** 2026-10-31
+**Status:** Accepted (the first three chosen by the owner, answering `test_scenarios.md` Q-06, Q-07 and Q-08; the rest set with the Phase 4 plan and reported to the owner)
+
+#### Decision
+- **Route:** Meta directly or a reseller, chosen later. Everything is built against the `fake` gateway, which speaks Meta's webhook format. Production refuses `fake`, so a real adapter must exist before go-live.
+- **No SMS.**
+- **Opt-out and opt-in:** a message that is exactly STOP, UNSUBSCRIBE, or a Hindi equivalent (`बंद`, `बंद करो`, `रोको`, `अनसब्सक्राइब`), in any case, opts the customer out. Words inside a longer sentence do not. A customer messaging us first counts as opted in. An opted-out customer stays opted out until they send START or `शुरू`; an ordinary message doesn't undo it. Staff can record agreement only for a customer with no recorded choice, never over an opt-out.
+- **Sending to an opted-out customer is refused for everything,** free-form replies included.
+- **Who sees a conversation follows its lead:** the same own, team and all scope. `ownerUserId` is therefore not copied onto the conversation (a change from `database_schema.md`), so the two can't disagree.
+- **A deactivated owner's chat** stays visible to everyone above them and to view-all roles.
+- **Status order:** QUEUED, SENT, DELIVERED, READ only ever move forward. FAILED applies only before delivery. A status that arrives before we know its message is kept and applied when the send completes.
+- **Every send runs as a job,** so a provider outage or rate limit slows sending down without losing anything. The window and template are checked again when the job runs. Double clicks are stopped by a key the browser generates for each message.
+- **Files:** received files up to 25 MB of an allowed type (images, PDF, Office documents, audio, video) are stored, and always downloaded rather than shown in the browser. Sending: images 5 MB, audio and video 16 MB, documents 25 MB (WhatsApp allows 100 MB for documents; 25 MB protects the server).
+- **Merging leads** needs a new permission, `leads:merge` (Admin and Manager). The other lead's notes, follow-ups, timeline and chats move to the survivor, and the other lead is soft-deleted with a pointer to it.
 

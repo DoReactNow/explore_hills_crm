@@ -392,6 +392,14 @@ The real seed also adds the default settings and pipeline stages, and never over
 
 **Roles after seeding:** `db:sync-rbac` creates the system roles `SUPER_ADMIN`, `ADMIN`, `MANAGER`, `AGENT`. After that, the Super Admin changes permissions on the Roles & Permissions page. Re-running `db:sync-rbac` (every deploy does) never overwrites those edits; it only adds new permissions and missing system roles (Decision 23).
 
+### Trying WhatsApp without an account
+
+With `WHATSAPP_GATEWAY="fake"`, nothing leaves your machine. To pretend a customer has messaged you (the app and the worker must be running):
+```bash
+npm run whatsapp:simulate -- "+91 90000 00001" "Kashmir trip for 4 in December?" "Riya Mehta"
+```
+It sends a correctly signed webhook to your own app. Replies you send are recorded by the fake gateway, and appear as Sent.
+
 ---
 
 ## 7. Running the App

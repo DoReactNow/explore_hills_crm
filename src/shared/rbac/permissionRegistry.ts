@@ -115,6 +115,30 @@ export const PERMISSIONS = {
     module: "system",
     reserved: false,
   },
+  "leads:merge": {
+    label: "Merge leads",
+    description: "Combine two leads into one, keeping all their history.",
+    module: "leads",
+    reserved: false,
+  },
+  "messaging:view": {
+    label: "View conversations",
+    description: "Read WhatsApp conversations on leads they can see.",
+    module: "messaging",
+    reserved: false,
+  },
+  "messaging:send": {
+    label: "Send WhatsApp messages",
+    description: "Reply to customers and send approved templates.",
+    module: "messaging",
+    reserved: false,
+  },
+  "messaging:manage-templates": {
+    label: "Manage templates",
+    description: "Create, change and delete WhatsApp message templates.",
+    module: "messaging",
+    reserved: false,
+  },
   "roles:manage": {
     label: "Manage roles and permissions",
     description: "Create, edit and delete roles and choose what each role may do.",
