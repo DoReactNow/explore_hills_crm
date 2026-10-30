@@ -661,6 +661,12 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
+> **Handoff, 2026-10-30. Resume here in a new session:**
+> 1. **PR #18** (`phase-1-plan-revision`, this revised plan): all six CI jobs green and mergeable, not merged. Merge it once the owner says so.
+> 2. **W-112** on branch `w-112-reset-db`, stacked on PR #18, pushed with no PR yet. The guard, its unit test and `scripts/reset-db.ts` are written. **Blocked on the manual reset check (`P0-OPS-01`):** Prisma blocks an AI agent from running `migrate reset` without the user's consent, and that block must not be bypassed. The owner either runs `npm run db:reset:dev` and `npm run db:reset:test`, or tells the agent "You may reset both". Then tick the last boxes, run the full chain and open the PR, based on `main` once PR #18 is merged.
+> 3. **Then** W-102 onward, in the order above.
+> 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
+
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
 | Work item | Scenarios |
@@ -687,11 +693,11 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Why now / dependencies:** None. **Permissions and roles:** None (developer command). **Data and time:** None. **Errors the user can see:** None (clear command-line messages). **Module boundaries:** `scripts/` only. **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Unit: the guard accepts `.env` with a development database and `.env.test` with a `_test` database, and refuses production, a mismatch and a missing file (`P0-OPS-02`)
+- [x] Unit: the guard accepts `.env` with a development database and `.env.test` with a `_test` database, and refuses production, a mismatch and a missing file (`P0-OPS-02`)
 - [ ] Manual: both commands reset and re-apply migrations on their own database, and the other database is untouched (`P0-OPS-01`)
 
 #### Step 3: GREEN implementation
-- [ ] `scripts/reset-db.ts`, using the same env guards as the test setup; it runs no seed (Decision 11)
+- [x] `scripts/reset-db.ts`, using the same env guards as the test setup; it runs no seed (Decision 11)
 
 #### Step 4: Verification chain
 - [ ] Full chain; `current_state.md` updated
