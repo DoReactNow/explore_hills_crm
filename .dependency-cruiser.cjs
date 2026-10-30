@@ -22,12 +22,16 @@ module.exports = {
     {
       name: "module-internals-from-outside",
       comment:
-        "Rule 1: code outside src/modules imports a module only through its index.ts (src/app may also import controllers, rule 2).",
+        "Rule 1: code outside src/modules imports a module only through its index.ts (src/app may also import controllers, rule 2, and module UI, whose code the index must not pull into the browser).",
       severity: "error",
       from: { path: "^src/", pathNot: ["^src/modules/", TEST_FILES] },
       to: {
         path: "^src/modules/[^/]+/",
-        pathNot: ["^src/modules/[^/]+/index\\.ts$", "^src/modules/[^/]+/[^/]+\\.controller\\.ts$"],
+        pathNot: [
+          "^src/modules/[^/]+/index\\.ts$",
+          "^src/modules/[^/]+/[^/]+\\.controller\\.ts$",
+          "^src/modules/[^/]+/ui/",
+        ],
       },
     },
     {

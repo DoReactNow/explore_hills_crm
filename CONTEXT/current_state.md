@@ -19,7 +19,7 @@ This is the source of truth for what is done and what is next. **Check this file
 | Phase | Title | Status |
 |:---|:---|:---|
 | 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **DONE** (2026-10-30) |
-| 1 | Identity: users, sessions, real RBAC end to end | **PENDING (next)** |
+| 1 | Identity: users, sessions, real RBAC end to end | **IN PROGRESS** (all built and tested locally; waiting on the push and GitHub pipeline) |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
 | 4 | WhatsApp integration (inbox, leads from messages) | PENDING |
@@ -654,18 +654,18 @@ jobs:
 
 > **For every phase below:** do not code from this summary. First investigate the current code, then write detailed work items with `TDD_INSTRUCTION_GUIDE.md`, put them in this file under the phase, get the user's approval, and only then execute. Every list or table screen must have correct sorting and filtering on all columns, state kept when going back, smooth scrolling, and friendly errors.
 
-### Phase 1: Identity — PENDING (next)
+### Phase 1: Identity — IN PROGRESS
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 → W-107 → W-108 → W-109 → W-110 → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 (done) → W-110 (done) → W-111 (local part done)`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22) and **W-105** is done, on its own PR. **Then** W-106 onward, in the order above.
-> 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN. **Three questions need the owner's answer before W-107:** the "Keep me signed in" checkbox (conflicts with Decision 46), the lockout countdown (conflicts with `P1-LOCK-08`), and approval of the theme and fonts.
+> 3. **W-102** to **W-105** are merged (PRs #20 to #23). **W-106** to **W-110** and the local part of **W-111** are on `w-106-session-resolver`, with a pull request open against `main`. **Then:** once it is merged with all six jobs green, tick the last W-111 box, set Phase 1 to **DONE** and Phase 2 to **PENDING (next)**.
+> 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN; theme and fonts are settled (Decision 53).
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -908,18 +908,20 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** The live-update stream (W-013) uses the same resolver.
 
 #### Step 2: RED tests
-- [ ] Unit (frozen clock): a session idle for 11 h 59 min is valid and is extended; at 12 h it is expired; past 7 days since sign-in it is expired however active; the extension writes at most once per 5 minutes
-- [ ] Integration: a valid cookie resolves to the user's principal (role code, bypass flag, permissions from the role's current grants)
-- [ ] Integration: removing a permission from the user's role takes effect on the very next request (Decision 4)
-- [ ] Integration: an expired, revoked or tampered cookie, or a deactivated user, gives 401 on a guarded route
-- [ ] Unit: the test-only role cookie is still refused outside `APP_ENV=test`
-- [ ] Integration: many requests at once with one cookie all work with at most one extension write; a request at the exact expiry moment is expired (`P1-SESSION-05`, `-07`)
+- [x] Unit (frozen clock): a session idle for 11 h 59 min is valid and is extended; at 12 h it is expired; past 7 days since sign-in it is expired however active; the extension writes at most once per 5 minutes
+- [x] Integration: a valid cookie resolves to the user's principal (role code, bypass flag, permissions from the role's current grants)
+- [x] Integration: removing a permission from the user's role takes effect on the very next request (Decision 4)
+- [x] Integration: an expired, revoked or tampered cookie, or a deactivated user, gives 401 on a guarded route
+- [x] Unit: the test-only role cookie is still refused outside `APP_ENV=test`
+- [x] Integration: many requests at once with one cookie all work with at most one extension write; a request at the exact expiry moment is expired (`P1-SESSION-05`, `-07`)
 
 #### Step 3: GREEN implementation
-- [ ] `createSessionPrincipalResolver()` in `identity`, installed by `instrumentation.ts`; composed with the test cookie resolver in tests
+- [x] `createSessionPrincipalResolver()` in `identity`, installed by `instrumentation.ts`; composed with the test cookie resolver in tests
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** `createSessionPrincipalResolver()` installed by `instrumentation.ts` in every environment, with the test role cookie layered on top only when `APP_ENV=test`. 22 new tests, run against real sign-ins and real routes. This also proves what W-104 and W-105 moved here: a request after sign-out, deactivation or a password change gets 401. The production image starts with the resolver and answers health as ok.
 
 ---
 
@@ -940,17 +942,19 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Unit (component): the form shows field messages, the friendly error, disables the button while submitting, and never shows the server's raw text
-- [ ] Unit (component): the shell shows the user's name and a sign-out button; signed out, it shows a "Sign in" link
-- [ ] Unit: the `?next=` return path accepts only same-site relative paths (no open redirect)
-- [ ] E2E: after sign-out, Back shows no protected data (`P1-SESSION-11`)
+- [x] Unit (component): the form shows field messages, the friendly error, disables the button while submitting, and never shows the server's raw text
+- [x] Unit (component): the shell shows the user's name and a sign-out button; signed out, it shows a "Sign in" link
+- [x] Unit: the `?next=` return path accepts only same-site relative paths (no open redirect)
+- [x] E2E: after sign-out, Back shows no protected data (`P1-SESSION-11`)
 
 #### Step 3: GREEN implementation
-- [ ] Sign-in page, user menu with sign-out, `PrincipalProvider` fed from `GET /api/auth/me` so `usePrincipal().can()` reflects the real user, "Please sign in" pages link to `/sign-in?next=…`
-- [ ] Manual browser check: sign in, see the name, open diagnostics as Admin, sign out, keyboard-only use, narrow screen
+- [x] Sign-in page, user menu with sign-out, `PrincipalProvider` fed from `GET /api/auth/me` so `usePrincipal().can()` reflects the real user, "Please sign in" pages link to `/sign-in?next=…`
+- [x] Manual browser check: sign in, see the name, open diagnostics as Admin, sign out, keyboard-only use, narrow screen
 
 #### Step 4: Verification chain
-- [ ] Full chain including E2E; manual browser check done; `current_state.md` updated
+- [x] Full chain including E2E; manual browser check done; `current_state.md` updated
+
+> **Done 2026-10-30.** Design tokens in `src/app/globals.css`, fonts through `next/font` (served by this app), `/sign-in`, and the shell with name, role, sign-out and permission-filtered navigation. The sidebar lists only pages that exist; the rest of the design's navigation arrives with its pages. API responses are now `no-store`, and `GET /api/auth/me` also returns what the person can do. 28 new unit tests and 5 E2E specs. Checked in the browser: keyboard-only sign-in, a wrong then right password, a Hindi name, phone width, sign-out. 348 unit plus the TZ matrix, 172 integration, 11 E2E passing. E2E creates its own users until W-108 seeds them; W-109 moves the older specs to real sign-in. Not built from the design: the greeting and language label (no data behind them yet). Details in Decisions 53 and 54.
 
 ---
 
@@ -971,17 +975,19 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Integration: the test seed run twice gives identical users (idempotent); each `TEST_*` user can sign in with its `.env.test` password
-- [ ] Integration: the real seed creates one active Super Admin from `SEED_SUPER_ADMIN_*` and does nothing if an active Super Admin exists; it still refuses a test database and a weak password (W-009 tests stay green)
-- [ ] Scan: committed seed files still contain no password literals
-- [ ] Integration: `npm run user:reset-super-admin-password` sets the password, signs the user out everywhere and audits it; it refuses a weak password, a non-Super-Admin, and a test or mismatched database, and never prints the password (`P1-PASS-13`, `-14`)
-- [ ] Integration: with only a deactivated Super Admin, the real seed creates an active one, or refuses clearly if that email is taken (`P1-SEED-04`)
+- [x] Integration: the test seed run twice gives identical users (idempotent); each `TEST_*` user can sign in with its `.env.test` password
+- [x] Integration: the real seed creates one active Super Admin from `SEED_SUPER_ADMIN_*` and does nothing if an active Super Admin exists; it still refuses a test database and a weak password (W-009 tests stay green)
+- [x] Scan: committed seed files still contain no password literals
+- [x] Integration: `npm run user:reset-super-admin-password` sets the password, signs the user out everywhere and audits it; it refuses a weak password, a non-Super-Admin, and a test or mismatched database, and never prints the password (`P1-PASS-13`, `-14`)
+- [x] Integration: with only a deactivated Super Admin, the real seed creates an active one, or refuses clearly if that email is taken (`P1-SEED-04`)
 
 #### Step 3: GREEN implementation
-- [ ] `prisma/seeds/testSeed.ts` users; `prisma/seeds/realSeed.ts` creates the first Super Admin; `local_setup.md` Section 2 step 4 no longer says "skip in Phase 0"
+- [x] `prisma/seeds/testSeed.ts` users; `prisma/seeds/realSeed.ts` creates the first Super Admin; `local_setup.md` Section 2 step 4 no longer says "skip in Phase 0"
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** `identity.operator.ts` (shared by seeds and the command), the test seed's users and custom role, the real seed's first Super Admin, `npm run user:reset-super-admin-password` and its production bundle `dist/reset-super-admin-password.js` in the migrator image. 15 new integration tests. Checked by hand on a throwaway database: the real seed created one Super Admin, a second run did nothing, and the command inside the migrator image reset the password and audited it. The test seed also clears the sign-in throttle, so repeated local runs do not trip the per-IP limit. The E2E sign-in specs now use the seeded users. 348 unit plus the TZ matrix, 187 integration, 11 E2E passing; no migration drift.
 
 ---
 
@@ -1002,16 +1008,18 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** The live-update stream is part of the matrix.
 
 #### Step 2: RED tests
-- [ ] Integration: a table-driven matrix signs in as each seeded role and calls every guarded API route; each result matches the role's grants (allowed → not 401/403; refused → 403 with no permission code), signed out → 401, and `SUPER_ADMIN` passes everything through the bypass
-- [ ] Integration: a guard-matrix scan fails if a new guarded route is not in the matrix
-- [ ] E2E (journey 1): sign in through the form as `SUPER_ADMIN`, `ADMIN`, `MANAGER` and `AGENT`; each sees their name and only the pages they may use; diagnostics is shown to Super Admin and Admin and refused with the friendly message to Manager and Agent; sign out returns to the sign-in page
-- [ ] E2E: the existing specs move from the test-only role cookie to real sign-in where it matters
+- [x] Integration: a table-driven matrix signs in as each seeded role and calls every guarded API route; each result matches the role's grants (allowed → not 401/403; refused → 403 with no permission code), signed out → 401, and `SUPER_ADMIN` passes everything through the bypass
+- [x] Integration: a guard-matrix scan fails if a new guarded route is not in the matrix
+- [x] E2E (journey 1): sign in through the form as `SUPER_ADMIN`, `ADMIN`, `MANAGER` and `AGENT`; each sees their name and only the pages they may use; diagnostics is shown to Super Admin and Admin and refused with the friendly message to Manager and Agent; sign out returns to the sign-in page
+- [x] E2E: the existing specs move from the test-only role cookie to real sign-in where it matters
 
 #### Step 3: GREEN implementation
-- [ ] Shared E2E sign-in helper using the seeded credentials from `.env.test`
+- [x] Shared E2E sign-in helper using the seeded credentials from `.env.test`
 
 #### Step 4: Verification chain
-- [ ] Full chain including E2E; `current_state.md` updated
+- [x] Full chain including E2E; `current_state.md` updated
+
+> **Done 2026-10-30.** `src/tests/rbac/rbacMatrix.int.test.ts` signs in for real and calls all 14 route handlers as all 5 seeded roles (including the custom role and the Super Admin) and signed out: 86 tests. Its scan fails when a route is missing from the matrix (proven with a temporary route, since removed). `e2e/roles.e2e.ts` is journey 1 for the four system roles, and `e2e/forbidden.e2e.ts` now signs in for real. No E2E spec uses the test role cookie any more; it stays available until W-111 decides otherwise.
 
 ---
 
@@ -1032,14 +1040,16 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Jobs, live updates, adapters:** One recurring job; idempotent.
 
 #### Step 2: RED tests
-- [ ] Unit: the cut-off times are computed from the injected clock
-- [ ] Integration (pg-boss `TestClock`): the job deletes only what is past the cut-off; running it twice changes nothing more; the schedule uses the business timezone
+- [x] Unit: the cut-off times are computed from the injected clock
+- [x] Integration (pg-boss `TestClock`): the job deletes only what is past the cut-off; running it twice changes nothing more; the schedule uses the business timezone
 
 #### Step 3: GREEN implementation
-- [ ] Job, schedule registration in the worker, `identity` exports it from `index.ts`
+- [x] Job, schedule registration in the worker, `identity` exports it from `index.ts`
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** `identity.cleanupSessions`, the first recurring job. `JobSchedule` and `collectWorkerSchedules()` let the worker register any module's schedules at start. 6 new tests, with exact cut-off boundaries on a frozen clock. Checked in the production images on a throwaway database: the worker started and registered `30 3 * * *` in `Asia/Kolkata`. The job itself ran through the real queue in tests; it has not been waited for at 03:30.
 
 ---
 
@@ -1047,10 +1057,13 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 **Goal:** Confirm Phase 1 works for a new developer and that the docs match what was built.
 
-- [ ] Fresh clone: `local_setup.md` Section 2 including the real seed (step 4); sign in as the seeded Super Admin in the browser; diagnostics shows the worker `up`
-- [ ] `npm run ci:quality` green; GitHub pipeline green; dev database untouched by tests
-- [ ] `project_data.md`, `database_schema.md`, `local_setup.md` and `decision_log.md` match what was built
+- [x] Fresh clone: `local_setup.md` Section 2 including the real seed (step 4); sign in as the seeded Super Admin in the browser; diagnostics shows the worker `up`
+- [x] `npm run ci:quality` green; dev database untouched by tests
+- [ ] GitHub pipeline green (waits for the owner's go-ahead to push)
+- [x] `project_data.md`, `database_schema.md`, `local_setup.md` and `decision_log.md` match what was built
 - [ ] Phase 1 set to **DONE** in the Progress Summary, Phase 2 set to **PENDING (next)**
+
+> **Local part done 2026-10-31.** Fresh clone of the local branch at `15e3850`, following `local_setup.md` Section 2 with `.env` pointed at a throwaway `explorehills_drill` database, so the owner's dev data stayed as it was. Every step worked as written. `npm run ci:quality` passed in the clone (349 unit plus the TZ matrix, 278 integration, 15 E2E). `npm run dev` and `npm run worker` ran side by side; signing in through the form as the seeded Super Admin opened diagnostics showing the worker `up` and live updates `live`. `explorehills_dev` was unchanged afterwards; `git status` was clean; only the three `*.example` env files and nothing under `prisma/private/` are tracked. The clone and the throwaway database are removed. The test role cookie stays: it is refused outside `APP_ENV=test`, and later phases' E2E specs can use it where the sign-in is not what is under test. **Left open:** the GitHub pipeline, so Phase 1 is not yet DONE. To finish: the owner approves the push, W-105 to W-111 reach `main` through pull requests with all six jobs green, then tick that box and set Phase 1 to **DONE** and Phase 2 to **PENDING (next)**.
 
 ### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — PENDING
 Manager → agent hierarchy, teams, scope resolution (`getVisibleAgentIds`, with Super Admin resolving to "all"), user management screens including the Admin's employee page (a list where clicking a record opens that person's details to edit them and set a new password, Decision 48), and the **Roles & Permissions page** (Super Admin only, `roles:manage` reserved), exactly as in Decision 23:

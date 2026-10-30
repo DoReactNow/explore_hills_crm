@@ -42,9 +42,16 @@ export function createTestRoleCookieResolver(loader: RolePrincipalLoader): Princ
   };
 }
 
-export function installTestRoleCookieResolver(loader: RolePrincipalLoader): void {
+/** Without the test cookie, a request falls through to `fallback` (the real session resolver). */
+export function installTestRoleCookieResolver(
+  loader: RolePrincipalLoader,
+  fallback?: PrincipalResolver,
+): void {
   if (getEnv().APP_ENV !== "test") {
     throw new Error("The test role cookie may only be installed when APP_ENV=test");
   }
-  configurePrincipalResolver(createTestRoleCookieResolver(loader));
+  const testResolver = createTestRoleCookieResolver(loader);
+  configurePrincipalResolver(
+    async (request) => (await testResolver(request)) ?? (await fallback?.(request)) ?? null,
+  );
 }

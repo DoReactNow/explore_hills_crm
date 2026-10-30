@@ -66,20 +66,36 @@ describe("test role cookie resolver", () => {
 });
 
 describe("instrumentation register()", () => {
-  async function registerAndResolve(appEnv: "test" | "development") {
+  const sessionPrincipal = fakePrincipal("FROM_SESSION");
+
+  async function registerAndResolve(appEnv: "test" | "development", cookie = "eh_test_role=ADMIN") {
     stubEnv(appEnv);
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     vi.doMock("@/modules/identity", () => ({
       buildPrincipalForRole: async (role: string) => fakePrincipal(role),
+      createSessionPrincipalResolver:
+        () =>
+        async ({ headers }: { headers: Headers }) =>
+          headers.get("cookie")?.includes("eh_session=") ? sessionPrincipal : null,
     }));
     const { register } = await import("@/instrumentation");
     await register();
     const { resolvePrincipal } = await import("../principalResolver");
-    return resolvePrincipal(withCookie("eh_test_role=ADMIN"));
+    return resolvePrincipal(withCookie(cookie));
   }
 
   it("installs the test role cookie resolver when APP_ENV=test", async () => {
     await expect(registerAndResolve("test")).resolves.toMatchObject({ roleCode: "ADMIN" });
+  });
+
+  it("falls through to the session resolver when APP_ENV=test and there is no test cookie", async () => {
+    await expect(registerAndResolve("test", "eh_session=abc")).resolves.toBe(sessionPrincipal);
+  });
+
+  it("uses the session resolver in every other environment", async () => {
+    await expect(registerAndResolve("development", "eh_session=abc")).resolves.toBe(
+      sessionPrincipal,
+    );
   });
 
   it("fails at startup when the storage driver is not available", async () => {
@@ -93,7 +109,7 @@ describe("instrumentation register()", () => {
     await expect(register()).rejects.toThrow(/Phase 7/);
   });
 
-  it("installs nothing outside APP_ENV=test, so the cookie is ignored", async () => {
+  it("ignores the test cookie outside APP_ENV=test", async () => {
     await expect(registerAndResolve("development")).resolves.toBeNull();
   });
 });

@@ -96,6 +96,21 @@ export const userRepository = {
     });
   },
 
+  findUserByEmail(email: string) {
+    return getPrisma().identityUser.findUnique({
+      where: { email },
+      select: { id: true, name: true, role: { select: { bypassesAccess: true } } },
+    });
+  },
+
+  async findBypassRoleCode(): Promise<string | null> {
+    const role = await getPrisma().identityRole.findFirst({
+      where: { bypassesAccess: true },
+      select: { code: true },
+    });
+    return role?.code ?? null;
+  },
+
   countActiveSuperAdmins(tx: Tx): Promise<number> {
     return tx.identityUser.count({ where: { status: "ACTIVE", role: { bypassesAccess: true } } });
   },

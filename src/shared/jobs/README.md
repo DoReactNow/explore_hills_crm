@@ -18,7 +18,8 @@ export const responseTimeoutJob = defineJob({
 });
 ```
 
-Then add it to the module's list in `src/worker/workerJobs.ts`.
+Then add it to the module's list in `src/worker/workerJobs.ts`. A recurring job also exports a
+`JobSchedule` (see `identity.jobs.ts`) and joins `collectWorkerSchedules()` there.
 
 ## Rules for every job
 

@@ -998,3 +998,26 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Wording:** `INVALID_CREDENTIALS` uses the owner's design: "That email and password don't match. Check for typos and try again."
 - **Not decided here:** the lockout countdown in the design. `RATE_LIMITED` stays one fixed sentence until the owner answers.
 
+---
+
+### Decision 53: Visual Design and the Sign-In Screen
+
+**Date:** 2026-10-30
+**Status:** Accepted (chosen by the owner)
+
+#### Decision
+- **Source:** the owner's Claude Design canvas, https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN, is the reference for every screen.
+- **Theme:** Noto Sans with Noto Sans Devanagari, and Instrument Serif italic as an accent. Primary blue `#1468F0`, a `#F6F7F9` grey canvas with white surfaces. Light mode only in v1.
+- **No "Keep me signed in" checkbox:** the design's checkbox is left out, because Decision 46 sets one session rule for everyone.
+- **No lockout countdown:** a locked account shows one fixed message and the form stays usable, because a countdown would need a real lock timer and unknown emails must look the same (`P1-LOCK-08`).
+
+---
+
+### Decision 54: Module UI Is Imported Directly
+
+**Date:** 2026-10-30
+**Status:** Accepted (amends the import rules in `project_data.md` Section 4.2, rule 1)
+
+#### Decision
+`src/app` may import `src/modules/<module>/ui/**` directly. A module's `index.ts` pulls in server code such as Prisma and the password library, so going through it would put that code in the browser bundle. The rule that UI never imports server code still holds, and `lint:arch` still enforces it.
+

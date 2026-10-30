@@ -10,7 +10,7 @@
     "dev": "node scripts/run-next.mjs dev .env",
     "build": "next build",
     "build:worker": "esbuild src/worker/index.ts --bundle --platform=node --packages=external --outfile=dist/worker.js",
-    "build:tools": "esbuild src/modules/identity/rbac/syncRbac.cli.ts --bundle --platform=node --packages=external --outfile=dist/sync-rbac.js",
+    "build:tools": "esbuild src/modules/identity/rbac/syncRbac.cli.ts --bundle --platform=node --packages=external --outfile=dist/sync-rbac.js && esbuild src/modules/identity/resetSuperAdminPassword.cli.ts --bundle --platform=node --packages=external --outfile=dist/reset-super-admin-password.js",
     "worker": "dotenv run -q --override -f .env -- tsx watch src/worker/index.ts",
     "worker:start": "node dist/worker.js",
     "start": "node scripts/run-next.mjs start .env",
@@ -48,7 +48,8 @@
     "docker:local:logs": "docker compose -f docker/docker-compose.local.yml --profile app logs -f app worker",
     "docker:local:down": "docker compose -f docker/docker-compose.local.yml --profile app down",
     "docker:prod:build": "docker compose --env-file .env.production -f docker/docker-compose.prod.yml build",
-    "docker:prod:up": "docker compose --env-file .env.production -f docker/docker-compose.prod.yml up -d"
+    "docker:prod:up": "docker compose --env-file .env.production -f docker/docker-compose.prod.yml up -d",
+    "user:reset-super-admin-password": "dotenv run -q --override -f .env -- tsx src/modules/identity/resetSuperAdminPassword.cli.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "2.2.2",

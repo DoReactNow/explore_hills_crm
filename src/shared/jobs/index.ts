@@ -4,6 +4,7 @@ export {
   defineJob,
   parsePayload,
   type AnyJobDefinition,
+  type JobSchedule,
   type JobContext,
   type JobDefinition,
   type RetryPolicy,

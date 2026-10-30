@@ -4,12 +4,12 @@ import { hostname } from "node:os";
 import { HEARTBEAT_INTERVAL_SECONDS, workerStatusChangedEvent } from "@/modules/system";
 import { getEnv } from "@/shared/config/env";
 import { getPrisma } from "@/shared/db/prisma";
-import { createPgBoss, startJobWorkers } from "@/shared/jobs/pgBoss";
+import { createPgBoss, createPgBossJobQueue, startJobWorkers } from "@/shared/jobs/pgBoss";
 import { logger } from "@/shared/logger";
 import { closePublisher, publishEvent } from "@/shared/realtime/publish";
 import { getFileStorage } from "@/shared/storage";
 import { startHeartbeat } from "./heartbeat";
-import { collectWorkerJobs } from "./workerJobs";
+import { collectWorkerJobs, collectWorkerSchedules } from "./workerJobs";
 
 async function main(): Promise<void> {
   const env = getEnv();
@@ -21,6 +21,10 @@ async function main(): Promise<void> {
   boss.on("error", (error) => logger.error("pg-boss error", { err: error }));
   await boss.start(); // creates or migrates the pgboss schema
   await startJobWorkers(boss, jobs.values(), logger);
+  const queue = createPgBossJobQueue(boss);
+  for (const { job, cron, payload } of collectWorkerSchedules()) {
+    await queue.schedule(job as never, cron, payload as never);
+  }
   const heartbeat = await startHeartbeat({
     workerId,
     intervalMs: HEARTBEAT_INTERVAL_SECONDS * 1000,

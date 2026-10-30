@@ -47,7 +47,7 @@ npm run docker:db:up
 npm run db:migrate:deploy
 npm run db:sync-rbac
 
-# 4. Real seed (first Super Admin) - from Phase 1 onwards, see Section 6 (skip in Phase 0: there are no user accounts yet)
+# 4. Real seed (first Super Admin), see Section 6
 mkdir -p prisma/private
 cp prisma/seed.example.ts prisma/private/seed.ts     # set SEED_SUPER_ADMIN_* in .env
 npm run db:seed
@@ -378,6 +378,13 @@ mkdir -p prisma/private
 cp prisma/seed.example.ts prisma/private/seed.ts
 ```
 Edit `prisma/private/seed.ts` if you need extra records, and set `SEED_SUPER_ADMIN_EMAIL` and `SEED_SUPER_ADMIN_PASSWORD` in `.env`. The password must be at least 12 characters with three of lowercase, uppercase, digits and symbols, and no placeholder or common word; the `.env.example` value is refused on purpose (Decision 40). From Phase 1 (when user accounts exist) the seed creates the first Super Admin, and does nothing if an active Super Admin already exists. **Never commit this file or those values.** The whole `prisma/private/` folder is ignored by git, and CI fails if anything inside it is tracked.
+
+### If the only Super Admin forgets their password
+No web route can do this. On the server, with the values in the environment so the password never reaches the shell history:
+```bash
+RESET_SUPER_ADMIN_EMAIL="<email>" RESET_SUPER_ADMIN_PASSWORD="<new password>" npm run user:reset-super-admin-password
+```
+In production, run `node dist/reset-super-admin-password.js` inside the migrator image with those two variables set. It signs that person out everywhere, is audited, refuses a test database, and never prints the password.
 
 `prisma migrate reset` does **not** run any seed automatically. Run the seed commands yourself.
 

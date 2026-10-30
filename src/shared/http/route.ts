@@ -84,7 +84,8 @@ export function route<T, I = undefined, P extends object = Record<string, string
   return async (request, context) => {
     const requestId = randomUUID();
     const logger = rootLogger.child({ requestId });
-    const headers = { "x-request-id": requestId };
+    // no-store: a browser must never keep an API answer, so Back cannot replay it after sign-out.
+    const headers = { "x-request-id": requestId, "cache-control": "no-store" };
     try {
       assertSameOrigin(request);
       const principal = await resolvePrincipal(request);
