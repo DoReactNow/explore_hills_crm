@@ -90,6 +90,11 @@ model IdentityUser {
   teamMemberships  IdentityTeamMember[]
   sessions         IdentitySession[]
   auditEvents      AuditEvent[] // back-relation from the audit module
+  ownedLeads       LeadsLead[]
+  notes            LeadsNote[]
+  tasks            LeadsTask[]
+  timelineEntries  LeadsTimelineEntry[]
+  updatedSettings  SystemSetting[]
 
   @@index([roleId])
   @@index([status])
@@ -195,4 +200,177 @@ model SystemWorkerHeartbeat {
   lastBeatAt DateTime @db.Timestamptz(3)
 
   @@map("system_worker_heartbeats")
+}
+
+// ---------------------------------------------------------------------------
+// leads module
+// ---------------------------------------------------------------------------
+
+enum LeadsSource {
+  WHATSAPP
+  PHONE
+  MANUAL
+  WEBSITE
+  AD
+  IMPORT
+}
+
+enum LeadsStageKind {
+  OPEN
+  WON
+  LOST
+}
+
+enum LeadsOptInStatus {
+  UNKNOWN
+  OPTED_IN
+  OPTED_OUT
+}
+
+enum LeadsTimelineKind {
+  LEAD_CREATED
+  STAGE_CHANGED
+  ASSIGNED
+  NOTE
+  MESSAGE
+  CALL
+  TASK
+}
+
+// Owner: leads. The stage list is configuration, seeded with the travel default.
+model LeadsPipelineStage {
+  id        String         @id @default(uuid(7)) @db.Uuid
+  code      String         @unique
+  name      String
+  position  Int
+  kind      LeadsStageKind @default(OPEN)
+  isActive  Boolean        @default(true)
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime       @updatedAt @db.Timestamptz(3)
+  leads     LeadsLead[]
+
+  @@index([position])
+  @@map("leads_pipeline_stages")
+}
+
+// Owner: leads. Personal data. One row per phone number: the duplicate-merge key.
+model LeadsContact {
+  id           String           @id @default(uuid(7)) @db.Uuid
+  phoneE164    String           @unique
+  name         String?
+  email        String?
+  optInStatus  LeadsOptInStatus @default(UNKNOWN)
+  optInAt      DateTime?        @db.Timestamptz(3)
+  optInSource  String?
+  anonymisedAt DateTime?        @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
+  deletedAt    DateTime?        @db.Timestamptz(3)
+  leads        LeadsLead[]
+
+  @@map("leads_contacts")
+}
+
+// Owner: leads. Unassigned means ownerUserId is null; it is never a stage.
+model LeadsLead {
+  id               String               @id @default(uuid(7)) @db.Uuid
+  contactId        String               @db.Uuid
+  contact          LeadsContact         @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  source           LeadsSource          @default(WHATSAPP)
+  sourceDetail     String?
+  stageId          String               @db.Uuid
+  stage            LeadsPipelineStage   @relation(fields: [stageId], references: [id], onDelete: Restrict)
+  ownerUserId      String?              @db.Uuid
+  owner            IdentityUser?        @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  assignedAt       DateTime?            @db.Timestamptz(3)
+  priorityScore    Int                  @default(0)
+  destination      String?
+  travelStartDate  DateTime?            @db.Date
+  travelEndDate    DateTime?            @db.Date
+  travellerCount   Int?
+  budgetAmount     Decimal?             @db.Decimal(12, 2)
+  customFields     Json                 @default("{}")
+  firstResponseAt  DateTime?            @db.Timestamptz(3)
+  lastActivityAt   DateTime?            @db.Timestamptz(3)
+  nextFollowUpDate DateTime?            @db.Date
+  closedAt         DateTime?            @db.Timestamptz(3)
+  lostReason       String?
+  createdAt        DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime             @updatedAt @db.Timestamptz(3)
+  deletedAt        DateTime?            @db.Timestamptz(3)
+  notes            LeadsNote[]
+  tasks            LeadsTask[]
+  timeline         LeadsTimelineEntry[]
+
+  @@index([ownerUserId, stageId])
+  @@index([stageId])
+  @@index([ownerUserId, createdAt])
+  @@index([nextFollowUpDate])
+  @@index([createdAt])
+  @@index([contactId])
+  @@index([deletedAt])
+  @@map("leads_leads")
+}
+
+// Owner: leads. Notes cannot be edited or deleted (Decision 57).
+model LeadsNote {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  leadId       String       @db.Uuid
+  lead         LeadsLead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  authorUserId String       @db.Uuid
+  author       IdentityUser @relation(fields: [authorUserId], references: [id], onDelete: Restrict)
+  body         String
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([leadId, createdAt])
+  @@index([authorUserId])
+  @@map("leads_notes")
+}
+
+// Owner: leads. A follow-up. dueDate is a business date.
+model LeadsTask {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  leadId         String       @db.Uuid
+  lead           LeadsLead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assigneeUserId String       @db.Uuid
+  assignee       IdentityUser @relation(fields: [assigneeUserId], references: [id], onDelete: Restrict)
+  title          String
+  dueDate        DateTime     @db.Date
+  completedAt    DateTime?    @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@index([assigneeUserId, dueDate])
+  @@index([leadId])
+  @@map("leads_tasks")
+}
+
+// Owner: leads. One row per event, so the lead page loads one timeline.
+model LeadsTimelineEntry {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  leadId      String            @db.Uuid
+  lead        LeadsLead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  kind        LeadsTimelineKind
+  summary     String
+  refType     String?
+  refId       String?
+  actorUserId String?           @db.Uuid
+  actor       IdentityUser?     @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  occurredAt  DateTime          @db.Timestamptz(3)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+
+  @@unique([refType, refId, kind])
+  @@index([leadId, occurredAt])
+  @@map("leads_timeline_entries")
+}
+
+// Owner: system. Validated against the registry in system.settings.ts.
+model SystemSetting {
+  key             String        @id
+  value           Json
+  updatedByUserId String?       @db.Uuid
+  updatedBy       IdentityUser? @relation(fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(3)
+
+  @@map("system_settings")
 }

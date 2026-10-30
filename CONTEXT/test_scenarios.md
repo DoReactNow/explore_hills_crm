@@ -358,7 +358,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P3-LEAD-15** Traveller count refuses zero, negatives and decimals.
 - **P3-LEAD-16** A travel end date before the start date is refused; a past start date follows a stated rule; a one-day trip works.
 - **P3-LEAD-17** Unknown custom fields are ignored or refused by a stated rule, and old leads still open when custom fields change.
-- **Q-05 (needs an answer):** Does a returning customer reopen the old lead or start a new one?
+- **Q-05 (answered, Decision 57):** A returning customer gets a new lead linked to the same contact.
 
 ### Pipeline stages
 
@@ -379,7 +379,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P3-NOTE-04** Overdue changes exactly at business midnight, not UTC midnight.
 - **P3-NOTE-05** A task due today is not overdue until the business day ends.
 - **P3-NOTE-06** Completing a task twice does nothing more, and reopening follows a stated rule.
-- **P3-NOTE-07** A task on a lead that gets reassigned follows a stated rule about its assignee.
+- **P3-NOTE-07** A task on a lead that gets reassigned follows a stated rule about its assignee. (Moved to Phase 5: reassigning arrives there. Rule to build: open tasks of the old owner move to the new owner.)
 - **P3-NOTE-08** A follow-up date in the past follows a stated rule.
 - **P3-NOTE-09** Tasks and follow-ups of a closed lead stop reminding.
 
@@ -816,7 +816,7 @@ Collected from the sections above. Answer a phase's questions before planning it
 |:---|:---|:---|
 | Q-03 | 2 | Answered: whole chain below a person (Decision 55) |
 | Q-04 | 2 | Answered: yes, several teams (Decision 55) |
-| Q-05 | 3 | Does a returning customer reopen the old lead or start a new one? |
+| Q-05 | 3 | Answered: a new lead linked to the same contact (Decision 57) |
 | Q-06 | 4 | Do agents need SMS as well as WhatsApp? |
 | Q-07 | 4 | Which WhatsApp route: direct Meta API or a provider (Decision 19)? |
 | Q-08 | 4 | What opt-out words count, and how is opt-in captured? |

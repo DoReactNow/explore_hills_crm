@@ -1050,3 +1050,24 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **The browser now receives the specific reason on a `CONFLICT`,** not only on `VALIDATION_FAILED`. Phase 1's refusals, such as "last Super Admin", would otherwise show the generic "changed by someone else".
 - **Not built from the design, because nothing is behind it yet:** Workload and Recent changes on the employee record (Phases 5, 9, 10), open-lead counts on Teams (Phase 3), the lead choices in the deactivate dialog (Phase 5, `P2-UMGMT-03`), "On leave" status, and team regions. "Suggest a password" is left out as a small extra. The design's "at least 10 characters" hint is corrected to the real rule of 12.
 
+---
+
+### Decision 57: Lead Rules Settled for Phase 3
+
+**Date:** 2026-10-31
+**Status:** Accepted (the first rule chosen by the owner, answering `test_scenarios.md` Q-05; the rest set with the Phase 3 plan and reported to the owner)
+
+#### Decision
+- **A returning customer gets a new lead, linked to the same contact.** Their earlier leads stay as they were, and the lead page lists them.
+- **One open lead per contact.** Creating another is refused, with a link to the existing lead when the person may see it. A won or lost lead does not count.
+- **Who owns a new lead:** someone with `leads:assign` may choose an owner in their scope or leave it unassigned for the queue. Anyone else, such as an agent, owns what they create; otherwise it would vanish from their own list.
+- **Who sees what:** own = leads they own. Team = leads owned by anyone in their branch, plus unassigned leads, which are the manager's queue. All = every lead.
+- **Stages:** any open stage can be reached from any other, so stages can be skipped. Lost needs a reason. Reopening a won or lost lead needs only `leads:edit` in scope, and clears the closed time and reason.
+- **Travel dates:** a past start date is allowed, because enquiries are sometimes logged late.
+- **Numbers:** travellers 1 to 500; budget up to ₹100 crore with two decimals.
+- **Custom fields:** only `stay` and `language` are accepted. Unknown fields are ignored and never stored.
+- **Deleting:** always a soft delete, by `leads:delete`, with no restore in this phase. A customer who returns gets a new lead on the same contact, and a soft-deleted contact is brought back. An anonymised contact (Phase 10) no longer holds a matching number, so it is treated as new.
+- **Notes can't be edited or deleted,** so the history stays trustworthy. The design's Edit link is left out.
+- **Follow-ups are tasks.** A task needs an assignee who is active and in the actor's scope. A past due date is refused at creation. Completing twice changes nothing, and a done task can be reopened. A lead's next follow-up is its earliest open task, cleared when the lead closes, so closed leads stop reminding.
+- **A changed setting applies to new work only;** work already running keeps the value it started with.
+

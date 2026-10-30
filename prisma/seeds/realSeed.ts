@@ -2,6 +2,8 @@
 // prisma/private/seed.ts, which is git-ignored; prisma/seed.example.ts is its committed template.
 // Values come from .env (SEED_SUPER_ADMIN_*), never from files.
 import { checkPasswordStrength, ensureFirstSuperAdmin } from "@/modules/identity";
+import { ensureDefaultStages } from "@/modules/leads";
+import { ensureDefaultSettings } from "@/modules/system";
 import { getEnv } from "@/shared/config/env";
 import type { SeedTarget } from "./testSeed";
 
@@ -40,7 +42,8 @@ export function checkSuperAdminCredentials(input: {
 }
 
 /**
- * Runs the checks every real seed shares, then creates the first Super Admin. It does nothing if an
+ * Runs the checks every real seed shares, adds the default settings and stages, then creates the
+ * first Super Admin. It does nothing if an
  * active one exists, and refuses clearly if the email belongs to another account (Decision 49).
  */
 export async function runRealSeed(): Promise<void> {
@@ -50,6 +53,8 @@ export async function runRealSeed(): Promise<void> {
     email: process.env.SEED_SUPER_ADMIN_EMAIL,
     password: process.env.SEED_SUPER_ADMIN_PASSWORD,
   });
+  await ensureDefaultSettings();
+  await ensureDefaultStages();
   const result = await ensureFirstSuperAdmin(credentials);
   console.log(
     result === "created"

@@ -21,7 +21,7 @@ This is the source of truth for what is done and what is next. **Check this file
 | 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **DONE** (2026-10-30) |
 | 1 | Identity: users, sessions, real RBAC end to end | **DONE** (2026-10-31) |
 | 2 | Teams, hierarchy and the Roles & Permissions page | **DONE** (2026-10-31) |
-| 3 | Lead core and agent-facing lead screens | **PENDING (next)** |
+| 3 | Lead core and agent-facing lead screens | **IN PROGRESS** (built and tested; waiting on the pull request) |
 | 4 | WhatsApp integration (inbox, leads from messages) | PENDING |
 | 5 | Manager queue and assignment engine | PENDING |
 | 6 | Agent workspace | PENDING |
@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 and 2 are complete. Next is Phase 3, which needs the owner's answer to `Q-05` first. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 and 2 are complete, and Phase 3 is on its pull request. Next is Phase 4, which needs the owner's answers to `Q-06`, `Q-07` (Decision 19) and `Q-08`, and WhatsApp account details if a real route is wanted. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1088,8 +1088,32 @@ Moved: `P2-UMGMT-03` to Phase 5, because leads do not exist yet and the rule liv
 
 > **Test evidence.** This phase's code was written before its tests, against `TDD_INSTRUCTION_GUIDE.md`'s test-first rule for RBAC. To check the tests really bite, 12 rules were broken one at a time: 11 were caught at once; removing the lock on user edits was missed by the race test, so a deterministic ordering test was added, which catches it. Checked in the browser: Roles, Employees and Teams as the Super Admin, including phone width. The production images were not rebuilt in this phase (no new dependencies or Docker changes); CI builds the app.
 
-### Phase 3: Lead Core — PENDING (next)
+### Phase 3: Lead Core — IN PROGRESS
 Lead and contact records, pipeline stages as configuration, travel-specific custom fields, notes, tasks and follow-ups (business dates), lead list and detail screens with full sorting, filtering and back-button state preserved, scoped by own/team/all. Cross-module foreign keys to `identity_users` with `Restrict` (Decision 22). "Unassigned" means `ownerUserId = null`, not a stage. Adds `system_settings` with the defaults in `database_schema.md` Section 10.
+
+> **Built 2026-10-31 in one go** (branch `phase-3-lead-core`). Q-05 and the other stated rules are in Decision 57.
+
+| Work item | What it delivers | Scenarios |
+|:---|:---|:---|
+| W-301 | Tables, `system_settings`, seeds, permissions | `P3-SET-01` |
+| W-302 | Leads and contacts: create, scope, edit, delete, phone rules, list with sort and filters | `P3-LEAD-01`–`-17`, `P3-LSCREEN-01`–`-03` |
+| W-303 | Stages: moves, Lost reason, reopening, configuration | `P3-STAGE-01`–`-08` |
+| W-304 | Notes, follow-ups, timeline | `P3-NOTE-01`–`-06`, `-08`, `-09`, `P3-TL-01`–`-03` |
+| W-305 | Settings API | `P3-SET-02`–`-04` |
+| W-306 | Leads, lead record, New lead, Follow-ups and Settings screens; E2E; matrix for all 46 route handlers | every route |
+
+Moved: `P3-NOTE-07` to Phase 5, because reassigning arrives there. Anonymising a contact arrives in Phase 10.
+
+Left out of the design for later phases: bulk actions, export and saved filters (5, 9), reassign (5), chat and call panels (4, 6, 7), Snooze and the Call and Message buttons on Follow-ups (6, 7, 8), filtering by a specific owner (5). The Settings screen shows a plain list of the real settings rather than the design's sections.
+
+- [x] W-301 to W-306, built and tested
+- [x] `npm run ci:quality` green
+- [ ] GitHub pipeline green and merged
+- [ ] Phase 3 set to **DONE**, Phase 4 set to **PENDING (next)**
+
+> **Test evidence.** The tests were written first and seen to fail. Then 22 rules were broken one at a time: 21 were caught at once. The other, deleting a stage in use, is also stopped by the database's foreign key, so the service check is a second layer; its test was tightened to use a stage that only that rule protects. Production images: on a throwaway database `migrate` exited 0, `app` was healthy, `worker` started. Checked in the browser as an agent: list, lead record, phone width.
+
+**Known cleanup:** `identity.roles.service.ts`, `leads.stages.service.ts` and `system.settings.service.ts` call Prisma directly instead of through a repository. `lint:arch` does not catch it because they use `getPrisma()`. It works and is tested, but breaks the layering rule (Decision 2), so it should move into repositories.
 
 ### Phase 4: WhatsApp Integration — PENDING
 Resolve Open Decision 19 (direct Meta API or provider) and the SMS question in `project_data.md` Section 11. Webhook with signature verification → raw event stored → processing **job** (Decision 27), idempotent by Meta message ID; lead creation and duplicate merge by E.164 phone; conversation inbox with **live updates** (Decision 28); 24-hour window enforcement; templates; opt-in capture; delivery status; media stored through `FileStorage`; `WhatsAppGateway` interface with a `fake` gateway and a contract suite. E2E journey 4.

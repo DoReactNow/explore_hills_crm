@@ -2,6 +2,8 @@
 // from .env.test (TEST_*_EMAIL / TEST_*_PASSWORD), never from this file.
 // It seeds the RBAC data and the users of database_schema.md Section 10; later phases add theirs.
 import { createUserIfMissing, syncRbac } from "@/modules/identity";
+import { ensureDefaultStages } from "@/modules/leads";
+import { ensureDefaultSettings } from "@/modules/system";
 import { getEnv } from "@/shared/config/env";
 import { getPrisma } from "@/shared/db/prisma";
 import { DEFAULT_ROLES } from "@/shared/rbac/defaultRoles";
@@ -140,14 +142,59 @@ async function seedTeam(): Promise<void> {
   }
 }
 
+/** 20 unassigned leads, plus one lead in every stage owned by the seeded agent. */
+async function seedLeads(): Promise<void> {
+  const prisma = getPrisma();
+  const stages = await prisma.leadsPipelineStage.findMany();
+  const owner = await prisma.identityUser.findUniqueOrThrow({
+    where: { email: credential("TEST_AGENT_EMAIL").toLowerCase() },
+  });
+  const rows = [
+    ...Array.from({ length: 20 }, (_, index) => ({
+      phone: `+9190000${String(10000 + index)}`,
+      name: `Sample Customer ${index + 1}`,
+      stage: "NEW",
+      ownerUserId: null as string | null,
+    })),
+    ...stages.map((stage, index) => ({
+      phone: `+9190001${String(10000 + index)}`,
+      name: `Owned Customer ${stage.name}`,
+      stage: stage.code,
+      ownerUserId: owner.id as string | null,
+    })),
+  ];
+  for (const row of rows) {
+    if (await prisma.leadsContact.findUnique({ where: { phoneE164: row.phone } })) continue;
+    const stage = stages.find((item) => item.code === row.stage)!;
+    const contact = await prisma.leadsContact.create({
+      data: { phoneE164: row.phone, name: row.name },
+    });
+    await prisma.leadsLead.create({
+      data: {
+        contactId: contact.id,
+        stageId: stage.id,
+        ownerUserId: row.ownerUserId,
+        source: "MANUAL",
+        destination: "Kashmir",
+        lostReason: stage.kind === "LOST" ? "Price too high" : null,
+        closedAt: stage.kind === "OPEN" ? null : stage.createdAt,
+        lastActivityAt: stage.createdAt,
+      },
+    });
+  }
+}
+
 /** Idempotent: running it again leaves the data unchanged. */
 export async function runTestSeed(): Promise<void> {
   assertTestSeedTarget(getEnv());
   await syncRbac();
   await restoreDefaultGrants();
+  await ensureDefaultSettings();
+  await ensureDefaultStages();
   await seedCustomRole();
   await seedUsers();
   await seedTeam();
+  await seedLeads();
   // Repeated local test runs would otherwise trip the per-IP sign-in limit.
   await getPrisma().identityLoginThrottle.deleteMany();
 }

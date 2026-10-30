@@ -20,10 +20,26 @@ interface Me {
   permissions: PermissionCode[];
 }
 
-const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; permission?: PermissionCode }> = [
+const NAV_ITEMS: ReadonlyArray<{
+  href: string;
+  label: string;
+  permission?: PermissionCode;
+  anyOf?: readonly PermissionCode[];
+}> = [
   { href: "/", label: "Home" },
+  {
+    href: "/leads",
+    label: "Leads",
+    anyOf: ["leads:view-own", "leads:view-team", "leads:view-all"],
+  },
+  {
+    href: "/follow-ups",
+    label: "Follow-ups",
+    anyOf: ["leads:view-own", "leads:view-team", "leads:view-all"],
+  },
   { href: "/employees", label: "Employees", permission: "users:edit" },
   { href: "/teams", label: "Teams", permission: "teams:view" },
+  { href: "/settings", label: "Settings", permission: "settings:manage" },
   { href: "/diagnostics", label: "Diagnostics", permission: "system:view-diagnostics" },
   { href: "/roles", label: "Roles & Permissions", permission: "roles:manage" },
 ];
@@ -43,7 +59,10 @@ function Navigation({ pathname }: { pathname: string }) {
   const { can } = usePrincipal();
   return (
     <div className={styles.navList}>
-      {NAV_ITEMS.filter((item) => !item.permission || can(item.permission)).map((item) => (
+      {NAV_ITEMS.filter(
+        (item) =>
+          (!item.permission || can(item.permission)) && (!item.anyOf || item.anyOf.some(can)),
+      ).map((item) => (
         <a
           key={item.href}
           href={item.href}

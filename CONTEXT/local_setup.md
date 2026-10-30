@@ -386,6 +386,8 @@ RESET_SUPER_ADMIN_EMAIL="<email>" RESET_SUPER_ADMIN_PASSWORD="<new password>" np
 ```
 In production, run `node dist/reset-super-admin-password.js` inside the migrator image with those two variables set. It signs that person out everywhere, is audited, refuses a test database, and never prints the password.
 
+The real seed also adds the default settings and pipeline stages, and never overwrites edited values. **Run `npm run db:seed` again after updating to a version that adds some,** or new leads can't be created ("the pipeline stages have not been seeded").
+
 `prisma migrate reset` does **not** run any seed automatically. Run the seed commands yourself.
 
 **Roles after seeding:** `db:sync-rbac` creates the system roles `SUPER_ADMIN`, `ADMIN`, `MANAGER`, `AGENT`. After that, the Super Admin changes permissions on the Roles & Permissions page. Re-running `db:sync-rbac` (every deploy does) never overwrites those edits; it only adds new permissions and missing system roles (Decision 23).
