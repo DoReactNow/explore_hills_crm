@@ -661,6 +661,12 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
+> **Handoff, 2026-10-30. Resume here in a new session:**
+> 1. **PR #18** (the revised plan) is merged.
+> 2. **W-112** on branch `w-112-reset-db`: work done and the full chain green; its PR is open against `main`. Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
+> 3. **Then** W-102 onward, in the order above.
+> 4. **Design:** the owner is creating the UI in Claude Design with `claude_design_prompt.md` and their own reference. **Theme and font must be settled before W-107**, the first item with a visible screen, using the owner's mockups.
+
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
 | Work item | Scenarios |
@@ -687,14 +693,16 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 **Why now / dependencies:** None. **Permissions and roles:** None (developer command). **Data and time:** None. **Errors the user can see:** None (clear command-line messages). **Module boundaries:** `scripts/` only. **Jobs, live updates, adapters:** None.
 
 #### Step 2: RED tests
-- [ ] Unit: the guard accepts `.env` with a development database and `.env.test` with a `_test` database, and refuses production, a mismatch and a missing file (`P0-OPS-02`)
-- [ ] Manual: both commands reset and re-apply migrations on their own database, and the other database is untouched (`P0-OPS-01`)
+- [x] Unit: the guard accepts `.env` with a development database and `.env.test` with a `_test` database, and refuses production, a mismatch and a missing file (`P0-OPS-02`)
+- [x] Manual: both commands reset and re-apply migrations on their own database, and the other database is untouched (`P0-OPS-01`)
 
 #### Step 3: GREEN implementation
-- [ ] `scripts/reset-db.ts`, using the same env guards as the test setup; it runs no seed (Decision 11)
+- [x] `scripts/reset-db.ts`, using the same env guards as the test setup; it runs no seed (Decision 11)
 
 #### Step 4: Verification chain
-- [ ] Full chain; `current_state.md` updated
+- [x] Full chain; `current_state.md` updated
+
+> **Done 2026-10-30.** Run with the owner's consent. `db:reset:dev` left `explorehills_dev` with 2 migrations and 0 roles while `explorehills_test` kept its 4 roles; `db:reset:test` then did the same to the test database, and `db:sync-rbac` restored the dev roles. `ci:quality` green (236 unit plus the TZ matrix, 63 integration, 6 E2E); `db:migrate:check` found no drift.
 
 ---
 
