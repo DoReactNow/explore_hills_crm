@@ -1,8 +1,9 @@
 // The sign-in page and shell in a real browser, with a real session.
 import { expect, test, type Page } from "@playwright/test";
-import { seededUser } from "./support/signInUser";
+import { clearSignInLimit, seededUser } from "./support/signInUser";
 
 async function fillAndSubmit(page: Page, email: string, password: string) {
+  await clearSignInLimit();
   await page.getByLabel("Work email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in" }).click();

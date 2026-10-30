@@ -9,12 +9,13 @@ export const KEEP_ALIVE_MS = 25_000;
 const RETRY_MS = 3_000;
 
 export function createEventStream({
-  principal,
+  resolveCurrentPrincipal,
   types,
   signal,
   keepAliveMs = KEEP_ALIVE_MS,
 }: {
-  principal: Principal;
+  /** Asked before every event, so a changed permission or ended session applies to an open stream. */
+  resolveCurrentPrincipal: () => Promise<Principal | null>;
   types: ReadonlyMap<string, AnyEventType>;
   signal: AbortSignal;
   keepAliveMs?: number;
@@ -35,7 +36,12 @@ export function createEventStream({
       const unsubscribe = await subscribe({
         onMessage(message) {
           queue = queue.then(async () => {
-            if (await shouldDeliver(types, principal, message)) {
+            const principal = await resolveCurrentPrincipal().catch(() => undefined);
+            if (principal === null) {
+              close();
+              return;
+            }
+            if (principal && (await shouldDeliver(types, principal, message))) {
               send(`event: ${message.type}\ndata: ${JSON.stringify(message.payload)}\n\n`);
             }
           });

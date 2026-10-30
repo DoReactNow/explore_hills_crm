@@ -4,6 +4,7 @@
 import { createUserIfMissing, syncRbac } from "@/modules/identity";
 import { getEnv } from "@/shared/config/env";
 import { getPrisma } from "@/shared/db/prisma";
+import { DEFAULT_ROLES } from "@/shared/rbac/defaultRoles";
 
 export interface SeedTarget {
   APP_ENV: string;
@@ -30,6 +31,22 @@ function credential(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} must be set in .env.test (see .env.test.example).`);
   return value;
+}
+
+/** Puts built-in roles back to their defaults, so a failed test run cannot affect the next. */
+async function restoreDefaultGrants(): Promise<void> {
+  const prisma = getPrisma();
+  for (const [code, definition] of Object.entries(DEFAULT_ROLES)) {
+    const role = await prisma.identityRole.findUniqueOrThrow({ where: { code } });
+    const permissions = await prisma.identityPermission.findMany({
+      where: { code: { in: [...definition.permissions] } },
+      select: { id: true },
+    });
+    await prisma.identityRolePermission.deleteMany({ where: { roleId: role.id } });
+    await prisma.identityRolePermission.createMany({
+      data: permissions.map(({ id }) => ({ roleId: role.id, permissionId: id })),
+    });
+  }
 }
 
 async function seedCustomRole(): Promise<void> {
@@ -94,12 +111,43 @@ async function seedUsers(): Promise<void> {
   for (const user of users) await createUserIfMissing(user);
 }
 
+/** The manager's team: the first three agents report to them and belong to the team. */
+async function seedTeam(): Promise<void> {
+  const prisma = getPrisma();
+  const manager = await prisma.identityUser.findUniqueOrThrow({
+    where: { email: credential("TEST_MANAGER_EMAIL").toLowerCase() },
+  });
+  const team = await prisma.identityTeam.upsert({
+    where: { name: "Sales North" },
+    create: { name: "Sales North", managerUserId: manager.id },
+    update: {},
+  });
+  const members = [
+    credential("TEST_AGENT_EMAIL"),
+    "agent2.test@example.com",
+    "agent3.test@example.com",
+  ];
+  for (const email of members) {
+    const agent = await prisma.identityUser.update({
+      where: { email: email.toLowerCase() },
+      data: { managerId: manager.id },
+    });
+    await prisma.identityTeamMember.upsert({
+      where: { teamId_userId: { teamId: team.id, userId: agent.id } },
+      create: { teamId: team.id, userId: agent.id },
+      update: {},
+    });
+  }
+}
+
 /** Idempotent: running it again leaves the data unchanged. */
 export async function runTestSeed(): Promise<void> {
   assertTestSeedTarget(getEnv());
   await syncRbac();
+  await restoreDefaultGrants();
   await seedCustomRole();
   await seedUsers();
+  await seedTeam();
   // Repeated local test runs would otherwise trip the per-IP sign-in limit.
   await getPrisma().identityLoginThrottle.deleteMany();
 }

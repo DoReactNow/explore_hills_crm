@@ -28,16 +28,20 @@ export const DEFAULT_ROLES = {
     permissions: [
       "system:view-diagnostics",
       "users:view",
+      "users:view-all",
       "users:create",
       "users:edit",
       "users:deactivate",
+      "teams:view",
+      "teams:view-all",
+      "teams:manage",
     ],
   },
   MANAGER: {
     name: "Manager",
     description: "Distributes leads, watches the team and views reports.",
     bypassesAccess: false,
-    permissions: ["users:view"],
+    permissions: ["users:view", "teams:view"],
   },
   AGENT: {
     name: "Agent",

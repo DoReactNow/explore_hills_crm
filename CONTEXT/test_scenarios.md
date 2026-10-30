@@ -305,8 +305,8 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P2-HIER-07** Two teams cannot share a name, in any case.
 - **P2-HIER-08** An agent with no team or manager still sees their own records.
 - **P2-HIER-09** A manager with no agents sees only their own.
-- **Q-03 (needs an answer):** Does "team" visibility include managers of managers?
-- **Q-04 (needs an answer):** Can a user belong to more than one team?
+- **Q-03 (answered, Decision 55):** Team visibility covers the whole chain below a person.
+- **Q-04 (answered, Decision 55):** A person can belong to several teams.
 
 ### Roles & Permissions page
 
@@ -333,7 +333,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P2-UMGMT-04** The Admin's employee page lists employees; clicking a record opens that person's details to view and edit.
 - **P2-UMGMT-05** Setting a new password from the employee record works, shows a clear warning that the person will be signed out, and never displays the password afterwards.
 - **P2-UMGMT-06** A manager or agent cannot open the employee page or another person's record by URL, and an Admin opening a Super Admin's record gets no edit or password controls.
-- **P2-UMGMT-03** A user deactivated while they have open leads shows a clear warning, and their leads follow the rule in Phase 5.
+- **P2-UMGMT-03** A user deactivated while they have open leads shows a clear warning, and their leads follow the rule in Phase 5. (Moved to Phase 5: leads do not exist until Phase 3, and the rule lives in Phase 5.)
 
 ---
 
@@ -814,8 +814,8 @@ Collected from the sections above. Answer a phase's questions before planning it
 
 | ID | Phase | Question |
 |:---|:---|:---|
-| Q-03 | 2 | Does "team" visibility include managers of managers? |
-| Q-04 | 2 | Can a user belong to more than one team? |
+| Q-03 | 2 | Answered: whole chain below a person (Decision 55) |
+| Q-04 | 2 | Answered: yes, several teams (Decision 55) |
 | Q-05 | 3 | Does a returning customer reopen the old lead or start a new one? |
 | Q-06 | 4 | Do agents need SMS as well as WhatsApp? |
 | Q-07 | 4 | Which WhatsApp route: direct Meta API or a provider (Decision 19)? |

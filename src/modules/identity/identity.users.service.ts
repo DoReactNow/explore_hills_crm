@@ -4,10 +4,13 @@
 import { recordAudit, type AuditAction, type AuditInput, type AuditTx } from "@/modules/audit";
 import { AppError } from "@/shared/errors";
 import { assertCan } from "@/shared/rbac/assertCan";
+import { can } from "@/shared/rbac/guard";
 import type { PermissionCode } from "@/shared/rbac/permissionRegistry";
 import type { Principal } from "@/shared/rbac/principal";
+import { resolveScope, type ScopePermissions } from "@/shared/rbac/scope";
 import { systemClock, type Clock } from "@/shared/time";
 import { assertPasswordStrength, hashPassword } from "./identity.passwords";
+import { isUuid, type UserContext } from "./identity.context";
 import type { Tx } from "./identity.repository";
 import type {
   CreateUserInput,
@@ -17,6 +20,7 @@ import type {
 } from "./identity.schemas";
 import {
   userRepository,
+  toUserView,
   type PublicUser,
   type RoleForChange,
   type UserChanges,
@@ -25,10 +29,13 @@ import {
 
 export type { UserRepository };
 
-export interface UserContext {
-  principal: Principal;
-  requestId?: string;
-}
+export type { UserContext };
+
+const USER_SCOPE: ScopePermissions = {
+  own: "users:view",
+  team: "users:view",
+  all: "users:view-all",
+};
 
 interface UserServiceDeps {
   repository?: UserRepository;
@@ -37,11 +44,10 @@ interface UserServiceDeps {
   clock?: Clock;
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MANAGE_SUPER_ADMINS: PermissionCode = "users:manage-super-admins";
 
 const assertUuid = (id: string): void => {
-  if (!UUID.test(id)) throw new AppError("NOT_FOUND");
+  if (!isUuid(id)) throw new AppError("NOT_FOUND");
 };
 
 const unknownRole = () =>
@@ -52,6 +58,20 @@ const unknownRole = () =>
 const refuseOwnAccount = (principal: Principal, action: string) =>
   new AppError("FORBIDDEN", {
     logContext: { rule: `own-account:${action}`, principalId: principal.userId },
+  });
+
+const fieldConflict = (field: string, message: string) =>
+  new AppError("VALIDATION_FAILED", { fieldErrors: [{ field, message }] });
+
+/** A manager with people or teams depending on them must hand those over first (Decision 55). */
+const stillSupervising = () =>
+  new AppError("CONFLICT", {
+    fieldErrors: [
+      {
+        field: "_root",
+        message: "This person still manages people or a team. Move those to someone else first.",
+      },
+    ],
   });
 
 const lastSuperAdmin = () =>
@@ -85,6 +105,17 @@ export function createUserService(deps: UserServiceDeps = {}) {
       metadata,
     });
 
+  const visibleIds = async (principal: Principal): Promise<string[] | "all"> =>
+    resolveScope(principal, USER_SCOPE) === "all"
+      ? "all"
+      : repository.visibleUserIds(principal.userId);
+
+  /** Tells the screen whether to offer edit controls; the server refuses them either way. */
+  const withAccess = (principal: Principal, user: PublicUser) => ({
+    ...toUserView(user),
+    canManage: !user.role.bypassesAccess || can(principal, MANAGE_SUPER_ADMINS),
+  });
+
   /** Only someone holding the reserved code may touch a Super Admin account or hand out that role. */
   const assertMayTouch = (principal: Principal, role: Pick<RoleForChange, "bypassesAccess">) => {
     if (role.bypassesAccess) assertCan(principal, MANAGE_SUPER_ADMINS);
@@ -106,19 +137,47 @@ export function createUserService(deps: UserServiceDeps = {}) {
     if ((await repository.countActiveSuperAdmins(tx)) <= 1) throw lastSuperAdmin();
   }
 
+  /** Called with the user-changes lock held, so two changes cannot form a loop between them. */
+  async function assertValidManager(tx: Tx, userId: string, managerId: string | null) {
+    if (managerId === null) return;
+    if (managerId === userId) throw fieldConflict("managerId", "A person can't manage themselves.");
+    const invalid = () => fieldConflict("managerId", "Please choose an active person as manager.");
+    if (!isUuid(managerId)) throw invalid();
+    const manager = await repository.findUserForChange(tx, managerId);
+    if (manager?.status !== "ACTIVE") throw invalid();
+    if (await repository.reportsTo(tx, managerId, userId)) {
+      throw fieldConflict("managerId", "That person already reports to this one.");
+    }
+  }
+
   return {
-    async listUsers({ principal }: UserContext, { page, pageSize }: ListUsersInput) {
+    async listUsers({ principal }: UserContext, input: ListUsersInput) {
       assertCan(principal, "users:view");
-      const { items, total } = await repository.listUsers((page - 1) * pageSize, pageSize);
-      return { items, total, page, pageSize };
+      const { page, pageSize, ...filters } = input;
+      const { items, total, statusCounts } = await repository.listUsers({
+        ...filters,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        visibleIds: await visibleIds(principal),
+      });
+      return {
+        items: items.map((user) => withAccess(principal, user)),
+        total,
+        page,
+        pageSize,
+        statusCounts,
+      };
     },
 
-    async getUser({ principal }: UserContext, id: string): Promise<PublicUser> {
+    async getUser({ principal }: UserContext, id: string) {
       assertCan(principal, "users:view");
       assertUuid(id);
+      const visible = await visibleIds(principal);
+      // Out of scope looks exactly like not found (X-ACCESS-05).
+      if (visible !== "all" && !visible.includes(id)) throw new AppError("NOT_FOUND");
       const user = await repository.getUser(id);
       if (!user) throw new AppError("NOT_FOUND");
-      return user;
+      return withAccess(principal, user);
     },
 
     /** The signed-in person's own profile; needs no permission. */
@@ -172,6 +231,7 @@ export function createUserService(deps: UserServiceDeps = {}) {
         const target = await loadTarget(tx, principal, id);
 
         const changes: UserChanges = {};
+        let teamsChanged = false;
         const changed: string[] = [];
         if (input.email !== undefined && input.email !== target.email) {
           changes.email = input.email;
@@ -186,6 +246,31 @@ export function createUserService(deps: UserServiceDeps = {}) {
           changed.push("phoneE164");
         }
 
+        if (input.managerId !== undefined && input.managerId !== target.managerId) {
+          await assertValidManager(tx, id, input.managerId);
+          changes.managerId = input.managerId;
+          await writeAudit(tx, context, "user.manager_changed", id, "User manager changed", {
+            fromManagerId: target.managerId,
+            toManagerId: input.managerId,
+          });
+        }
+
+        if (input.teamIds !== undefined) {
+          const wanted = [...new Set(input.teamIds)].sort();
+          const current = target.teamMemberships.map((row) => row.teamId).sort();
+          if (wanted.join() !== current.join()) {
+            const known = await repository.existingTeamIds(tx, wanted.filter(isUuid));
+            if (known.length !== wanted.length) {
+              throw fieldConflict("teamIds", "One of those teams no longer exists.");
+            }
+            await repository.setTeams(tx, id, wanted);
+            teamsChanged = true;
+            await writeAudit(tx, context, "user.teams_changed", id, "User teams changed", {
+              teamIds: wanted,
+            });
+          }
+        }
+
         let newRole: RoleForChange | null = null;
         if (input.roleCode !== undefined && input.roleCode !== target.role.code) {
           if (id === principal.userId) throw refuseOwnAccount(principal, "role");
@@ -196,7 +281,7 @@ export function createUserService(deps: UserServiceDeps = {}) {
           changes.roleId = newRole.id;
         }
 
-        if (Object.keys(changes).length === 0) {
+        if (Object.keys(changes).length === 0 && !teamsChanged) {
           const unchanged = await repository.getUser(id);
           if (!unchanged) throw new AppError("NOT_FOUND");
           return unchanged;
@@ -231,6 +316,8 @@ export function createUserService(deps: UserServiceDeps = {}) {
           return unchanged;
         }
         await assertNotLastSuperAdmin(tx, target);
+        const { reports, teams } = await repository.supervisionOf(tx, id);
+        if (reports + teams > 0) throw stillSupervising();
 
         const now = clock.now();
         const user = await repository.updateUser(tx, id, {

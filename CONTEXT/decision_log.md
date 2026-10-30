@@ -1021,3 +1021,32 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 #### Decision
 `src/app` may import `src/modules/<module>/ui/**` directly. A module's `index.ts` pulls in server code such as Prisma and the password library, so going through it would put that code in the browser bundle. The rule that UI never imports server code still holds, and `lint:arch` still enforces it.
 
+---
+
+### Decision 55: Team Visibility, Several Teams, and Reassign Before Removing
+
+**Date:** 2026-10-31
+**Status:** Accepted (chosen by the owner; answers `test_scenarios.md` Q-03 and Q-04)
+
+#### Decision
+- **Team visibility covers the whole chain below a person**, not only direct reports. A person also sees the members of teams they manage, and everyone below those members.
+- **A person can belong to several teams.** Membership moves to a join table, `identity_team_members`, replacing the planned `identity_users.teamId`. Each person still has one manager (`managerId`).
+- **Reassign before removing.** A manager with active reports or a team cannot be deactivated, and a team with members cannot be deleted, until those are moved. A deactivated report does not block their manager.
+
+---
+
+### Decision 56: Details Settled in Phase 2
+
+**Date:** 2026-10-31
+**Status:** Accepted
+
+#### Decision
+- **New permissions:** `users:view-all`, `teams:view`, `teams:view-all`, `teams:manage`. Admin has all four and Manager has `teams:view`. `users:view` alone now means "my branch"; out-of-scope records answer "not found".
+- **The Employees page needs `users:edit`,** so a Manager cannot open it (`P2-UMGMT-06`), though the API still lets a Manager read their own branch, and the Teams page shows it.
+- **Built-in roles can't be renamed:** Decision 23 lists renaming for custom roles only, so the design's Rename button appears only on custom roles.
+- **A role's code is made from its first name and never changes.** A name with no Latin letters gets a generated code.
+- **Two editors of one role:** each edit names the version it started from; the second gets `CONFLICT` and changes nothing.
+- **Open live-update streams** ask who the user is before every event, so a changed permission applies at once and an ended session closes the stream (`P2-ROLES-13`).
+- **The browser now receives the specific reason on a `CONFLICT`,** not only on `VALIDATION_FAILED`. Phase 1's refusals, such as "last Super Admin", would otherwise show the generic "changed by someone else".
+- **Not built from the design, because nothing is behind it yet:** Workload and Recent changes on the employee record (Phases 5, 9, 10), open-lead counts on Teams (Phase 3), the lead choices in the deactivate dialog (Phase 5, `P2-UMGMT-03`), "On leave" status, and team regions. "Suggest a password" is left out as a small extra. The design's "at least 10 characters" hint is corrected to the real rule of 12.
+

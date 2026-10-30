@@ -7,6 +7,7 @@ import { getEnv } from "@/shared/config/env";
 import type { Principal } from "@/shared/rbac/principal";
 import { encodeEvent } from "@/shared/realtime/eventTypes";
 import { REALTIME_CHANNEL, stopRealtimeRelay } from "@/shared/realtime/relay";
+import { setPrincipalResolverForTests } from "@/shared/rbac/principalResolver";
 import { actAs, stopActing } from "@/tests/setup/principals";
 import { GET } from "../route";
 
@@ -28,11 +29,20 @@ const principal = (userId: string): Principal => ({
 });
 
 /** Opens the stream as `who` and reads it until `pattern` appears (or fails after 5 s). */
+/** Each stream re-resolves its user on every event, so the resolver answers per request. */
+const streamUsers = new Map<string, Principal>();
+
 async function openStream(who: Principal) {
-  actAs(who);
+  streamUsers.set(who.userId, who);
+  setPrincipalResolverForTests(
+    async ({ headers }) => streamUsers.get(headers.get("x-test-user") ?? "") ?? null,
+  );
   const controller = new AbortController();
   const response = await GET(
-    new Request("http://127.0.0.1/api/events/stream", { signal: controller.signal }),
+    new Request("http://127.0.0.1/api/events/stream", {
+      signal: controller.signal,
+      headers: { "x-test-user": who.userId },
+    }),
     {
       params: Promise.resolve({}),
     },

@@ -84,4 +84,19 @@ describe("frontend friendly error mapper", () => {
       fieldErrors: [{ field: "email", message: "Enter a valid email address." }],
     });
   });
+
+  it("keeps the specific reason on a CONFLICT, so a refusal can explain itself", () => {
+    const error = toFriendlyError({
+      status: 409,
+      body: {
+        error: {
+          code: "CONFLICT",
+          message: "x",
+          requestId: "r",
+          fieldErrors: [{ field: "_root", message: "Move this team's members first." }],
+        },
+      },
+    });
+    expect(error.fieldErrors?.[0].message).toBe("Move this team's members first.");
+  });
 });

@@ -19,6 +19,7 @@ const admin: Principal = {
   bypassesAccess: false,
   permissions: new Set<PermissionCode>([
     "users:view",
+    "users:view-all",
     "users:create",
     "users:edit",
     "users:deactivate",
@@ -39,6 +40,8 @@ function target(role: keyof typeof ROLES = "AGENT", status = "ACTIVE") {
     name: "Tara Singh",
     phoneE164: null,
     status,
+    managerId: null,
+    teamMemberships: [],
     role: ROLES[role],
   };
 }
@@ -52,6 +55,7 @@ function setup(existing = target(), activeSuperAdmins = 2) {
     ),
     findUserForChange: vi.fn(async () => existing),
     countActiveSuperAdmins: vi.fn(async () => activeSuperAdmins),
+    supervisionOf: vi.fn(async () => ({ reports: 0, teams: 0 })),
     insertUser: vi.fn(async (_tx: unknown, data: { email: string }) => ({
       id: OTHER,
       email: data.email,
@@ -207,6 +211,25 @@ describe("your own account (P1-USER-10, P1-PASS-08)", () => {
       FORBIDDEN,
     );
     expect(repository.updateUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("the user-changes lock (P1-SUPER-05, P2-HIER-01)", () => {
+  it.each([
+    [
+      "edit",
+      (s: ReturnType<typeof setup>["service"]) =>
+        s.updateUser(ctx(admin), OTHER, { managerId: null }),
+    ],
+    ["deactivate", (s: ReturnType<typeof setup>["service"]) => s.deactivateUser(ctx(admin), OTHER)],
+    ["reactivate", (s: ReturnType<typeof setup>["service"]) => s.reactivateUser(ctx(admin), OTHER)],
+  ])("is taken before %s reads the account", async (_name, act) => {
+    const { service, repository } = setup();
+    await act(service);
+    expect(repository.lockUserChanges).toHaveBeenCalledOnce();
+    expect(repository.lockUserChanges.mock.invocationCallOrder[0]).toBeLessThan(
+      repository.findUserForChange.mock.invocationCallOrder[0],
+    );
   });
 });
 

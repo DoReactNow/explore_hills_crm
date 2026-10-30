@@ -2,6 +2,7 @@
 import { systemEventTypes, systemTestEventTypes } from "@/modules/system";
 import { route } from "@/shared/http/route";
 import { isTestEnvironment } from "@/shared/http/testOnly";
+import { resolvePrincipal } from "@/shared/rbac/principalResolver";
 import { assembleEventTypes, type AnyEventType } from "@/shared/realtime";
 import { createEventStream } from "@/shared/realtime/sse";
 
@@ -18,9 +19,9 @@ function allEventTypes() {
 
 export const GET = route({
   access: "authenticated",
-  handler: async ({ principal, request }) => ({
+  handler: async ({ request }) => ({
     response: createEventStream({
-      principal: principal!,
+      resolveCurrentPrincipal: () => resolvePrincipal(request),
       types: allEventTypes(),
       signal: request.signal,
     }),

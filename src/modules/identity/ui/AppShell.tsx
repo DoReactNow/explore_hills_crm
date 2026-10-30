@@ -22,7 +22,10 @@ interface Me {
 
 const NAV_ITEMS: ReadonlyArray<{ href: string; label: string; permission?: PermissionCode }> = [
   { href: "/", label: "Home" },
+  { href: "/employees", label: "Employees", permission: "users:edit" },
+  { href: "/teams", label: "Teams", permission: "teams:view" },
   { href: "/diagnostics", label: "Diagnostics", permission: "system:view-diagnostics" },
+  { href: "/roles", label: "Roles & Permissions", permission: "roles:manage" },
 ];
 
 const initialsOf = (name: string) =>
@@ -33,6 +36,9 @@ const initialsOf = (name: string) =>
     .map((part) => part.charAt(0).toUpperCase())
     .join("");
 
+const isCurrent = (href: string, pathname: string) =>
+  href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+
 function Navigation({ pathname }: { pathname: string }) {
   const { can } = usePrincipal();
   return (
@@ -42,7 +48,7 @@ function Navigation({ pathname }: { pathname: string }) {
           key={item.href}
           href={item.href}
           className={styles.navLink}
-          aria-current={item.href === pathname ? "page" : undefined}
+          aria-current={isCurrent(item.href, pathname) ? "page" : undefined}
         >
           {item.label}
         </a>
@@ -91,7 +97,10 @@ export function AppShell({
   }
 
   return (
-    <PrincipalProvider permissions={me?.permissions ?? []}>
+    <PrincipalProvider
+      permissions={me?.permissions ?? []}
+      state={me === undefined ? "loading" : me === null ? "signed-out" : "signed-in"}
+    >
       <div className={styles.shell}>
         <nav aria-label="Main" className={styles.sidebar}>
           <div className={styles.brand}>
