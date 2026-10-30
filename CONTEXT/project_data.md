@@ -220,7 +220,7 @@ The telephony module additionally contains `providers/<key>/server.ts` and `prov
 
 **Boundary rules (enforced by `npm run lint:arch` using dependency-cruiser)**
 
-1. A module may import another module **only through its `index.ts`**.
+1. A module may import another module **only through its `index.ts`**. Code outside `src/modules` follows the same rule, except that `src/app` may also import a module's `ui/` folder (Decision 54).
 2. Only `src/app/**` may import a `*.controller.ts`.
 3. Only repositories (plus seeds, scripts and `shared/db`) may import Prisma.
 4. `src/shared/**` never imports from `src/modules/**` or `src/worker/**`. Module-specific pieces (jobs, live-update event types and their filters) are exported by each module's `index.ts` and assembled in the composition roots: `src/worker/` for jobs, `src/app/` for the event stream.

@@ -19,7 +19,7 @@ This is the source of truth for what is done and what is next. **Check this file
 | Phase | Title | Status |
 |:---|:---|:---|
 | 0 | Foundation: structure, tooling, tests, CI/CD, Docker, conventions, background jobs, live updates, file storage | **DONE** (2026-10-30) |
-| 1 | Identity: users, sessions, real RBAC end to end | **PENDING (next)** |
+| 1 | Identity: users, sessions, real RBAC end to end | **IN PROGRESS** (all built and tested locally; waiting on the push and GitHub pipeline) |
 | 2 | Teams, hierarchy and the Roles & Permissions page | PENDING |
 | 3 | Lead core and agent-facing lead screens | PENDING |
 | 4 | WhatsApp integration (inbox, leads from messages) | PENDING |
@@ -654,17 +654,17 @@ jobs:
 
 > **For every phase below:** do not code from this summary. First investigate the current code, then write detailed work items with `TDD_INSTRUCTION_GUIDE.md`, put them in this file under the phase, get the user's approval, and only then execute. Every list or table screen must have correct sorting and filtering on all columns, state kept when going back, smooth scrolling, and friendly errors.
 
-### Phase 1: Identity — PENDING (next)
+### Phase 1: Identity — IN PROGRESS
 Users, credentials, sessions, login/logout, the real server-side principal resolver replacing the Phase 0 placeholder, and RBAC proven end to end with real sessions for each role **including SUPER_ADMIN**. Decision 20 (authentication) is resolved by Decision 46; tenancy is resolved (single company, Decision 21). Add lockout and rate limiting on login. Extend the test seed with users (`database_schema.md` Section 10) and make the real seed create the first Super Admin. Add the `audit_events` table and writer so user and role changes are audited from now on. Enforce the Super Admin protections from Decision 23 on user changes: at least one active Super Admin always; an Admin cannot create, edit, deactivate or promote a Super Admin (`users:manage-super-admins` is reserved). Users are deactivated, never hard-deleted (Decision 22). E2E journey 1 (log in as each role).
 
-> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 (done) → W-110 (done) → W-111`. Every item goes through a branch and a pull request with all six CI jobs green.
+> **Plan revised 2026-10-30 against `test_scenarios.md` (Decision 47), re-approved by the owner on 2026-10-30.** W-101 is done. Decision 20 is resolved by Decision 46 (own sessions table, 12-hour sliding sessions capped at 7 days, 15-minute lock after 5 wrong passwords). Execution order: `W-101 (done) → W-112 (done) → W-102 (done) → W-103 (done) → W-104 (done) → W-105 (done) → W-106 (done) → W-107 (done) → W-108 (done) → W-109 (done) → W-110 (done) → W-111 (local part done)`. Every item goes through a branch and a pull request with all six CI jobs green.
 
 - [x] Revised plan re-approved by the owner
 
 > **Handoff, 2026-10-30. Resume here in a new session:**
 > 1. **PR #18** (the revised plan) is merged.
 > 2. **W-112** is merged (PR #19). Prisma blocks an AI agent from running `migrate reset` without the user's consent, given after its warning; that block must not be bypassed.
-> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** to **W-110** are done. **Working locally by the owner's choice:** W-106 to W-110 are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then** W-111, the Phase 1 acceptance.
+> 3. **W-102** to **W-104** are merged (PRs #20 to #22). **W-105** (PR #23, left open and unmerged: its CI stalled in a GitHub Actions incident on 2026-10-30), **W-106** to **W-110** and the local part of **W-111** are done. **Working locally by the owner's choice:** they are committed on `w-106-session-resolver`, stacked on W-105 and not pushed. No pushes, PRs or merges until the owner says so. **Then:** when the owner approves, push, get CI green, and finish W-111.
 > 4. **Design:** the owner's mockups are at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN; theme and fonts are settled (Decision 53).
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
@@ -1057,10 +1057,13 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 **Goal:** Confirm Phase 1 works for a new developer and that the docs match what was built.
 
-- [ ] Fresh clone: `local_setup.md` Section 2 including the real seed (step 4); sign in as the seeded Super Admin in the browser; diagnostics shows the worker `up`
-- [ ] `npm run ci:quality` green; GitHub pipeline green; dev database untouched by tests
-- [ ] `project_data.md`, `database_schema.md`, `local_setup.md` and `decision_log.md` match what was built
+- [x] Fresh clone: `local_setup.md` Section 2 including the real seed (step 4); sign in as the seeded Super Admin in the browser; diagnostics shows the worker `up`
+- [x] `npm run ci:quality` green; dev database untouched by tests
+- [ ] GitHub pipeline green (waits for the owner's go-ahead to push)
+- [x] `project_data.md`, `database_schema.md`, `local_setup.md` and `decision_log.md` match what was built
 - [ ] Phase 1 set to **DONE** in the Progress Summary, Phase 2 set to **PENDING (next)**
+
+> **Local part done 2026-10-31.** Fresh clone of the local branch at `15e3850`, following `local_setup.md` Section 2 with `.env` pointed at a throwaway `explorehills_drill` database, so the owner's dev data stayed as it was. Every step worked as written. `npm run ci:quality` passed in the clone (349 unit plus the TZ matrix, 278 integration, 15 E2E). `npm run dev` and `npm run worker` ran side by side; signing in through the form as the seeded Super Admin opened diagnostics showing the worker `up` and live updates `live`. `explorehills_dev` was unchanged afterwards; `git status` was clean; only the three `*.example` env files and nothing under `prisma/private/` are tracked. The clone and the throwaway database are removed. The test role cookie stays: it is refused outside `APP_ENV=test`, and later phases' E2E specs can use it where the sign-in is not what is under test. **Left open:** the GitHub pipeline, so Phase 1 is not yet DONE. To finish: the owner approves the push, W-105 to W-111 reach `main` through pull requests with all six jobs green, then tick that box and set Phase 1 to **DONE** and Phase 2 to **PENDING (next)**.
 
 ### Phase 2: Teams, Hierarchy and the Roles & Permissions Page — PENDING
 Manager → agent hierarchy, teams, scope resolution (`getVisibleAgentIds`, with Super Admin resolving to "all"), user management screens including the Admin's employee page (a list where clicking a record opens that person's details to edit them and set a new password, Decision 48), and the **Roles & Permissions page** (Super Admin only, `roles:manage` reserved), exactly as in Decision 23:

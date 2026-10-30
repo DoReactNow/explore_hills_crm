@@ -984,7 +984,7 @@ Cross-module foreign keys (dotted)
 | `telephony_agent_endpoints.loginEncrypted`, `.secretEncrypted` | Staff calling credentials | Encrypted at rest, never logged or returned by an API. |
 | `identity_users.email`, `.name`, `.phoneE164`, `.passwordHash` | Staff identity | `passwordHash` is never returned by any API or written to any log. |
 | `identity_sessions.ip`, `.userAgent` | Network identifiers | Purged after expiry plus a short retention window. |
-| `identity_login_throttle.key` | Hash of an IP address | Not reversible; rows are removed a day after their window ends. |
+| `identity_login_throttle.key` | Keyed hash of an IP address or a sign-in email (Decision 52) | Not reversible; rows are removed a day after their window ends. |
 | `audit_events.metadata`, `.summary` | May reference people | Store IDs, not names or phone numbers, in `metadata`. |
 
 Logs must redact all of the above (see `project_data.md` Section 8).
