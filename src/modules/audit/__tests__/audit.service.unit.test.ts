@@ -143,6 +143,7 @@ describe("AUDIT_ACTIONS", () => {
         "telephony.recording_deleted",
         "telephony.endpoint_changed",
         "telephony.outcome_saved",
+        "notifications.preferences_changed",
       ].sort(),
     );
   });

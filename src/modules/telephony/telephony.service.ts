@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { recordAudit, type AuditAction, type AuditInput } from "@/modules/audit";
 import { peopleOnLeave } from "@/modules/assignment";
-import { getUserSummary, listCallers } from "@/modules/identity";
+import { getUserSummary, listCallers, listHolders, listManagersAbove } from "@/modules/identity";
 import {
   addLeadTimeline,
   addSystemFollowUp,
@@ -15,11 +15,13 @@ import {
   isLeadVisible,
   leadScopeOf,
   normalisePhone,
+  recordFirstResponse,
   resolveLeadForInbound,
   scopeWhere,
   touchLeadActivity,
 } from "@/modules/leads";
 
+import { notify } from "@/modules/notifications";
 import { getSetting } from "@/modules/system";
 import { APP_CONFIG } from "@/shared/config/appConfig";
 import { AppError } from "@/shared/errors";
@@ -166,6 +168,28 @@ export function createTelephonyService({
 
   async function alert(kind: string, call: { id: string; leadId: string | null }) {
     if (!enqueue) return;
+    const owner = call.leadId
+      ? (await repository.transaction((tx) => findLeadOwner(tx, call.leadId as string)))
+          ?.ownerUserId
+      : null;
+    // Admins, the managers above the owner, and the owner of a missed call (Decision 61).
+    const people = [
+      ...(await listHolders("leads:view-all")).map((person) => person.id),
+      ...(owner
+        ? await listManagersAbove(owner)
+        : (await listHolders("leads:assign")).map((person) => person.id)),
+      ...(owner && kind === "missed" ? [owner] : []),
+    ];
+    await notify({
+      userIds: people,
+      kind: kind === "missed" ? "missed_call" : "recording_failed",
+      key: `${kind}:${call.id}`,
+      body:
+        kind === "missed"
+          ? "A customer called and nobody answered. Please call back."
+          : "A call recording couldn't be saved. The call itself was logged.",
+      link: call.leadId ? `/leads/${call.leadId}` : "/calls?filter=missed",
+    });
     await publishEvent(callAlertEvent, {
       kind,
       callId: call.id,
@@ -270,6 +294,17 @@ export function createTelephonyService({
       data.durationSeconds = 0;
     }
     const updated = await repository.updateCall(tx, callId, data);
+    // A conversation is a genuine first response; an unanswered attempt isn't (Decision 64).
+    if (data.answeredAt && updated.leadId && updated.agentUserId) {
+      await recordFirstResponse(tx, {
+        leadId: updated.leadId,
+        at,
+        actor: {
+          userId: updated.agentUserId,
+          roleCode: (await getUserSummary(updated.agentUserId))?.roleCode ?? "",
+        },
+      });
+    }
     const missed = ended && moving ? await onEnded(tx, updated, status, at) : false;
     return { ended: ended && moving, missed, call: updated };
   }

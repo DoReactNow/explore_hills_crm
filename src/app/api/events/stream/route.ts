@@ -2,6 +2,7 @@
 import { assignmentEventTypes } from "@/modules/assignment";
 import { leadEventTypes } from "@/modules/leads";
 import { messagingEventTypes } from "@/modules/messaging";
+import { notificationEventTypes } from "@/modules/notifications";
 import { systemEventTypes, systemTestEventTypes } from "@/modules/system";
 import { telephonyEventTypes } from "@/modules/telephony";
 import { route } from "@/shared/http/route";
@@ -19,6 +20,7 @@ function allEventTypes() {
     assignment: assignmentEventTypes,
     leads: leadEventTypes,
     messaging: messagingEventTypes,
+    notifications: notificationEventTypes,
     telephony: telephonyEventTypes,
     system: [...systemEventTypes, ...(isTestEnvironment() ? systemTestEventTypes : [])],
   });

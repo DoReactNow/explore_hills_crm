@@ -107,7 +107,9 @@ function PhoneTabs({
   role,
   signingOut,
   onSignOut,
+  extra,
 }: {
+  extra?: ReactNode;
   pathname: string;
   name: string;
   role: string;
@@ -132,6 +134,7 @@ function PhoneTabs({
             <b>{name}</b>
             <span>{role}</span>
           </div>
+          {extra}
           <div className={styles.moreGrid}>
             {rest.map((item) => (
               <Link key={item.href} href={item.href} className={styles.moreLink}>
@@ -175,9 +178,12 @@ function PhoneTabs({
 
 export function AppShell({
   children,
+  navExtra,
   onSignedOut = leave,
 }: {
   children: ReactNode;
+  /** Another module's link in the menu, for signed-in people. */
+  navExtra?: ReactNode;
   onSignedOut?: () => void;
 }) {
   const pathname = usePathname();
@@ -226,6 +232,7 @@ export function AppShell({
             role={me.role.name}
             signingOut={signingOut}
             onSignOut={signOut}
+            extra={navExtra}
           />
         ) : null}
         <nav aria-label="Main" className={styles.sidebar}>
@@ -234,6 +241,7 @@ export function AppShell({
             <span>{APP_CONFIG.company.legalName}</span>
           </div>
           <Navigation pathname={pathname} />
+          {me ? navExtra : null}
           <div className={styles.sidebarEnd}>
             {me ? (
               <div className={styles.userCard}>

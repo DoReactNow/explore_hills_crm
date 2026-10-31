@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 6 are complete. Phase 7 is built on the fake provider and in review (Decisions 61, 62); only the real provider adapter waits for `Q-14`. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is built and in review (Decisions 63, 64). The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1154,8 +1154,8 @@ Merged in PR #34. `P6-WORK-08` (call outcome form) moved to Phase 7, because no 
 
 "My leads" screen, lead record with chat panel, notes, call outcome (disposition) form, trip details, follow-up tasks, pool claiming UI, quick filters, keyboard-friendly layout, live updates. Reserve the place for the softphone panel and call card; the calling itself arrives in Phase 7.
 
-### Phase 7: Browser Calling, Call Logging and Recordings — IN REVIEW (real provider waits for Q-14)
-Built on branch `phase-7-calling`, on the fake provider. Moved in and covered: `P6-WORK-08`. Still open: step 7 below (the first real adapter), which needs the owner's provider choice. Not built: the design's waveform player (the browser's own audio control is used) and a stage picker in the outcome form. Email and push alerts wait for Phase 8.
+### Phase 7: Browser Calling, Call Logging and Recordings — DONE ON THE FAKE PROVIDER (real provider waits for Q-14)
+Merged in PR #35, on the fake provider. Moved in and covered: `P6-WORK-08`. Still open: step 7 below (the first real adapter), which needs the owner's provider choice. Not built: the design's waveform player (the browser's own audio control is used) and a stage picker in the outcome form. Email and push alerts wait for Phase 8.
 
 Design: Decisions 24, 25, 26. Build in this order, so nothing waits on the provider choice:
 1. `TelephonyProvider` (server) and `SoftphoneClient` (browser) interfaces, capability flags, normalised `TelephonyCallStatus`, the two provider registries (`registry.server.ts`, server-only; `registry.browser.ts`), and the **`fake` provider** (server + browser) with the shared **contract test suite**.
@@ -1167,7 +1167,9 @@ Design: Decisions 24, 25, 26. Build in this order, so nothing waits on the provi
 7. **Decision 30 (calling provider) must be made before this step:** the first real provider adapter, passing the contract suite with recorded webhook fixtures; agent endpoint credentials encrypted (`CREDENTIALS_ENCRYPTION_KEY`).
 E2E journeys 5 and 6 (fake provider). No test ever calls a real provider.
 
-### Phase 8: Notifications and SLA Automation — PENDING
+### Phase 8: Notifications and SLA Automation — IN REVIEW
+Built on branch `phase-8-notifications` (Decisions 63, 64). Email and push run on fakes until go-live, which needs a mail account and push keys. The design's bell icon became a menu link with the unread count; global search (⌘K) is not built.
+
 In-app, email and push notifications, SLA timers (first response, follow-up due), reminders using business-timezone days, escalation rules. All timers and reminders are jobs on the Phase 0 job foundation (W-012); notifications are pushed live (W-013).
 
 ### Phase 9: Reports and Dashboards — PENDING

@@ -853,7 +853,7 @@ model SystemSetting {
   @@map("system_settings")
 }
 
-// notifications — PHASE 8
+// notifications — PHASE 8. As built (Decision 64), this also has groupCount and dedupeKeys, plus NotificationsPreference and NotificationsPushSubscription; prisma/schema.prisma is the authority.
 model NotificationsNotification {
   id        String       @id @default(uuid(7)) @db.Uuid
   userId    String       @db.Uuid                                   // → identity.identity_users

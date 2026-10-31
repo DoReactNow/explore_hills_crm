@@ -687,8 +687,8 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P8-SLA-06** Weekends, holidays and out-of-hours handling are stated.
 - **P8-SLA-07** Escalation fires once and reaches a manager; with no manager, it follows the stated fallback.
 - **P8-SLA-08** A settings change does not double-fire timers already set.
-- **Q-16 (needs an answer):** Should SLA clocks count only working hours? Are there holidays?
-- **Q-17 (needs an answer):** Which notifications go by email or push, and can users turn them off?
+- **Q-16 (answered):** SLA clocks count only working hours. There will be holidays, with the days decided later (Decision 63).
+- **Q-17 (answered):** Admins and Managers can turn them off; the list is in Decision 63.
 
 ---
 
@@ -827,8 +827,8 @@ Collected from the sections above. Answer a phase's questions before planning it
 | Q-13 | 7 | Answered: leave a message; alert to Admins and the manager (Decision 61) |
 | Q-14 | 7 | Which calling provider (Decision 30), and does it support licensed browser calling to Indian numbers? |
 | Q-15 | 7 | Answered: wording in Decision 61, changeable |
-| Q-16 | 8 | Should SLA clocks count only working hours? Are there holidays? |
-| Q-17 | 8 | Which notifications go by email or push, and can users turn them off? |
+| Q-16 | 8 | Answered: working hours only; holidays decided later (Decision 63) |
+| Q-17 | 8 | Answered (Decision 63) |
 | Q-18 | 10 | How long must messages, recordings and audit records be kept? Are the proposed defaults right? |
 | Q-19 | 10 | What is the exact DPDP wording and process, confirmed by a legal adviser? |
 | Q-20 | 13 | Which of the three routes in Decision 18, and at what cost? |

@@ -352,8 +352,7 @@
     padding: 12px 16px;
     gap: 10px;
   }
-  .navList,
-  .sidebarEnd {
+  .sidebar > *:not(.brand) {
     display: none;
   }
   .content {

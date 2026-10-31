@@ -47,6 +47,7 @@ ENV NODE_ENV=production \
     PORT=47213
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 # The only writable paths at runtime: the storage volume and Next's cache (a tmpfs in compose).
 RUN mkdir -p /app/storage /app/.next/cache && chown node:node /app/storage /app/.next/cache
 USER node

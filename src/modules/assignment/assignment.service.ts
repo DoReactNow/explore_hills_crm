@@ -6,6 +6,8 @@ import { recordAudit, type AuditAction, type AuditInput } from "@/modules/audit"
 import {
   getVisibleAgentIds,
   listAssignableUsers,
+  listHolders,
+  listManagersAbove,
   toUserView,
   userService,
 } from "@/modules/identity";
@@ -28,6 +30,7 @@ import {
   type LockedLead,
 } from "@/modules/leads";
 import { latestCustomerMessages } from "@/modules/messaging";
+import { notify } from "@/modules/notifications";
 import { getSetting } from "@/modules/system";
 import { AppError } from "@/shared/errors";
 import { getJobQueue } from "@/shared/jobs";
@@ -131,7 +134,7 @@ interface AppliedRecord {
 }
 interface AfterCommit {
   timers: AppliedRecord[];
-  offers: Array<{ id: string; expiresAt: Date }>;
+  offers: Array<{ id: string; expiresAt: Date; userIds: readonly string[] }>;
   owners: Array<{ leadId: string; userIds: string[] }>;
   poolChanged?: boolean;
 }
@@ -141,6 +144,13 @@ interface Deps {
   /** Off in tests that drive the clock by hand: no delayed jobs, no live notices. */
   enqueue?: boolean;
   beforeCommitForTests?: () => void;
+}
+
+/** The managers above someone, or if they have none, whoever can see every lead. */
+async function managersFor(userId: string): Promise<string[]> {
+  const above = await listManagersAbove(userId);
+  if (above.length > 0) return above;
+  return (await listHolders("leads:view-all")).map((person) => person.id);
 }
 
 export function createAssignmentService({
@@ -154,6 +164,34 @@ export function createAssignmentService({
   /** After the transaction: the timers, and the notices. A lost timer is caught by the sweep. */
   async function afterCommit({ timers, offers, owners, poolChanged }: AfterCommit) {
     if (!enqueue) return;
+    for (const record of timers) {
+      await notify({
+        userIds: [record.toUserId],
+        kind: record.fromUserId ? "lead_reassigned" : "lead_assigned",
+        key: `assigned:${record.id}`,
+        body: record.fromUserId
+          ? "A lead has moved to you."
+          : "A new lead is yours. Please reply soon.",
+        link: `/leads/${record.leadId}`,
+      });
+      if (record.fromUserId) {
+        await notify({
+          userIds: [record.fromUserId],
+          kind: "lead_reassigned",
+          key: `moved-away:${record.id}`,
+          body: "A lead has moved from you to someone else.",
+        });
+      }
+    }
+    for (const offer of offers) {
+      await notify({
+        userIds: offer.userIds,
+        kind: "blast_offer",
+        key: `offer:${offer.id}`,
+        body: "First to accept gets the lead.",
+        link: "/blast",
+      });
+    }
     const warn = (what: string) => (error: unknown) =>
       logger.warn(`could not ${what}`, { err: error });
     const queue = await getJobQueue();
@@ -346,7 +384,7 @@ export function createAssignmentService({
     const pooled = new Set(
       (await repository.findOpenEntries(tx, offers.leadIds)).map((entry) => entry.leadId),
     );
-    const created: Array<{ id: string; expiresAt: Date }> = [];
+    const created: Array<{ id: string; expiresAt: Date; userIds: readonly string[] }> = [];
     let skippedTaken = 0;
     let leftInQueue = 0;
     for (const lead of locked) {
@@ -359,14 +397,14 @@ export function createAssignmentService({
         leftInQueue += 1;
         continue;
       }
-      created.push(
-        await repository.createEntry(tx, {
-          leadId: lead.id,
-          batchId,
-          expiresAt: instantFromEpochMs(now.getTime() + poolMinutes * 60_000),
-          userIds: offered.map((agent) => agent.id),
-        }),
-      );
+      const userIds = offered.map((agent) => agent.id);
+      const entry = await repository.createEntry(tx, {
+        leadId: lead.id,
+        batchId,
+        expiresAt: instantFromEpochMs(now.getTime() + poolMinutes * 60_000),
+        userIds,
+      });
+      created.push({ ...entry, userIds });
     }
     return {
       offers: created,
@@ -459,23 +497,27 @@ export function createAssignmentService({
   }
 
   /** Inside a locked transaction. Unresponsive leads go back; the rest are left as they are. */
-  async function settleTimeout(tx: Tx, recordId: string, limit: number): Promise<boolean> {
+  async function settleTimeout(
+    tx: Tx,
+    recordId: string,
+    limit: number,
+  ): Promise<{ leadId: string; escalated: boolean; previousOwner: string } | null> {
     const first = await repository.findRecord(tx, recordId);
-    if (!first) return false;
+    if (!first) return null;
     const [lead] = await lockLeads(tx, [first.leadId]);
     const record = await repository.findRecord(tx, recordId);
-    if (!record?.responseDueAt || record.respondedAt || record.timedOutAt) return false;
+    if (!record?.responseDueAt || record.respondedAt || record.timedOutAt) return null;
     const now = clock.now();
-    if (record.responseDueAt.getTime() > now.getTime()) return false;
+    if (record.responseDueAt.getTime() > now.getTime()) return null;
 
     if (!lead?.isOpen || lead.ownerUserId !== record.toUserId) {
       await repository.setRecord(tx, record.id, { responseDueAt: null });
-      return false;
+      return null;
     }
     const acted = await firstOwnerAction(tx, record.leadId, record.toUserId, record.createdAt);
     if (acted) {
       await repository.setRecord(tx, record.id, { respondedAt: acted });
-      return false;
+      return null;
     }
 
     await repository.setRecord(tx, record.id, { timedOutAt: now });
@@ -501,7 +543,7 @@ export function createAssignmentService({
       recordId: record.id,
       escalated,
     });
-    return true;
+    return { leadId: record.leadId, escalated, previousOwner: record.toUserId };
   }
 
   async function runAutoAssign(minutes: number, cap: number) {
@@ -1168,7 +1210,17 @@ export function createAssignmentService({
     async processTimeout(recordId: string): Promise<void> {
       const limit = (await getSetting("assignment.maxTimeouts")) as number;
       const timedOut = await repository.transaction((tx) => settleTimeout(tx, recordId, limit));
-      if (timedOut) await afterCommit({ timers: [], offers: [], owners: [] });
+      if (!timedOut) return;
+      await afterCommit({ timers: [], offers: [], owners: [] });
+      if (timedOut.escalated && enqueue) {
+        await notify({
+          userIds: await managersFor(timedOut.previousOwner),
+          kind: "lead_escalated",
+          key: `escalated:${recordId}`,
+          body: "This lead keeps timing out and is back in the queue.",
+          link: `/leads/${timedOut.leadId}`,
+        });
+      }
     },
 
     async expirePoolEntry(entryId: string): Promise<void> {

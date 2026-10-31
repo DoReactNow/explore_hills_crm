@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Noto_Sans, Noto_Sans_Devanagari } from "next/font/google";
 import type { ReactNode } from "react";
+import { NotificationsLink } from "@/modules/notifications/ui/NotificationsLink";
 import { SoftphoneProvider } from "@/modules/telephony/ui/SoftphoneProvider";
 import { AppShell } from "@/modules/identity/ui/AppShell";
 import { APP_CONFIG } from "@/shared/config/appConfig";
@@ -37,7 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${notoSans.variable} ${notoDevanagari.variable} ${instrumentSerif.variable}`}
     >
       <body>
-        <AppShell>
+        <AppShell navExtra={<NotificationsLink />}>
           <SoftphoneProvider>{children}</SoftphoneProvider>
         </AppShell>
         <Toaster />

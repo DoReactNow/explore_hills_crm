@@ -34,6 +34,12 @@ function prodSource(overrides: EnvSource = {}): EnvSource {
     AUTH_SECRET: randomBytes(32).toString("base64"),
     TELEPHONY_PROVIDER: "someprovider",
     WHATSAPP_GATEWAY: "somegateway",
+    EMAIL_DRIVER: "smtp",
+    EMAIL_FROM: "crm@example.com",
+    SMTP_URL: "smtp://user:pass@mail.example.com:587",
+    PUSH_DRIVER: "webpush",
+    VAPID_PUBLIC_KEY: "public-key-value",
+    VAPID_PRIVATE_KEY: "private-key-value",
     ...overrides,
   });
 }
@@ -153,6 +159,13 @@ describe("example env files", () => {
     expect(parseEnv(read(".env.test.example")).APP_ENV).toBe("test");
   });
 
+  it("refuses fake email or push in production, and a real one without its settings", () => {
+    expect(() => parseEnv(prodSource({ EMAIL_DRIVER: "fake" }))).toThrow(/EMAIL_DRIVER/);
+    expect(() => parseEnv(prodSource({ PUSH_DRIVER: "fake" }))).toThrow(/PUSH_DRIVER/);
+    expect(() => parseEnv(devSource({ EMAIL_DRIVER: "smtp" }))).toThrow(/SMTP_URL/);
+    expect(() => parseEnv(devSource({ PUSH_DRIVER: "webpush" }))).toThrow(/VAPID/);
+  });
+
   it(".env.production.example parses once its placeholders are replaced", () => {
     const replacements: EnvSource = {
       APP_URL: "https://crm.example.com",
@@ -161,6 +174,10 @@ describe("example env files", () => {
       CREDENTIALS_ENCRYPTION_KEY: validKey(),
       TELEPHONY_PROVIDER: "someprovider",
       WHATSAPP_GATEWAY: "somegateway",
+      EMAIL_FROM: "crm@example.com",
+      SMTP_URL: "smtp://user:pass@mail.example.com:587",
+      VAPID_PUBLIC_KEY: "public-key-value",
+      VAPID_PRIVATE_KEY: "private-key-value",
     };
     const source = read(".env.production.example");
     for (const [name, value] of Object.entries(source)) {

@@ -6,6 +6,7 @@ import { Readable } from "node:stream";
 import { recordAudit, type AuditAction, type AuditInput } from "@/modules/audit";
 import {
   addLeadTimeline,
+  findLeadOwner,
   findLeadForChat,
   leadScopeOf,
   normalisePhone,
@@ -20,6 +21,7 @@ import { logger } from "@/shared/logger";
 import { assertCan } from "@/shared/rbac/assertCan";
 import { can } from "@/shared/rbac/guard";
 import type { Principal } from "@/shared/rbac/principal";
+import { notify } from "@/modules/notifications";
 import { publishEvent } from "@/shared/realtime/publish";
 import { buildKey, getFileStorage } from "@/shared/storage";
 import { parseInstant, plusDuration, systemClock, toBusinessDate, type Clock } from "@/shared/time";
@@ -225,70 +227,87 @@ export function createMessagingService({
     }
     const occurredAt = parseInstant(event.occurredAt);
     const messageId = randomUUID();
-    const { conversationId, inserted } = await repository.transaction(async (tx) => {
-      const { contact, leadId } = await resolveLeadForInbound(tx, {
-        phoneE164,
-        profileName: event.profileName,
-        occurredAt,
-      });
-      const conversation = await repository.upsertConversation(tx, {
-        businessPhoneNumberId: event.phoneNumberId || gateway().businessPhoneNumberId,
-        waId: event.from,
-        contactId: contact.id,
-        leadId,
-      });
-      const stored = await repository.insertInbound(tx, {
-        id: messageId,
-        conversationId: conversation.id,
-        direction: "INBOUND",
-        type: event.type,
-        waMessageId: event.waMessageId,
-        replyToWaId: event.replyToWaId,
-        body: event.body,
-        mediaRef: event.mediaId,
-        mediaStatus: event.mediaId ? "PENDING" : null,
-        mediaMimeType: event.mimeType,
-        mediaFilename: event.filename,
-        status: "RECEIVED",
-        occurredAt,
-      });
-      if (stored) {
-        await repository.recordInboundOnConversation(tx, conversation.id, occurredAt);
-        await addLeadTimeline(tx, {
-          leadId,
-          kind: "MESSAGE",
-          summary: "WhatsApp message received",
-          refType: "message",
-          refId: stored,
+    const { conversationId, inserted, ownerUserId, leadId } = await repository.transaction(
+      async (tx) => {
+        const { contact, leadId } = await resolveLeadForInbound(tx, {
+          phoneE164,
+          profileName: event.profileName,
           occurredAt,
         });
-        await touchLeadActivity(tx, leadId, occurredAt);
-
-        // Decision 58: exact keywords only; a first message opts in; an opt-out stays until START.
-        const change = isOptOut(event.body)
-          ? { status: "OPTED_OUT" as const, source: "whatsapp_keyword" }
-          : isOptIn(event.body)
-            ? { status: "OPTED_IN" as const, source: "whatsapp_keyword" }
-            : contact.optInStatus === "UNKNOWN"
-              ? { status: "OPTED_IN" as const, source: "whatsapp_inbound" }
-              : null;
-        if (change && change.status !== contact.optInStatus) {
-          await setContactOpt(tx, {
-            contactId: contact.id,
-            ...change,
-            at: occurredAt,
-            actor: null,
+        const conversation = await repository.upsertConversation(tx, {
+          businessPhoneNumberId: event.phoneNumberId || gateway().businessPhoneNumberId,
+          waId: event.from,
+          contactId: contact.id,
+          leadId,
+        });
+        const stored = await repository.insertInbound(tx, {
+          id: messageId,
+          conversationId: conversation.id,
+          direction: "INBOUND",
+          type: event.type,
+          waMessageId: event.waMessageId,
+          replyToWaId: event.replyToWaId,
+          body: event.body,
+          mediaRef: event.mediaId,
+          mediaStatus: event.mediaId ? "PENDING" : null,
+          mediaMimeType: event.mimeType,
+          mediaFilename: event.filename,
+          status: "RECEIVED",
+          occurredAt,
+        });
+        if (stored) {
+          await repository.recordInboundOnConversation(tx, conversation.id, occurredAt);
+          await addLeadTimeline(tx, {
+            leadId,
+            kind: "MESSAGE",
+            summary: "WhatsApp message received",
+            refType: "message",
+            refId: stored,
+            occurredAt,
           });
+          await touchLeadActivity(tx, leadId, occurredAt);
+
+          // Decision 58: exact keywords only; a first message opts in; an opt-out stays until START.
+          const change = isOptOut(event.body)
+            ? { status: "OPTED_OUT" as const, source: "whatsapp_keyword" }
+            : isOptIn(event.body)
+              ? { status: "OPTED_IN" as const, source: "whatsapp_keyword" }
+              : contact.optInStatus === "UNKNOWN"
+                ? { status: "OPTED_IN" as const, source: "whatsapp_inbound" }
+                : null;
+          if (change && change.status !== contact.optInStatus) {
+            await setContactOpt(tx, {
+              contactId: contact.id,
+              ...change,
+              at: occurredAt,
+              actor: null,
+            });
+          }
         }
-      }
-      await repository.markEvent(tx, eventId, { processedAt: clock.now(), error: null });
-      return { conversationId: conversation.id, inserted: stored };
-    });
+        await repository.markEvent(tx, eventId, { processedAt: clock.now(), error: null });
+        const lead = await findLeadOwner(tx, leadId);
+        return {
+          conversationId: conversation.id,
+          inserted: stored,
+          ownerUserId: lead?.ownerUserId ?? null,
+          leadId,
+        };
+      },
+    );
     if (inserted && event.mediaId) {
       const queue = await getJobQueue();
       await queue.enqueue(downloadMediaRef, { messageId: inserted }, { singletonKey: inserted });
     }
     if (inserted) await announce(conversationId);
+    if (inserted && ownerUserId) {
+      await notify({
+        userIds: [ownerUserId],
+        kind: "customer_message",
+        key: `message:${inserted}`,
+        body: "A customer has written to you on WhatsApp.",
+        link: `/leads/${leadId}`,
+      });
+    }
   }
 
   async function processStatus(eventId: string, event: StatusEvent) {

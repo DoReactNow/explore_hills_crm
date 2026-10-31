@@ -2,6 +2,7 @@
 import { assignmentJobs, assignmentSchedules } from "@/modules/assignment";
 import { identityJobs, identitySchedules } from "@/modules/identity";
 import { messagingJobs } from "@/modules/messaging";
+import { notificationJobs, notificationSchedules } from "@/modules/notifications";
 import { systemJobs, systemTestJobs } from "@/modules/system";
 import { telephonyJobs, telephonySchedules } from "@/modules/telephony";
 import type { Env } from "@/shared/config/env";
@@ -12,11 +13,17 @@ export function collectWorkerJobs(appEnv: Env["APP_ENV"]) {
     assignment: assignmentJobs,
     identity: identityJobs,
     messaging: messagingJobs,
+    notifications: notificationJobs,
     telephony: telephonyJobs,
     system: [...systemJobs, ...(appEnv === "test" ? systemTestJobs : [])],
   });
 }
 
 export function collectWorkerSchedules() {
-  return [...identitySchedules, ...assignmentSchedules, ...telephonySchedules];
+  return [
+    ...identitySchedules,
+    ...assignmentSchedules,
+    ...telephonySchedules,
+    ...notificationSchedules,
+  ];
 }

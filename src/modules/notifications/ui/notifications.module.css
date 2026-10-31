@@ -1,0 +1,155 @@
+/* The notifications page and the unread link, from the owner's design. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
+  padding: 24px;
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.title {
+  flex: 1;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+.link {
+  border: none;
+  background: none;
+  color: var(--color-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pills {
+  display: flex;
+  gap: 6px;
+}
+.pill {
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f2f5;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pill[aria-pressed="true"] {
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 10px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.unread {
+  background: #f6f9ff;
+}
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.itemTitle {
+  font-size: 14px;
+  font-weight: 600;
+}
+.body {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--color-text-muted);
+}
+.when {
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.card h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.muted {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+.button {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.navLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  color: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.navLink:hover {
+  background: rgba(16, 19, 24, 0.05);
+}
+.badge {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}

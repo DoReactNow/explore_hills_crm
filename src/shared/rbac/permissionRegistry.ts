@@ -121,6 +121,12 @@ export const PERMISSIONS = {
     module: "leads",
     reserved: false,
   },
+  "notifications:mute": {
+    label: "Turn notifications off",
+    description: "Choose which notifications they get. Others keep theirs, so no lead is missed.",
+    module: "notifications",
+    reserved: false,
+  },
   "telephony:call": {
     label: "Make and take calls",
     description: "Place and receive calls on leads they can see.",
