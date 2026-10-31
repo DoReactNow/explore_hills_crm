@@ -1174,9 +1174,10 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 ### Decision 63: Holidays and Notification Choices
 
 **Date:** 2026-10-31
-**Status:** Accepted (the owner's answers to `test_scenarios.md` Q-16 and Q-17, with the notification list delegated to Claude; whether SLA clocks count only working hours is still open)
+**Status:** Accepted (the owner's answers to `test_scenarios.md` Q-16 and Q-17, with the notification list delegated to Claude)
 
 #### Decision
+- **SLA clocks count only working hours,** using the working days and hours from Decision 61.
 - **Holidays:** there will be holidays, but which days count is decided later. Phase 8 builds an editable list that starts empty, so nothing is assumed.
 - **Turning notifications off:** Admins and Managers can turn them off.
 - **Which notifications go out** (in-app always; the owner left this choice to Claude):

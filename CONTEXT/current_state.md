@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Next is Phase 8, which needs the rest of `Q-16` answered. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Next is Phase 8 (Decision 63). The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
