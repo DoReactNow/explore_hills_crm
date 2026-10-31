@@ -658,6 +658,8 @@ Costs are being compared. For each candidate, confirm:
 
 Example candidates to evaluate: Exotel (browser SDK confirmed in its documentation), Knowlarity, Ozonetel and Plivo. Global providers may not offer domestic calling within India; verify before shortlisting.
 
+**Update, 2026-10-31:** the owner is still deciding and asked for a suggestion. Suggested: get written quotes from Exotel (first choice) and Knowlarity (price check). Plivo limits Indian routes to India-registered businesses with both call legs and media in India, and whether its browser calling qualifies is unconfirmed. Public prices are mostly third-party estimates, so the quotes must settle them.
+
 ---
 
 ### Decision 31: Open — Recording Storage Target
@@ -1129,3 +1131,20 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Quick filters** are Open, Overdue, Due today and No follow-up. Their counts ignore the chosen quick filter but respect the other filters.
 - **Shortcuts:** N (note) and F (follow-up) on a lead; J, K, Enter and / on the list. None fires while typing, inside a dialog or with a modifier held.
 - **Phones** get a bottom tab bar with the first four of Queue, Leads, Inbox, Follow-ups and Blast pool that a person can open, and the rest under More.
+
+---
+
+### Decision 61: Out-of-Hours Calls and the Recording Announcement
+
+**Date:** 2026-10-31
+**Status:** Accepted (the message and alert rule chosen by the owner, answering `test_scenarios.md` Q-13; the wording delegated to Claude in Q-15, and changeable; the rest set with these and reported to the owner)
+
+#### Decision
+- **Out of hours:** the caller is asked to leave a message, and we get back to them in working hours. The message is stored on the lead like a call recording.
+- **Missed-call alert:** goes to Admins and to the manager of the lead's owner. With no owner or no manager, it goes to everyone who can assign leads. It appears on screen in Phase 7; email and push wait for `Q-17` in Phase 8.
+- **Working hours:** a setting, starting at Monday to Saturday, 10:00 to 19:00 IST. This default is a placeholder for the owner to correct. Holidays wait for `Q-16`.
+- **Out-of-hours wording (English):** "Thank you for calling {company}. We're closed right now. Please leave a message after the tone, and we'll get back to you during working hours."
+- **Out-of-hours wording (Hindi):** "{company} को कॉल करने के लिए धन्यवाद। अभी हमारा कार्यालय बंद है। कृपया बीप के बाद अपना संदेश छोड़ें। हम कार्य समय में आपसे संपर्क करेंगे।"
+- **Recording announcement (English):** "This call may be recorded for quality and training purposes."
+- **Recording announcement (Hindi):** "गुणवत्ता और प्रशिक्षण के लिए यह कॉल रिकॉर्ड की जा सकती है।"
+- **The wording is stored as settings,** so it can change without a release. A legal adviser still has to confirm the recording notice under the DPDP Act (`Q-19`, Phase 10).
