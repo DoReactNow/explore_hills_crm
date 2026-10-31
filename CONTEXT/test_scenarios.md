@@ -577,7 +577,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P6-WORK-05** Two tabs on the same lead stay consistent.
 - **P6-WORK-06** The chat panel loads older messages without losing position, and new ones do not jump the page.
 - **P6-WORK-07** Keyboard shortcuts do not fire while typing.
-- **P6-WORK-08** The call outcome form cannot be submitted twice, requires what the rules require, and can be filled in later.
+- **P6-WORK-08** The call outcome form cannot be submitted twice, requires what the rules require, and can be filled in later. (Moved to Phase 7: no calls exist until then.)
 - **P6-WORK-09** An agent with no leads, or with hundreds, gets a friendly and smooth screen.
 - **P6-WORK-10** The pool list and claim button handle "already taken" gracefully.
 

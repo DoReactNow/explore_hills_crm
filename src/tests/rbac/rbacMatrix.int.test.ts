@@ -257,6 +257,20 @@ const CASES: Case[] = [
     usesId: "lead",
   },
   {
+    method: "GET",
+    path: "/api/conversations/[id]/messages",
+    handler: chatMessages.GET,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "GET",
+    path: "/api/leads/[id]/conversation",
+    handler: chatStart.GET,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
     method: "POST",
     path: "/api/conversations/[id]/messages",
     handler: chatMessages.POST,

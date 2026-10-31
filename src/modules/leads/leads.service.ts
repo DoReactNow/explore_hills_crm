@@ -6,7 +6,13 @@ import { AppError } from "@/shared/errors";
 import { assertCan } from "@/shared/rbac/assertCan";
 import { can } from "@/shared/rbac/guard";
 import type { Principal } from "@/shared/rbac/principal";
-import { businessDateToDbDate, parseInstant, systemClock, type Clock } from "@/shared/time";
+import {
+  businessDateToDbDate,
+  parseInstant,
+  systemClock,
+  todayBusinessDate,
+  type Clock,
+} from "@/shared/time";
 import { getUserSummary } from "@/modules/identity";
 import { inScope, leadScopeOf } from "./leads.access";
 import { normalisePhone } from "./leads.phone";
@@ -203,7 +209,7 @@ export function createLeadService({
       const { page, pageSize, search, owner, travelFrom, travelTo, ...filters } = input;
       const scope = await leadScopeOf(principal);
       const digits = search ? (normalisePhone(search) ?? search.replace(/\D/g, "")) : "";
-      const { items, total, openCount } = await repository.listLeads({
+      const { items, total, openCount, quickCounts } = await repository.listLeads({
         ...filters,
         scope,
         search,
@@ -212,10 +218,11 @@ export function createLeadService({
         unassignedOnly: owner === "unassigned",
         travelFrom: travelFrom ? businessDateToDbDate(travelFrom) : undefined,
         travelTo: travelTo ? businessDateToDbDate(travelTo) : undefined,
+        today: businessDateToDbDate(todayBusinessDate(clock)),
         skip: (page - 1) * pageSize,
         take: pageSize,
       });
-      return { items: items.map(toLeadView), total, openCount, page, pageSize };
+      return { items: items.map(toLeadView), total, openCount, quickCounts, page, pageSize };
     },
 
     async getLead({ principal }: LeadContext, id: string) {

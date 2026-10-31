@@ -4,13 +4,15 @@
 // in Phases 4 to 7.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { apiRequest } from "@/shared/api/client";
 import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePageAccess, usePrincipal } from "@/shared/rbac/usePrincipal";
 import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
 import { Dialog } from "@/shared/ui/Dialog";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
+import { useShortcuts } from "@/shared/ui/useShortcuts";
+import { useUnsavedWarning } from "@/shared/ui/useUnsavedWarning";
 import { LOST_REASONS, SOURCE_LABELS, type LeadSource } from "../leads.types";
 import {
   Field,
@@ -278,7 +280,7 @@ function LostDialog({
   );
 }
 
-const OWNER_NOTICES = ["assignment.leadOwnerChanged"];
+const LEAD_NOTICES = ["assignment.leadOwnerChanged", "leads.leadChanged"];
 
 function ReassignDialog({
   leadId,
@@ -454,7 +456,7 @@ function MergeDialog({
   );
 }
 
-export function LeadDetailPage({ id }: { id: string }) {
+export function LeadDetailPage({ id, chat }: { id: string; chat?: ReactNode }) {
   const access = usePageAccess(VIEW_LEADS);
   const { can } = usePrincipal();
   const router = useRouter();
@@ -472,17 +474,49 @@ export function LeadDetailPage({ id }: { id: string }) {
     null,
   );
 
+  const [gone, setGone] = useState(false);
+  const [ownerNotice, setOwnerNotice] = useState("");
+  const [view, setView] = useState<"chat" | "details" | "activity">("chat");
+  const loaded = useRef(false);
+  const lastOwner = useRef<string | null | undefined>(undefined);
+
   const reload = useCallback(async () => {
     const result = await apiRequest<LeadDetail>(`/api/leads/${id}`);
     if (result.ok) {
+      const owner = result.data.owner;
+      if (lastOwner.current !== undefined && lastOwner.current !== (owner?.id ?? null)) {
+        setOwnerNotice(
+          owner ? `This lead is now with ${owner.name}.` : "This lead is back in the queue.",
+        );
+      }
+      lastOwner.current = owner?.id ?? null;
+      loaded.current = true;
       setLead(result.data);
       setLoadError(null);
+      setGone(false);
+    } else if (loaded.current && result.error.code === "NOT_FOUND") {
+      // Keep the screen, and whatever is being typed, but stop allowing edits (P6-WORK-02).
+      setGone(true);
     } else setLoadError(result.error);
   }, [id]);
 
+  useUnsavedWarning(note.trim().length > 0 || taskTitle.trim().length > 0);
+  useShortcuts({
+    n: () => {
+      setView("activity");
+      setTab("activity");
+      setTimeout(() => document.getElementById("lead-note")?.focus(), 0);
+    },
+    f: () => {
+      setView("activity");
+      setTab("tasks");
+      setTimeout(() => document.getElementById("lead-task")?.focus(), 0);
+    },
+  });
+
   // A new owner shows at once, and someone who has just lost the lead loses this screen too.
   useLiveEvents({
-    types: OWNER_NOTICES,
+    types: LEAD_NOTICES,
     onEvent: (_type, payload) => {
       if ((payload as { leadId?: string }).leadId === id) reload();
     },
@@ -494,8 +528,11 @@ export function LeadDetailPage({ id }: { id: string }) {
     const controller = new AbortController();
     apiRequest<LeadDetail>(`/api/leads/${id}`, { signal: controller.signal }).then((result) => {
       if (controller.signal.aborted) return;
-      if (result.ok) setLead(result.data);
-      else setLoadError(result.error);
+      if (result.ok) {
+        loaded.current = true;
+        lastOwner.current = result.data.owner?.id ?? null;
+        setLead(result.data);
+      } else setLoadError(result.error);
     });
     apiRequest<StageOption[]>("/api/leads/stages", { signal: controller.signal }).then((result) => {
       if (result.ok) setStages(result.data);
@@ -515,7 +552,8 @@ export function LeadDetailPage({ id }: { id: string }) {
   }
   if (!lead) return <main aria-busy="true">Loading…</main>;
 
-  const editable = can("leads:edit");
+  const canEdit = can("leads:edit");
+  const editable = canEdit && !gone;
   const lostStage = stages.find((stage) => stage.kind === "LOST" && stage.isActive);
   const pipeline = stages.filter(
     (stage) => stage.kind !== "LOST" && (stage.isActive || stage.code === lead.stage.code),
@@ -586,16 +624,17 @@ export function LeadDetailPage({ id }: { id: string }) {
     }
   }
 
-  const composer = editable ? (
+  const composer = canEdit ? (
     <form onSubmit={submitNote} className={styles.composer} noValidate>
       <input
+        id="lead-note"
         aria-label="Add a note"
         placeholder="Add a note. Only staff can see it."
         className={styles.control}
         value={note}
         onChange={(event) => setNote(event.target.value)}
       />
-      <button type="submit" className={styles.button}>
+      <button type="submit" className={styles.button} disabled={gone}>
         Add note
       </button>
       {fieldMessage(noteError, "body") ? (
@@ -620,22 +659,22 @@ export function LeadDetailPage({ id }: { id: string }) {
             {tripDates(lead)}
           </span>
         </div>
-        {can("messaging:view") ? (
+        {can("messaging:view") && !gone ? (
           <button type="button" className={`${styles.button} ${styles.primary}`} onClick={openChat}>
             Open chat
           </button>
         ) : null}
-        {can("leads:reassign") && lead.closedAt === null ? (
+        {can("leads:reassign") && lead.closedAt === null && !gone ? (
           <button type="button" className={styles.button} onClick={() => setDialog("reassign")}>
             Reassign…
           </button>
         ) : null}
-        {can("leads:merge") ? (
+        {can("leads:merge") && !gone ? (
           <button type="button" className={styles.button} onClick={() => setDialog("merge")}>
             Merge…
           </button>
         ) : null}
-        {can("leads:delete") ? (
+        {can("leads:delete") && !gone ? (
           <button
             type="button"
             className={`${styles.button} ${styles.danger}`}
@@ -646,9 +685,36 @@ export function LeadDetailPage({ id }: { id: string }) {
         ) : null}
       </div>
       <FormError error={actionError} />
+      {gone ? (
+        <div role="alert" className={styles.notice}>
+          <b>This lead has moved and is no longer yours.</b> You can&apos;t change it any more.
+          Anything you were typing is still here to copy.{" "}
+          <Link href="/leads">Back to your leads</Link>
+        </div>
+      ) : ownerNotice ? (
+        <div role="status" className={styles.notice}>
+          {ownerNotice}
+        </div>
+      ) : null}
 
-      <div className={styles.panes}>
-        <aside aria-label="Customer and trip" className={styles.side}>
+      <div role="tablist" aria-label="Lead sections" className={styles.viewTabs}>
+        {(["chat", "details", "activity"] as const).map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={view === key}
+            className={styles.viewTab}
+            onClick={() => setView(key)}
+          >
+            {key === "chat" ? "Chat" : key === "details" ? "Details" : "Activity"}
+          </button>
+        ))}
+      </div>
+
+      {/* The softphone panel and live call card go here in Phase 7. */}
+      <div className={`${styles.panes} ${chat ? styles.panesWithChat : ""}`} data-view={view}>
+        <aside aria-label="Customer and trip" className={`${styles.side} ${styles.viewDetails}`}>
           <section className={styles.card}>
             <div className={styles.cardHead}>Stage</div>
             {pipeline.map((stage) => (
@@ -738,7 +804,7 @@ export function LeadDetailPage({ id }: { id: string }) {
           ) : null}
         </aside>
 
-        <section aria-label="Activity" className={styles.card}>
+        <section aria-label="Activity" className={`${styles.card} ${styles.viewActivity}`}>
           <div role="tablist" className={styles.tabs}>
             {(
               [
@@ -796,6 +862,7 @@ export function LeadDetailPage({ id }: { id: string }) {
               {editable ? (
                 <form onSubmit={submitTask} className={styles.composer} noValidate>
                   <input
+                    id="lead-task"
                     aria-label="Follow-up"
                     placeholder="What needs doing?"
                     className={styles.control}
@@ -844,6 +911,7 @@ export function LeadDetailPage({ id }: { id: string }) {
             </>
           ) : null}
         </section>
+        {chat && !gone ? <div className={styles.viewChat}>{chat}</div> : null}
       </div>
 
       {dialog === "edit" ? (

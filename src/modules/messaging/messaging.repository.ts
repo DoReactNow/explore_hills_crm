@@ -226,13 +226,28 @@ export const messagingRepository = {
     });
   },
 
-  conversationMessages(id: string) {
+  /** Newest first, up to `take`, optionally only those older than a message of this chat. */
+  conversationMessages(id: string, take: number, before?: string) {
     return getPrisma().messagingMessage.findMany({
       where: { conversationId: id },
       orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-      take: 200,
+      take,
+      ...(before ? { cursor: { id: before }, skip: 1 } : {}),
       select: MESSAGE_SELECT,
     });
+  },
+
+  async findMessageInConversation(conversationId: string, id: string): Promise<boolean> {
+    return (await getPrisma().messagingMessage.count({ where: { id, conversationId } })) === 1;
+  },
+
+  async conversationIdOfLead(leadId: string): Promise<string | null> {
+    const row = await getPrisma().messagingConversation.findFirst({
+      where: { leadId },
+      orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { id: "asc" }],
+      select: { id: true },
+    });
+    return row?.id ?? null;
   },
 
   async isConversationVisible(id: string, scope: LeadScope): Promise<boolean> {

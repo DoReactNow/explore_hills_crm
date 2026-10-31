@@ -1,3 +1,4 @@
+import { z } from "zod";
 // HTTP side of the messaging module. Imported only by src/app (architecture rule 2).
 import { leadService } from "@/modules/leads";
 import { AppError } from "@/shared/errors";
@@ -32,6 +33,8 @@ function context<I, P>({ principal, requestId }: RouteContext<I, P>) {
 }
 
 const text = (status: number, body = "") => new Response(body, { status });
+
+export const olderMessagesSchema = z.object({ before: z.string().max(64).optional() });
 
 export const messagingController = {
   /** Provider-facing: a plain status, because the provider reads nothing else. */
@@ -75,6 +78,14 @@ export const messagingController = {
   },
   async recordAgreement(c: RouteContext<undefined, IdParams>) {
     return { data: await messagingService.recordAgreement(context(c), c.params.id) };
+  },
+  async listOlderMessages(c: RouteContext<{ before?: string }, IdParams>) {
+    return {
+      data: await messagingService.listOlderMessages(context(c), c.params.id, c.input.before),
+    };
+  },
+  async findConversationOfLead(c: RouteContext<undefined, IdParams>) {
+    return { data: await messagingService.findConversationOfLead(context(c), c.params.id) };
   },
   async startConversation(c: RouteContext<undefined, IdParams>) {
     return { data: await messagingService.startConversation(context(c), c.params.id) };

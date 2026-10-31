@@ -21,3 +21,4 @@ export {
 export type { LeadScope, LockedLead, Tx as LeadsTx } from "./leads.repository";
 export { inScope } from "./leads.access";
 export { normalisePhone } from "./leads.phone";
+export { leadEventTypes } from "./leads.events";

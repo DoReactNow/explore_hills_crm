@@ -156,6 +156,85 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+describe("older messages (P6-WORK-06)", () => {
+  it("come in pages, with no gaps or repeats", async () => {
+    const from = nextNumber();
+    await receive(from, "first");
+    const conversation = await conversationOf(from);
+    const base = systemClock.now().getTime();
+    await prisma.messagingMessage.createMany({
+      data: Array.from({ length: 59 }, (_, i) => ({
+        conversationId: conversation.id,
+        direction: "INBOUND" as const,
+        type: "TEXT" as const,
+        status: "DELIVERED" as const,
+        body: `m${i}`,
+        occurredAt: instantFromEpochMs(base + (i + 1) * 1000),
+      })),
+    });
+    await as("ADMIN");
+    const latest = (await open(conversation.id)).body!.data;
+    expect(latest.messages).toHaveLength(50);
+    expect(latest.hasOlder).toBe(true);
+    const older = await callRoute<Body, Id>(messagesRoute.GET, {
+      path: `/x?before=${latest.messages[0].id}`,
+      params: { id: conversation.id },
+    });
+    expect(older.status).toBe(200);
+    expect(older.body!.data.hasOlder).toBe(false);
+    const all = [...older.body!.data.messages, ...latest.messages].map((m: Row) => m.id);
+    expect(all).toHaveLength(60);
+    expect(new Set(all).size).toBe(60);
+    expect(older.body!.data.messages[0].body).toBe("first");
+  });
+
+  it("are refused for a chat out of scope", async () => {
+    const from = nextNumber();
+    await receive(from);
+    const conversation = await conversationOf(from);
+    await as("AGENT");
+    const refused = await callRoute<Body, Id>(messagesRoute.GET, {
+      path: "/x",
+      params: { id: conversation.id },
+    });
+    expect(refused.status).toBe(404);
+  });
+});
+
+describe("a lead's chat", () => {
+  it("is found without creating one just by looking", async () => {
+    await as("ADMIN");
+    const from = nextNumber();
+    await receive(from);
+    const conversation = await conversationOf(from);
+    const found = await callRoute<Body, Id>(startChat.GET, {
+      path: "/x",
+      params: { id: conversation.lead!.id },
+    });
+    expect(found.body!.data).toEqual({ conversationId: conversation.id });
+    await as("AGENT");
+    const outsider = await callRoute<Body, Id>(startChat.GET, {
+      path: "/x",
+      params: { id: conversation.lead!.id },
+    });
+    expect(outsider.status).toBe(404);
+    await as("ADMIN");
+
+    const created = await callRoute<Body>(leadsRoute.POST, {
+      method: "POST",
+      path: "/x",
+      body: { customerName: "Asha", phone: nextNumber(), source: "MANUAL" },
+    });
+    const before = await prisma.messagingConversation.count();
+    const none = await callRoute<Body, Id>(startChat.GET, {
+      path: "/x",
+      params: { id: created.body!.data.id },
+    });
+    expect(none.body!.data).toEqual({ conversationId: null });
+    expect(await prisma.messagingConversation.count()).toBe(before);
+  });
+});
+
 describe("the webhook", () => {
   it("stores a signed message and answers before doing the work (P4-WEBHOOK-01)", async () => {
     const from = nextNumber();

@@ -139,6 +139,7 @@ export const listLeadsSchema = z.object({
   travelTo: z.string().refine(isBusinessDate).optional(),
   sort: z.enum(LEAD_SORTS).default("lastActivityAt"),
   direction: z.enum(["asc", "desc"]).default("desc"),
+  quick: z.enum(["open", "overdue", "today", "noFollowUp"]).optional(),
 });
 export type ListLeadsInput = z.output<typeof listLeadsSchema>;
 

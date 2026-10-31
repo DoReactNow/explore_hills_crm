@@ -64,7 +64,8 @@ test("an agent is not offered diagnostics, and a narrow screen still works", asy
   const { email, name, password } = seededUser("AGENT");
   await page.goto("/sign-in");
   await fillAndSubmit(page, email, password);
-  await expect(page.getByText(name)).toBeVisible();
+  await page.getByRole("button", { name: "More" }).click();
+  await expect(page.getByRole("dialog", { name: "More" }).getByText(name)).toBeVisible();
   await expect(page.getByRole("link", { name: "Diagnostics" })).toHaveCount(0);
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
   expect(scrollWidth).toBeLessThanOrEqual(375);

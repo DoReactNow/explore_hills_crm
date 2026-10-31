@@ -352,15 +352,93 @@
     padding: 12px 16px;
     gap: 10px;
   }
-  .navList {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
+  .navList,
   .sidebarEnd {
-    margin-top: 0;
-    padding-top: 10px;
+    display: none;
   }
   .content {
-    padding: 16px;
+    padding: 16px 16px 96px;
+  }
+  .tabBar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+  .tab {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: none;
+    color: var(--color-text-muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .tab[aria-current="page"],
+  .tab[aria-expanded="true"] {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+  .moreSheet {
+    position: fixed;
+    inset: auto 0 60px 0;
+    z-index: 29;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 75vh;
+    overflow: auto;
+    padding: 18px 16px;
+    border-radius: 28px 28px 0 0;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-md);
+  }
+  .moreUser {
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    border-radius: 18px;
+    background: var(--color-canvas);
+  }
+  .moreGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .moreLink {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    color: var(--color-text);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+  }
+  .moreSignOut {
+    min-height: 52px;
+    border: 1px solid #f3c7cb;
+    border-radius: 16px;
+    background: var(--color-surface);
+    color: #a12a33;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
   }
 }
