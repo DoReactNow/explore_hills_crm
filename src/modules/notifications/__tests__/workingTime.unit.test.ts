@@ -1,7 +1,11 @@
 // P8-SLA-06: SLA clocks count only working time, and stop on holidays.
 import { describe, expect, it } from "vitest";
 import { parseBusinessLocalDateTime as at } from "@/shared/time";
-import { addWorkingMinutes, isWorkingDay } from "../notifications.workingTime";
+import {
+  addWorkingMinutes,
+  isWorkingDay,
+  workingMinutesBetween,
+} from "../notifications.workingTime";
 
 // 2026-11-02 is a Monday; Monday to Saturday, 10:00 to 19:00.
 const calendar = { days: [1, 2, 3, 4, 5, 6], from: "10:00", to: "19:00", holidays: [] as string[] };
@@ -46,5 +50,24 @@ describe("addWorkingMinutes", () => {
   });
   it("gives up rather than looping when there are no working days", () => {
     expect(addWorkingMinutes(at("2026-11-02", "12:00"), 15, { ...calendar, days: [] })).toBeNull();
+  });
+});
+
+describe("workingMinutesBetween", () => {
+  it("counts only working time, across nights and closed days", () => {
+    expect(
+      workingMinutesBetween(at("2026-11-02", "12:00"), at("2026-11-02", "12:15"), calendar),
+    ).toBe(15);
+    expect(
+      workingMinutesBetween(at("2026-11-02", "22:00"), at("2026-11-03", "10:15"), calendar),
+    ).toBe(15);
+    expect(
+      workingMinutesBetween(at("2026-11-07", "18:50"), at("2026-11-09", "10:05"), calendar),
+    ).toBe(15);
+  });
+  it("is zero when the reply came first", () => {
+    expect(
+      workingMinutesBetween(at("2026-11-02", "12:15"), at("2026-11-02", "12:00"), calendar),
+    ).toBe(0);
   });
 });

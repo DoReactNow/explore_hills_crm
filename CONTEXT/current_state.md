@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is complete, with email and push on fakes (Decisions 63, 64). Next is Phase 9. Before go-live: real WhatsApp and calling adapters, a mail account and push keys. Global search from the design has no phase yet. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is complete, with email and push on fakes (Decisions 63, 64). Phase 9 is built and in review (Decision 65). Before go-live: real WhatsApp and calling adapters, a mail account and push keys. Global search from the design has no phase yet. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1172,7 +1172,9 @@ Merged in PR #37 (Decisions 63, 64). Email and push run on fakes until go-live, 
 
 In-app, email and push notifications, SLA timers (first response, follow-up due), reminders using business-timezone days, escalation rules. All timers and reminders are jobs on the Phase 0 job foundation (W-012); notifications are pushed live (W-013).
 
-### Phase 9: Reports and Dashboards — PENDING (next)
+### Phase 9: Reports and Dashboards — IN REVIEW
+Built on branch `phase-9-reports` (Decision 65). No snapshots: `P9-REPORT-14` doesn't apply. Not built from the design: comparisons with the previous month, live agent status, the "No reply 48 h" and "High value" attention items, and lost-reason totals.
+
 Own/team/company dashboards, volume, assignment and response-time reports, conversion funnel, exports, daily buckets in the business timezone, performance tests on realistic data volumes.
 
 ### Phase 10: Audit, Data Protection and Retention — PENDING

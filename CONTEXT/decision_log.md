@@ -1204,3 +1204,21 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Turning off:** by channel, for Admins and Managers (`notifications:mute`), for their own notifications only. Agents can't turn theirs off.
 - **Bad email addresses and expired push subscriptions** don't retry and don't block anyone else; expired subscriptions are removed. Outages retry.
 - **Email and push run on fakes until go-live.** Production refuses the fakes, so it needs a mail account (`SMTP_URL`, `EMAIL_FROM`) and push keys (`npx web-push generate-vapid-keys`).
+
+
+---
+
+### Decision 65: Report Rules for Phase 9
+
+**Date:** 2026-10-31
+**Status:** Accepted (set with the Phase 9 plan and reported to the owner)
+
+#### Decision
+- **Which leads a period covers:** those created in it, by business day, with both end days included. Their stage, owner and value are as they are now, so a reassigned, reopened or renamed lead counts once and every total equals the sum of its parts. This means a figure for a past month can change as leads move on.
+- **Booked** counts leads from the period now in a Won stage, and **booking value** is their budget, because no separate price is recorded.
+- **Deleted and merged leads** are left out everywhere. Deactivated agents stay in the history.
+- **Scope:** own, team or all by permission. Filters can only narrow it. Unassigned leads belong to no team, so a manager sees them in the queue figure only, and they count in company totals.
+- **First reply** is measured in working time, the same clock as the SLA. Leads with no reply are left out of the median and counted separately. Missed means replied late, or still open and past the deadline.
+- **Assignment by mode** leaves out the note made when a leaver's leads return to the queue.
+- **No snapshots:** every number is worked out live. 100,000 leads must report within 5 seconds, which a test holds it to. Snapshots can come later if that stops being true.
+- **Exports** need `reports:export`, are audited, and stream in batches of 1,000, so size can't harm the server and no background job is needed. A byte-order mark makes Excel read Hindi and emoji, and a value starting with `=`, `+`, `-` or `@` is made plain text.
