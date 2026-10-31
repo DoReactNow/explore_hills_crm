@@ -188,12 +188,109 @@ export const telephonyRepository = {
     return count === 1;
   },
 
+  /** Saves how a download ended, unless the recording was erased or deleted meanwhile. */
+  async finishRecording(
+    callId: string,
+    data: Prisma.TelephonyRecordingUncheckedUpdateManyInput,
+  ): Promise<boolean> {
+    const { count } = await getPrisma().telephonyRecording.updateMany({
+      where: { callId, status: "DOWNLOADING" },
+      data,
+    });
+    return count === 1;
+  },
+
+  /** Recordings past their date. A customer on hold keeps theirs (Decision 66). */
   expiredRecordings: (now: Date, take: number) =>
     getPrisma().telephonyRecording.findMany({
-      where: { status: "STORED", expiresAt: { lte: now } },
+      where: {
+        status: "STORED",
+        expiresAt: { lte: now },
+        call: { OR: [{ leadId: null }, { lead: { contact: { legalHoldAt: null } } }] },
+      },
       take,
       select: { callId: true, storageKey: true },
     }),
+
+  async markRecordingsDeleted(tx: Tx, callIds: readonly string[], at: Date): Promise<void> {
+    await tx.telephonyRecording.updateMany({
+      where: { callId: { in: [...callIds] } },
+      data: { status: "DELETED", storageKey: null, deletedAt: at },
+    });
+  },
+
+  async refuseRecording(tx: Tx, callId: string, at: Date): Promise<void> {
+    await tx.telephonyRecording.upsert({
+      where: { callId },
+      create: { callId, status: "DELETED", readyAt: at, deletedAt: at },
+      update: {},
+    });
+  },
+
+  // Privacy
+
+  hasActiveCall: async (tx: Tx, phone: string, leadIds: readonly string[]) =>
+    (await tx.telephonyCall.count({
+      where: { ...ACTIVE, OR: [{ customerPhoneE164: phone }, { leadId: { in: [...leadIds] } }] },
+    })) > 0,
+
+  /** The number goes from every call, and the recordings with it. The log of calls stays. */
+  async eraseCalls(tx: Tx, phone: string, leadIds: readonly string[], at: Date): Promise<string[]> {
+    const where = { OR: [{ customerPhoneE164: phone }, { leadId: { in: [...leadIds] } }] };
+    const calls = await tx.telephonyCall.findMany({
+      where,
+      select: { id: true, recording: { select: { storageKey: true } } },
+    });
+    const callIds = calls.map((call) => call.id);
+    await tx.telephonyCall.updateMany({
+      where: { id: { in: callIds } },
+      data: { customerPhoneE164: "hidden", outcomeNotes: null, routingNote: null },
+    });
+    await tx.telephonyRecording.updateMany({
+      where: { callId: { in: callIds } },
+      data: {
+        status: "DELETED",
+        storageKey: null,
+        providerRecordingRef: null,
+        lastError: null,
+        deletedAt: at,
+      },
+    });
+    return calls.flatMap((call) => (call.recording?.storageKey ? [call.recording.storageKey] : []));
+  },
+
+  async eraseWebhookEvents(tx: Tx, phoneDigits: string): Promise<void> {
+    await tx.$executeRaw`
+      DELETE FROM telephony_webhook_events WHERE payload::text LIKE ${`%${phoneDigits}%`}`;
+  },
+
+  exportCalls: (phone: string, leadIds: readonly string[]) =>
+    getPrisma().telephonyCall.findMany({
+      where: { OR: [{ customerPhoneE164: phone }, { leadId: { in: [...leadIds] } }] },
+      orderBy: { startedAt: "asc" },
+      select: {
+        startedAt: true,
+        endedAt: true,
+        direction: true,
+        status: true,
+        durationSeconds: true,
+        outcomeCode: true,
+        outcomeNotes: true,
+        recording: { select: { status: true, expiresAt: true } },
+      },
+    }),
+
+  async deleteOldWebhookEvents(before: Date, take: number): Promise<number> {
+    const rows = await getPrisma().telephonyWebhookEvent.findMany({
+      where: { receivedAt: { lt: before } },
+      take,
+      select: { id: true },
+    });
+    const { count } = await getPrisma().telephonyWebhookEvent.deleteMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+    });
+    return count;
+  },
 
   // Endpoints
 

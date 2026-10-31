@@ -20,6 +20,7 @@ export const touchLeadActivity = (tx: Tx, id: string, at: Date) =>
 /** A lead this person may see, with what's needed to start a chat. */
 export async function findLeadForChat(tx: Tx, id: string, scope: LeadScope) {
   const lead = await leadRepository.findLead(tx, id, scope);
+  if (lead?.contact.anonymisedAt) return null;
   return lead && { id: lead.id, contactId: lead.contact.id, phoneE164: lead.contact.phoneE164 };
 }
 

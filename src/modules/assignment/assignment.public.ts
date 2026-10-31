@@ -2,6 +2,8 @@
 import { businessMoment, dbDateToBusinessDate } from "@/shared/time";
 import { assignmentRepository } from "./assignment.repository";
 
+export const eraseAssignmentReasons = assignmentRepository.eraseReasons;
+
 /** Those of these people on leave at this moment, by the business date. */
 export async function peopleOnLeave(userIds: readonly string[], at: Date): Promise<Set<string>> {
   const today = businessMoment(at).date;

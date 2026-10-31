@@ -16,13 +16,14 @@ import {
   leadScopeOf,
   normalisePhone,
   recordFirstResponse,
+  recordingRefused,
   resolveLeadForInbound,
   scopeWhere,
   touchLeadActivity,
 } from "@/modules/leads";
 
 import { notify } from "@/modules/notifications";
-import { getSetting } from "@/modules/system";
+import { enqueueFileDeletions, getSetting, runFileDeletions } from "@/modules/system";
 import { APP_CONFIG } from "@/shared/config/appConfig";
 import { AppError } from "@/shared/errors";
 import { getJobQueue } from "@/shared/jobs";
@@ -33,7 +34,9 @@ import type { Principal } from "@/shared/rbac/principal";
 import { publishEvent } from "@/shared/realtime/publish";
 import { getFileStorage, buildKey, type FileStorage } from "@/shared/storage";
 import {
+  addBusinessDays,
   businessDateToDbDate,
+  businessDayRange,
   businessMoment,
   instantFromEpochMs,
   parseInstant,
@@ -72,6 +75,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HIDDEN_NUMBER = "hidden";
 const MAX_WEBHOOK_BYTES = 1024 * 1024;
 const PAGE_SIZE = 50;
+const RETENTION_BATCH_SIZE = 500;
+/** Small batches, and a limit per run: anything left waits for tomorrow's run. */
+const RETENTION_BATCHES = 200;
 /** Softphones report in every 30 seconds, so two missed reports mean offline. */
 const ONLINE_WINDOW_MS = 75_000;
 const RINGING_LIMIT_MS = 5 * 60 * 1000;
@@ -788,6 +794,12 @@ export function createTelephonyService({
         await repository.lock(tx, [`call:${call.id}`]);
 
         if (event.kind === "recording") {
+          // A customer who withdrew consent has no recording kept (P10-ERASE-08).
+          if (await recordingRefused(tx, call.leadId, call.customerPhoneE164)) {
+            await repository.refuseRecording(tx, call.id, now);
+            await repository.markEventDone(tx, eventId, now, null);
+            return;
+          }
           await repository.noteRecordingReady(tx, call.id, event.recordingRef, at);
           after.push(async () => {
             if (!enqueue) return;
@@ -862,11 +874,12 @@ export function createTelephonyService({
       const fail = async (error: unknown, permanent: boolean) => {
         const message = error instanceof Error ? error.message : "failed";
         if (permanent || finalAttempt) {
-          await repository.updateRecording(callId, { status: "FAILED", lastError: message });
+          if (!(await repository.finishRecording(callId, { status: "FAILED", lastError: message })))
+            return;
           await alert("recording_failed", { id: callId, leadId: call?.leadId ?? null });
           return;
         }
-        await repository.updateRecording(callId, { status: "PENDING", lastError: message });
+        await repository.finishRecording(callId, { status: "PENDING", lastError: message });
         throw error;
       };
       try {
@@ -890,7 +903,7 @@ export function createTelephonyService({
           }
           return file;
         });
-        await repository.updateRecording(callId, {
+        const saved = await repository.finishRecording(callId, {
           status: "STORED",
           storageKey: key,
           contentType: "audio/mpeg",
@@ -901,6 +914,10 @@ export function createTelephonyService({
           expiresAt: plusDuration(now, { days }),
           lastError: null,
         });
+        if (!saved) {
+          await storage().delete(key);
+          return;
+        }
         if (call) await announce(call);
       } catch (error) {
         const permanent =
@@ -978,14 +995,23 @@ export function createTelephonyService({
     async deleteExpiredRecordings(): Promise<number> {
       const now = clock.now();
       let deleted = 0;
-      for (const row of await repository.expiredRecordings(now, 500)) {
-        if (row.storageKey) await storage().delete(row.storageKey);
-        await repository.updateRecording(row.callId, {
-          status: "DELETED",
-          storageKey: null,
-          deletedAt: now,
+      for (let batch = 0; batch < RETENTION_BATCHES; batch += 1) {
+        const rows = await repository.expiredRecordings(now, RETENTION_BATCH_SIZE);
+        if (rows.length === 0) break;
+        await repository.transaction(async (tx) => {
+          await enqueueFileDeletions(
+            tx,
+            rows.flatMap((row) => (row.storageKey ? [row.storageKey] : [])),
+            "recording retention",
+          );
+          await repository.markRecordingsDeleted(
+            tx,
+            rows.map((row) => row.callId),
+            now,
+          );
         });
-        deleted += 1;
+        deleted += rows.length;
+        if (rows.length < RETENTION_BATCH_SIZE) break;
       }
       if (deleted > 0) {
         await repository.transaction((tx) =>
@@ -999,6 +1025,33 @@ export function createTelephonyService({
             {
               count: deleted,
             },
+          ),
+        );
+        await runFileDeletions();
+      }
+      return deleted;
+    },
+
+    /** Raw webhook logs past their date, by the business day. */
+    async deleteOldWebhookEvents(): Promise<number> {
+      const days = (await getSetting("retention.webhookEventDays")) as number;
+      const before = businessDayRange(addBusinessDays(todayBusinessDate(clock), -days)).start;
+      let deleted = 0;
+      for (let batch = 0; batch < RETENTION_BATCHES; batch += 1) {
+        const count = await repository.deleteOldWebhookEvents(before, RETENTION_BATCH_SIZE);
+        deleted += count;
+        if (count < RETENTION_BATCH_SIZE) break;
+      }
+      if (deleted > 0) {
+        await repository.transaction((tx) =>
+          audit(
+            tx,
+            null,
+            "retention.webhook_logs_deleted",
+            "telephony_webhook_events",
+            "retention",
+            "Old calling webhook logs deleted",
+            { count: deleted },
           ),
         );
       }

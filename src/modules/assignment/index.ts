@@ -1,4 +1,4 @@
 // Public API of the assignment module: the only entry point for other modules and the worker.
 export { assignmentEventTypes } from "./assignment.events";
 export { assignmentJobs, assignmentSchedules } from "./assignment.jobs";
-export { peopleOnLeave } from "./assignment.public";
+export { eraseAssignmentReasons, peopleOnLeave } from "./assignment.public";

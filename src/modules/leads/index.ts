@@ -29,3 +29,18 @@ export type { LeadScope, LockedLead, Tx as LeadsTx } from "./leads.repository";
 export { inScope } from "./leads.access";
 export { normalisePhone } from "./leads.phone";
 export { leadEventTypes } from "./leads.events";
+export {
+  addConsentRecord,
+  anonymiseContact,
+  auditConsent,
+  contactHasOpenLead,
+  exportContactRecord,
+  findContactForChange,
+  findContactRecord,
+  leadIdsOfContact,
+  lockContactPhone,
+  recordingRefused,
+  searchContacts,
+  setContactHold,
+  setRecordingOptOut,
+} from "./leads.privacy";

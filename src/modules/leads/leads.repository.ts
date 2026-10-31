@@ -21,7 +21,7 @@ export const LEAD_SELECT = {
   lostReason: true,
   createdAt: true,
   updatedAt: true,
-  contact: { select: { id: true, name: true, phoneE164: true } },
+  contact: { select: { id: true, name: true, phoneE164: true, anonymisedAt: true } },
   stage: { select: { id: true, code: true, name: true, kind: true, position: true } },
   owner: { select: { id: true, name: true, status: true } },
 } satisfies Prisma.LeadsLeadSelect;
