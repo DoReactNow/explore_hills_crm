@@ -45,3 +45,44 @@ export function addWorkingMinutes(
   }
   return null;
 }
+
+/**
+ * A clock for many measurements at once. It works out each calendar day only once, because reports
+ * measure thousands of replies over the same few days.
+ */
+export function createWorkingClock(calendar: WorkingCalendar) {
+  const windows = new Map<BusinessDate, { open: number; close: number; next: BusinessDate }>();
+  const windowOf = (day: BusinessDate) => {
+    const next = addBusinessDays(day, 1);
+    const found = isWorkingDay(day, calendar)
+      ? {
+          open: parseBusinessLocalDateTime(day, calendar.from).getTime(),
+          close: parseBusinessLocalDateTime(day, calendar.to).getTime(),
+          next,
+        }
+      : { open: 0, close: 0, next };
+    windows.set(day, found);
+    return found;
+  };
+  return {
+    minutesBetween(from: Date, to: Date): number {
+      if (to.getTime() <= from.getTime()) return 0;
+      let total = 0;
+      let day = businessMoment(from).date;
+      const last = businessMoment(to).date;
+      for (let i = 0; i < MAX_DAYS && day <= last; i += 1) {
+        const window = windows.get(day) ?? windowOf(day);
+        total += Math.max(
+          0,
+          Math.min(window.close, to.getTime()) - Math.max(window.open, from.getTime()),
+        );
+        day = window.next;
+      }
+      return total / MS_IN_MINUTE;
+    },
+  };
+}
+
+/** Working minutes between two instants: the same clock the SLA uses. */
+export const workingMinutesBetween = (from: Date, to: Date, calendar: WorkingCalendar) =>
+  createWorkingClock(calendar).minutesBetween(from, to);

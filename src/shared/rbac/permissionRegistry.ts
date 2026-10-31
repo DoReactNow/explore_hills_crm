@@ -121,6 +121,36 @@ export const PERMISSIONS = {
     module: "leads",
     reserved: false,
   },
+  "dashboard:view-own": {
+    label: "See own numbers",
+    description: "See their own dashboard.",
+    module: "reporting",
+    reserved: false,
+  },
+  "dashboard:view-team": {
+    label: "See team numbers",
+    description: "See the dashboard for everyone below them.",
+    module: "reporting",
+    reserved: false,
+  },
+  "dashboard:view-all": {
+    label: "See company numbers",
+    description: "See the dashboard for the whole company.",
+    module: "reporting",
+    reserved: false,
+  },
+  "reports:view": {
+    label: "View reports",
+    description: "Open reports, for the leads they can see.",
+    module: "reporting",
+    reserved: false,
+  },
+  "reports:export": {
+    label: "Export reports",
+    description: "Download reports as spreadsheets. Every export is audited.",
+    module: "reporting",
+    reserved: false,
+  },
   "notifications:mute": {
     label: "Turn notifications off",
     description: "Choose which notifications they get. Others keep theirs, so no lead is missed.",

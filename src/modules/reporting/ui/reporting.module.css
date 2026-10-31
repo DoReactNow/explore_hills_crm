@@ -1,0 +1,304 @@
+/* Dashboards and reports, from the owner's designs. Each chart has one series and one blue, thin marks
+   on a quiet surface, its value on hover, and its numbers readable beside it. */
+:root {
+  --chart-bar: #1468f0;
+  --chart-track: #f1f2f5;
+}
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.headText {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.title {
+  margin: 0;
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.accent {
+  font-family: var(--font-accent), serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-primary);
+}
+.muted {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.segments {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--chart-track);
+}
+.segment {
+  min-height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.segment[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-decoration: none;
+}
+.tileLabel {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.tileValue {
+  font-size: 30px;
+  line-height: 38px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tileNote {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.tileBad {
+  border-color: #f3c7cb;
+  background: #fcebec;
+}
+.tileBad .tileLabel,
+.tileBad .tileNote {
+  color: #8e1f28;
+}
+.tileDue {
+  border-color: #f2d2a9;
+  background: #fdf1e3;
+}
+.tileDue .tileLabel,
+.tileDue .tileNote {
+  color: #6e3b04;
+}
+.tileDark {
+  border: none;
+  background: var(--color-text);
+  color: var(--color-surface);
+}
+.tileDark .tileLabel {
+  color: #c9ced6;
+}
+.tileDark .tileNote {
+  color: #9cc2ff;
+  font-weight: 600;
+}
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+.cardHead h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 160px;
+}
+.bar {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--chart-bar);
+}
+.bar:hover {
+  opacity: 0.75;
+}
+.barEmpty {
+  flex: 1;
+  min-width: 2px;
+  height: 2px;
+  background: var(--color-border);
+}
+.axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.hRow {
+  display: grid;
+  grid-template-columns: minmax(70px, 120px) minmax(0, 1fr) 56px;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.hTrack {
+  height: 10px;
+  border-radius: 4px;
+  background: var(--chart-track);
+}
+.hFill {
+  display: block;
+  height: 10px;
+  border-radius: 4px;
+  background: var(--chart-bar);
+}
+.hValue {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.table th {
+  padding: 8px 10px;
+  background: var(--color-canvas);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+.table td {
+  padding: 10px;
+  border-top: 1px solid #f0f1f4;
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-top: 1px solid #f0f1f4;
+  color: var(--color-text);
+  font-size: 14px;
+  text-decoration: none;
+}
+.late {
+  font-size: 12px;
+  font-weight: 600;
+  color: #b42318;
+}
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.input {
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.tab {
+  padding: 0 0 10px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tab[aria-selected="true"] {
+  border-bottom-color: var(--color-text);
+  color: var(--color-text);
+  font-weight: 600;
+}
+@media (max-width: 767px) {
+  .page {
+    padding: 16px;
+  }
+  .title {
+    font-size: 26px;
+    line-height: 32px;
+  }
+}

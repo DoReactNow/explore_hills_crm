@@ -52,6 +52,11 @@ export const DEFAULT_ROLES = {
       "telephony:call",
       "telephony:view-recordings",
       "notifications:mute",
+      "dashboard:view-own",
+      "dashboard:view-team",
+      "dashboard:view-all",
+      "reports:view",
+      "reports:export",
     ],
   },
   MANAGER: {
@@ -74,6 +79,10 @@ export const DEFAULT_ROLES = {
       "telephony:call",
       "telephony:view-recordings",
       "notifications:mute",
+      "dashboard:view-own",
+      "dashboard:view-team",
+      "reports:view",
+      "reports:export",
     ],
   },
   AGENT: {
@@ -88,6 +97,7 @@ export const DEFAULT_ROLES = {
       "messaging:view",
       "messaging:send",
       "telephony:call",
+      "dashboard:view-own",
     ],
   },
 } as const satisfies Record<SystemRoleCode, RoleDefinition<PermissionCode>>;

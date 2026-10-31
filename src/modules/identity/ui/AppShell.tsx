@@ -39,6 +39,7 @@ const NAV_ITEMS: ReadonlyArray<{
     label: "Follow-ups",
     anyOf: ["leads:view-own", "leads:view-team", "leads:view-all"],
   },
+  { href: "/reports", label: "Reports", permission: "reports:view" },
   { href: "/calls", label: "Calls", permission: "telephony:call" },
   { href: "/queue", label: "Queue", permission: "leads:assign" },
   { href: "/blast", label: "Blast pool", permission: "leads:claim" },

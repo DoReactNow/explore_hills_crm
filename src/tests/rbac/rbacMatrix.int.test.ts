@@ -58,6 +58,10 @@ import * as noteRead from "@/app/api/notifications/[id]/read/route";
 import * as noteReadAll from "@/app/api/notifications/read-all/route";
 import * as notePrefs from "@/app/api/notifications/preferences/route";
 import * as notePush from "@/app/api/notifications/push/route";
+import * as reportsRoute from "@/app/api/reports/route";
+import * as reportOptions from "@/app/api/reports/options/route";
+import * as reportExport from "@/app/api/reports/export/route";
+import * as dashboardRoute from "@/app/api/dashboard/route";
 import * as leadReassign from "@/app/api/leads/[id]/reassign/route";
 import * as leadMerge from "@/app/api/leads/[id]/merge/route";
 import * as messageMedia from "@/app/api/messages/[id]/media/route";
@@ -369,6 +373,10 @@ const CASES: Case[] = [
     allowed: ADMINS,
     usesId: "lead",
   },
+  { method: "GET", path: "/api/reports", handler: reportsRoute.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/reports/options", handler: reportOptions.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/reports/export", handler: reportExport.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/dashboard", handler: dashboardRoute.GET, allowed: LEAD_ROLES },
   { method: "GET", path: "/api/notifications", handler: noteList.GET, allowed: EVERYONE },
   {
     method: "POST",

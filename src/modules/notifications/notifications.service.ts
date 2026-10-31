@@ -59,26 +59,26 @@ interface Deps {
   push?: () => PushSender;
 }
 
+export async function getWorkingCalendar(): Promise<WorkingCalendar> {
+  const days = (await getSetting("telephony.workingDays")) as string;
+  const holidays = (await getSetting("sla.holidays")) as string;
+  return {
+    days: days.split(",").map(Number),
+    from: (await getSetting("telephony.workingFrom")) as string,
+    to: (await getSetting("telephony.workingTo")) as string,
+    holidays: holidays
+      .split(",")
+      .map((day) => day.trim())
+      .filter(Boolean),
+  };
+}
+
 export function createNotificationService({
   clock = systemClock,
   enqueue = true,
   email = getEmailSender,
   push = getPushSender,
 }: Deps = {}) {
-  async function calendar(): Promise<WorkingCalendar> {
-    const days = (await getSetting("telephony.workingDays")) as string;
-    const holidays = (await getSetting("sla.holidays")) as string;
-    return {
-      days: days.split(",").map(Number),
-      from: (await getSetting("telephony.workingFrom")) as string,
-      to: (await getSetting("telephony.workingTo")) as string,
-      holidays: holidays
-        .split(",")
-        .map((day) => day.trim())
-        .filter(Boolean),
-    };
-  }
-
   async function notifyOne(userId: string, input: NotifyInput): Promise<void> {
     const user = await getUserSummary(userId);
     if (user?.status !== "ACTIVE") return;
@@ -256,7 +256,7 @@ export function createNotificationService({
     async checkFirstResponses(): Promise<void> {
       const now = clock.now();
       const minutes = (await getSetting("sla.firstResponseMinutes")) as number;
-      const working = await calendar();
+      const working = await getWorkingCalendar();
       const since = plusDuration(now, { days: -SLA_LOOK_BACK_DAYS });
       const assigners = await listHolders("leads:assign");
       const everywhere = await listHolders("leads:view-all");
@@ -295,7 +295,7 @@ export function createNotificationService({
     async sendDailyReminders(): Promise<void> {
       const now = clock.now();
       const { date } = businessMoment(now);
-      if (!isWorkingDay(date, await calendar())) return;
+      if (!isWorkingDay(date, await getWorkingCalendar())) return;
       const at = (await getSetting("sla.reminderTime")) as string;
       if (now.getTime() < parseBusinessLocalDateTime(date, at).getTime()) return;
       for (const { userId, count } of await followUpsDue(businessDateToDbDate(date))) {

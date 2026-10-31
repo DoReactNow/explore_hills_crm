@@ -144,6 +144,7 @@ describe("AUDIT_ACTIONS", () => {
         "telephony.endpoint_changed",
         "telephony.outcome_saved",
         "notifications.preferences_changed",
+        "reports.exported",
       ].sort(),
     );
   });
