@@ -81,6 +81,96 @@ function Navigation({ pathname }: { pathname: string }) {
   );
 }
 
+/** The phone tab bar: the first four of these a person can open, then More (Shell-Mobile design). */
+const TAB_ORDER = ["/queue", "/leads", "/inbox", "/follow-ups", "/blast"];
+const PHONE_WIDTH = "(max-width: 767px)";
+const TAB_COUNT = 4;
+
+function useIsPhone(): boolean {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(PHONE_WIDTH);
+    const update = () => setPhone(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return phone;
+}
+
+function PhoneTabs({
+  pathname,
+  name,
+  role,
+  signingOut,
+  onSignOut,
+}: {
+  pathname: string;
+  name: string;
+  role: string;
+  signingOut: boolean;
+  onSignOut: () => void;
+}) {
+  const { can } = usePrincipal();
+  const [more, setMore] = useState(false);
+  const usable = NAV_ITEMS.filter(
+    (item) => (!item.permission || can(item.permission)) && (!item.anyOf || item.anyOf.some(can)),
+  );
+  const tabs = TAB_ORDER.flatMap((href) => usable.filter((item) => item.href === href)).slice(
+    0,
+    TAB_COUNT,
+  );
+  const rest = usable.filter((item) => !tabs.includes(item));
+  return (
+    <>
+      {more ? (
+        <div role="dialog" aria-modal="true" aria-label="More" className={styles.moreSheet}>
+          <div className={styles.moreUser}>
+            <b>{name}</b>
+            <span>{role}</span>
+          </div>
+          <div className={styles.moreGrid}>
+            {rest.map((item) => (
+              <a key={item.href} href={item.href} className={styles.moreLink}>
+                {item.label}
+              </a>
+            ))}
+          </div>
+          <button
+            type="button"
+            className={styles.moreSignOut}
+            disabled={signingOut}
+            onClick={onSignOut}
+          >
+            Sign out
+          </button>
+        </div>
+      ) : null}
+      <nav aria-label="Phone" className={styles.tabBar}>
+        {tabs.map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className={styles.tab}
+            aria-current={isCurrent(item.href, pathname) ? "page" : undefined}
+          >
+            {item.label}
+          </a>
+        ))}
+        <button
+          type="button"
+          className={styles.tab}
+          aria-expanded={more}
+          onClick={() => setMore((open) => !open)}
+        >
+          More
+        </button>
+      </nav>
+    </>
+  );
+}
+
 export function AppShell({
   children,
   onSignedOut = leave,
@@ -92,6 +182,7 @@ export function AppShell({
   const bare = pathname === SIGN_IN_PATH;
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [signingOut, setSigningOut] = useState(false);
+  const phone = useIsPhone();
 
   useEffect(() => {
     if (bare) return;
@@ -126,6 +217,15 @@ export function AppShell({
       state={me === undefined ? "loading" : me === null ? "signed-out" : "signed-in"}
     >
       <div className={styles.shell}>
+        {phone && me ? (
+          <PhoneTabs
+            pathname={pathname}
+            name={me.name}
+            role={me.role.name}
+            signingOut={signingOut}
+            onSignOut={signOut}
+          />
+        ) : null}
         <nav aria-label="Main" className={styles.sidebar}>
           <div className={styles.brand}>
             <LogoMark />

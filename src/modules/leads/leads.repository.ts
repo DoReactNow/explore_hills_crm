@@ -72,7 +72,11 @@ export interface LeadListQuery {
   direction: "asc" | "desc";
   openOnly?: boolean;
   createdBefore?: Date;
+  quick?: QuickFilter;
+  today: Date;
 }
+
+export type QuickFilter = "open" | "overdue" | "today" | "noFollowUp";
 
 const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
@@ -167,6 +171,13 @@ export const leadRepository = {
 
   createLead(tx: Tx, data: Prisma.LeadsLeadUncheckedCreateInput): Promise<LeadRow> {
     return tx.leadsLead.create({ data, select: LEAD_SELECT });
+  },
+
+  async isLeadVisible(id: string, scope: LeadScope): Promise<boolean> {
+    const count = await getPrisma().leadsLead.count({
+      where: { id, deletedAt: null, ...scopeWhere(scope) },
+    });
+    return count === 1;
   },
 
   /** Null when the lead is gone or out of scope; the caller answers "not found" either way. */
@@ -318,9 +329,12 @@ export const leadRepository = {
     await tx.leadsTimelineEntry.createMany({ data: [...entries], skipDuplicates: true });
   },
 
-  async listLeads(
-    query: LeadListQuery,
-  ): Promise<{ items: LeadRow[]; total: number; openCount: number }> {
+  async listLeads(query: LeadListQuery): Promise<{
+    items: LeadRow[];
+    total: number;
+    openCount: number;
+    quickCounts: Record<QuickFilter, number>;
+  }> {
     const prisma = getPrisma();
     const conditions: Prisma.Sql[] = [Prisma.sql`l."deletedAt" IS NULL`];
     if (query.scope.kind === "owners") {
@@ -353,6 +367,13 @@ export const leadRepository = {
       conditions.push(Prisma.sql`l."createdAt" <= ${query.createdBefore}::timestamptz`);
     }
     const where = Prisma.join(conditions, " AND ");
+    const quick: Record<QuickFilter, Prisma.Sql> = {
+      open: Prisma.sql`s.kind = 'OPEN'`,
+      overdue: Prisma.sql`s.kind = 'OPEN' AND l."nextFollowUpDate" < ${query.today}::date`,
+      today: Prisma.sql`s.kind = 'OPEN' AND l."nextFollowUpDate" = ${query.today}::date`,
+      noFollowUp: Prisma.sql`s.kind = 'OPEN' AND l."nextFollowUpDate" IS NULL`,
+    };
+    const chosen = query.quick ? quick[query.quick] : Prisma.sql`TRUE`;
     const from = Prisma.sql`FROM leads_leads l
       JOIN leads_contacts c ON c.id = l."contactId"
       JOIN leads_pipeline_stages s ON s.id = l."stageId"
@@ -374,10 +395,16 @@ export const leadRepository = {
     const order = Prisma.raw(query.direction === "desc" ? "DESC" : "ASC");
 
     const [rows, totals] = await Promise.all([
-      prisma.$queryRaw<Array<{ id: string }>>`SELECT l.id ${from} WHERE ${where}
+      prisma.$queryRaw<Array<{ id: string }>>`SELECT l.id ${from} WHERE ${where} AND ${chosen}
         ORDER BY ${column} ${order} NULLS LAST, l.id ASC LIMIT ${query.take} OFFSET ${query.skip}`,
-      prisma.$queryRaw<Array<{ total: bigint; open: bigint }>>`
-        SELECT count(*) AS total, count(*) FILTER (WHERE s.kind = 'OPEN') AS open
+      prisma.$queryRaw<
+        Array<{ total: bigint; open: bigint; overdue: bigint; today: bigint; none: bigint }>
+      >`
+        SELECT count(*) FILTER (WHERE ${chosen}) AS total,
+          count(*) FILTER (WHERE ${quick.open}) AS open,
+          count(*) FILTER (WHERE ${quick.overdue}) AS overdue,
+          count(*) FILTER (WHERE ${quick.today}) AS today,
+          count(*) FILTER (WHERE ${quick.noFollowUp}) AS none
         ${from} WHERE ${where}`,
     ]);
     const found = await prisma.leadsLead.findMany({
@@ -389,6 +416,12 @@ export const leadRepository = {
       items: rows.flatMap((row) => byId.get(row.id) ?? []),
       total: Number(totals[0].total),
       openCount: Number(totals[0].open),
+      quickCounts: {
+        open: Number(totals[0].open),
+        overdue: Number(totals[0].overdue),
+        today: Number(totals[0].today),
+        noFollowUp: Number(totals[0].none),
+      },
     };
   },
 

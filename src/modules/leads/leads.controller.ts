@@ -1,4 +1,5 @@
 // HTTP side of the leads module. Imported only by src/app (architecture rule 2).
+import { announceLead } from "./leads.events";
 import { AppError } from "@/shared/errors";
 import type { RouteContext } from "@/shared/http/route";
 import type {
@@ -56,34 +57,37 @@ export const leadsController = {
   },
   async deleteLead(context: RouteContext<undefined, IdParams>) {
     await leadService.deleteLead(leadContext(context), context.params.id);
+    await announceLead(context.params.id);
     return { data: { deleted: true } };
   },
   async moveStage(context: RouteContext<MoveStageInput, IdParams>) {
-    return {
-      data: await leadService.moveStage(leadContext(context), context.params.id, context.input),
-    };
+    const data = await leadService.moveStage(
+      leadContext(context),
+      context.params.id,
+      context.input,
+    );
+    await announceLead(context.params.id);
+    return { data };
   },
   async addNote(context: RouteContext<AddNoteInput, IdParams>) {
-    return {
-      status: 201,
-      data: await leadService.addNote(leadContext(context), context.params.id, context.input),
-    };
+    const data = await leadService.addNote(leadContext(context), context.params.id, context.input);
+    await announceLead(context.params.id);
+    return { status: 201, data };
   },
   async addTask(context: RouteContext<AddTaskInput, IdParams>) {
-    return {
-      status: 201,
-      data: await taskService.addTask(leadContext(context), context.params.id, context.input),
-    };
+    const data = await taskService.addTask(leadContext(context), context.params.id, context.input);
+    await announceLead(context.params.id);
+    return { status: 201, data };
   },
   async setTask(context: RouteContext<SetTaskInput, IdParams & { taskId: string }>) {
-    return {
-      data: await taskService.setCompleted(
-        leadContext(context),
-        context.params.id,
-        context.params.taskId,
-        context.input,
-      ),
-    };
+    const data = await taskService.setCompleted(
+      leadContext(context),
+      context.params.id,
+      context.params.taskId,
+      context.input,
+    );
+    await announceLead(context.params.id);
+    return { data };
   },
   async listFollowUps(context: RouteContext<ListFollowUpsInput, NoParams>) {
     return { data: await taskService.listFollowUps(leadContext(context), context.input) };

@@ -1114,3 +1114,18 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Reassigning** needs `leads:reassign` and a reason. The new owner must be an active agent in scope, but may be off shift or over their cap, because a manager is overriding. Reassigning to the current owner does nothing. Open follow-ups of earlier owners move to the new owner.
 - **On leave:** an agent keeps their leads. Timers keep running, so unanswered leads return to the queue.
 - **Auto-assign:** one active rule at most. A sweep checks every minute, so a new lead is assigned within about a minute. It applies to each new lead once, and only to leads that are still unassigned.
+
+---
+
+### Decision 60: Agent Workspace Rules for Phase 6
+
+**Date:** 2026-10-31
+**Status:** Accepted (set with the Phase 6 plan and reported to the owner)
+
+#### Decision
+- **Looking at a lead creates nothing.** A chat starts only when someone asks, so viewing leads doesn't fill the inbox with empty conversations.
+- **A lead that moves away while open** stays on screen with a notice. Editing stops, and typed text stays so it can be copied.
+- **Chats load the newest 50 messages,** with older ones on request. The reader's place holds when older messages load, and new messages scroll the view only for someone already at the end or for their own message.
+- **Quick filters** are Open, Overdue, Due today and No follow-up. Their counts ignore the chosen quick filter but respect the other filters.
+- **Shortcuts:** N (note) and F (follow-up) on a lead; J, K, Enter and / on the list. None fires while typing, inside a dialog or with a modifier held.
+- **Phones** get a bottom tab bar with the first four of Queue, Leads, Inbox, Follow-ups and Blast pool that a person can open, and the rest under More.

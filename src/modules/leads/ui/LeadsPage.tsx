@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/shared/api/client";
 import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePageAccess, usePrincipal } from "@/shared/rbac/usePrincipal";
+import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
+import { useShortcuts } from "@/shared/ui/useShortcuts";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
 import { LEAD_SOURCES, SOURCE_LABELS, type LeadSource } from "../leads.types";
 import { NewLeadDialog } from "./NewLeadDialog";
@@ -43,11 +45,26 @@ const COLUMNS = [
   { sort: "source", label: "Source" },
 ] as const;
 
+type QuickKey = "open" | "overdue" | "today" | "noFollowUp";
+
 interface ListResult {
   items: LeadRow[];
   total: number;
   openCount: number;
+  quickCounts: Record<QuickKey, number>;
 }
+
+const QUICK: ReadonlyArray<{ key: QuickKey; label: string }> = [
+  { key: "open", label: "Open" },
+  { key: "overdue", label: "Overdue" },
+  { key: "today", label: "Due today" },
+  { key: "noFollowUp", label: "No follow-up" },
+];
+const LIST_NOTICES = [
+  "leads.leadChanged",
+  "assignment.leadOwnerChanged",
+  "messaging.conversationChanged",
+];
 
 export function LeadsPage() {
   const access = usePageAccess(VIEW_LEADS);
@@ -64,7 +81,12 @@ export function LeadsPage() {
   const travelTo = params.get("travelTo") ?? "";
   const sort = params.get("sort") ?? "lastActivityAt";
   const direction = params.get("direction") === "asc" ? "asc" : "desc";
+  const quick = params.get("quick") ?? "";
   const page = Math.max(1, Number(params.get("page")) || 1);
+  const [cursor, setCursor] = useState(-1);
+  const [live, setLive] = useState(0);
+  const refreshLive = useCallback(() => setLive((n) => n + 1), []);
+  useLiveEvents({ types: LIST_NOTICES, onEvent: refreshLive, onResync: refreshLive });
 
   const [searchText, setSearchText] = useState(search);
   const [destinationText, setDestinationText] = useState(destination);
@@ -79,8 +101,18 @@ export function LeadsPage() {
     : can("leads:view-team")
       ? "Team leads"
       : "My leads";
+  useShortcuts({
+    j: () => setCursor((now) => Math.min(now + 1, (result?.items.length ?? 0) - 1)),
+    k: () => setCursor((now) => Math.max(now - 1, 0)),
+    Enter: () => {
+      const lead = result?.items[cursor];
+      if (lead) router.push(`/leads/${lead.id}`);
+    },
+    "/": () => document.getElementById("leads-search")?.focus(),
+  });
+
   const filtered = Boolean(
-    search || stage || owner || source || destination || travelFrom || travelTo,
+    search || stage || owner || source || destination || travelFrom || travelTo || quick,
   );
 
   const update = useCallback(
@@ -122,6 +154,7 @@ export function LeadsPage() {
       destination,
       travelFrom,
       travelTo,
+      quick,
     })) {
       if (value) request.set(key, value);
     }
@@ -146,6 +179,8 @@ export function LeadsPage() {
     destination,
     travelFrom,
     travelTo,
+    quick,
+    live,
   ]);
 
   useEffect(() => {
@@ -175,6 +210,7 @@ export function LeadsPage() {
           {result ? <span className={styles.titleNote}>· {result.openCount} open</span> : null}
         </h1>
         <input
+          id="leads-search"
           aria-label="Search name or phone"
           placeholder="Search name or phone"
           className={`${styles.control} ${styles.search}`}
@@ -190,6 +226,21 @@ export function LeadsPage() {
             + New lead
           </button>
         ) : null}
+      </div>
+
+      <div role="group" aria-label="Quick filters" className={styles.pills}>
+        {QUICK.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            className={styles.pill}
+            aria-pressed={quick === key}
+            onClick={() => update({ quick: quick === key ? "" : key, page: "" })}
+          >
+            {label}
+            {result ? ` · ${result.quickCounts[key]}` : ""}
+          </button>
+        ))}
       </div>
 
       <div className={styles.filters}>
@@ -336,8 +387,12 @@ export function LeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {result.items.map((lead) => (
-                <tr key={lead.id}>
+              {result.items.map((lead, index) => (
+                <tr
+                  key={lead.id}
+                  aria-selected={index === cursor ? true : undefined}
+                  className={index === cursor ? styles.rowCursor : undefined}
+                >
                   <td>
                     <Link className={styles.rowLink} href={`/leads/${lead.id}`}>
                       {lead.contact.name ?? "Unnamed customer"}

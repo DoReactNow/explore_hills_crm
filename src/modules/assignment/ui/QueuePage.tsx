@@ -128,7 +128,7 @@ function waitLabel(minutes: number) {
   return `${Math.floor(minutes / 1440)} d`;
 }
 
-function AssignPanel({
+export function AssignPanel({
   selected,
   all,
   count,
@@ -151,6 +151,7 @@ function AssignPanel({
   const [busy, setBusy] = useState(false);
   const [undoLeft, setUndoLeft] = useState(0);
   const key = useRef(newKey());
+  const touched = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -158,7 +159,10 @@ function AssignPanel({
       (next) => {
         if (next.ok) {
           setAgents(next.data.items);
-          setChosen(next.data.items.filter((agent) => !agent.block).map((agent) => agent.id));
+          // Arriving late must not undo a choice already made, or give one-agent mode several.
+          if (!touched.current) {
+            setChosen(next.data.items.filter((agent) => !agent.block).map((agent) => agent.id));
+          }
         } else if (!controller.signal.aborted) setError(next.error);
       },
     );
@@ -178,6 +182,7 @@ function AssignPanel({
     .reduce((sum, agent) => sum + agent.room, 0);
 
   function pick(id: string) {
+    touched.current = true;
     setChosen((now) =>
       single ? [id] : now.includes(id) ? now.filter((other) => other !== id) : [...now, id],
     );
@@ -274,7 +279,10 @@ function AssignPanel({
                 checked={mode === option.key}
                 onChange={() => {
                   setMode(option.key);
-                  if (option.key === "MANUAL") setChosen((now) => now.slice(0, 1));
+                  if (option.key === "MANUAL") {
+                    touched.current = true;
+                    setChosen([]);
+                  }
                 }}
               />
               <span className={styles.optionText}>

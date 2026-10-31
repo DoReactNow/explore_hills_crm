@@ -83,6 +83,8 @@ function toMessageView(message: MessageRow) {
   };
 }
 
+const MESSAGE_PAGE = 50;
+
 interface Deps {
   repository?: MessagingRepository;
   clock?: Clock;
@@ -503,11 +505,36 @@ export function createMessagingService({
     async getConversation({ principal }: MessagingContext, id: string) {
       assertCan(principal, "messaging:view");
       const row = await loadConversation(principal, id);
-      const messages = await repository.conversationMessages(id);
+      const messages = await repository.conversationMessages(id, MESSAGE_PAGE + 1);
       return {
         ...toConversationView(row),
-        messages: messages.reverse().map(toMessageView),
+        hasOlder: messages.length > MESSAGE_PAGE,
+        messages: messages.slice(0, MESSAGE_PAGE).reverse().map(toMessageView),
       };
+    },
+
+    /** The page before a message, oldest first, for scrolling back through a long chat. */
+    async listOlderMessages({ principal }: MessagingContext, id: string, before?: string) {
+      assertCan(principal, "messaging:view");
+      await loadConversation(principal, id);
+      if (before && !UUID.test(before)) throw notFound();
+      const known = before ? await repository.findMessageInConversation(id, before) : true;
+      if (!known) throw notFound();
+      const messages = await repository.conversationMessages(id, MESSAGE_PAGE + 1, before);
+      return {
+        hasOlder: messages.length > MESSAGE_PAGE,
+        messages: messages.slice(0, MESSAGE_PAGE).reverse().map(toMessageView),
+      };
+    },
+
+    /** Finds a lead's chat without creating one, so that looking at a lead changes nothing. */
+    async findConversationOfLead({ principal }: MessagingContext, leadId: string) {
+      assertCan(principal, "messaging:view");
+      if (!UUID.test(leadId)) throw notFound();
+      const scope = await leadScopeOf(principal);
+      const lead = await repository.transaction((tx) => findLeadForChat(tx, leadId, scope));
+      if (!lead) throw notFound();
+      return { conversationId: await repository.conversationIdOfLead(leadId) };
     },
 
     async markRead({ principal }: MessagingContext, id: string) {
