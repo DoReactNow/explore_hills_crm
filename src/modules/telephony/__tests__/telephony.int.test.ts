@@ -234,6 +234,18 @@ describe("placing a call", () => {
     expect((await callOf(call.id)).status).toBe(expected);
   });
 
+  it("records the first response only when the call is answered (P8-SLA-01)", async () => {
+    const agent = await makeUser();
+    const lead = await makeLead(agent.id);
+    const call = await start(await ctx(agent.id), lead.id);
+    await deliver(statusEvent(call.callRef, "ringing"));
+    const before = await prisma.leadsLead.findUniqueOrThrow({ where: { id: lead.id } });
+    expect(before.firstResponseAt).toBeNull();
+    await deliver(statusEvent(call.callRef, "answered"));
+    const after = await prisma.leadsLead.findUniqueOrThrow({ where: { id: lead.id } });
+    expect(after.firstResponseAt).toEqual(NOON);
+  });
+
   it("counts as a response, so the lead's timeout is cancelled", async () => {
     const agent = await makeUser();
     const lead = await makeLead(agent.id);

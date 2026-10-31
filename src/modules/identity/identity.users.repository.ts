@@ -240,6 +240,26 @@ export const userRepository = {
     });
   },
 
+  /** Everyone above a person: their reporting chain, and whoever manages their teams, all the way up. */
+  async managersAbove(userId: string): Promise<string[]> {
+    const rows = await getPrisma().$queryRaw<Array<{ id: string }>>`
+      WITH RECURSIVE above(id) AS (
+        SELECT ${userId}::uuid
+        UNION
+        SELECT parent.id FROM above a
+        JOIN identity_users u ON u.id = a.id
+        JOIN identity_users parent ON parent.id = u."managerId" OR parent.id IN (
+          SELECT t."managerUserId" FROM identity_team_members m
+          JOIN identity_teams t ON t.id = m."teamId"
+          WHERE m."userId" = a.id AND t."managerUserId" IS NOT NULL
+        )
+      )
+      SELECT a.id FROM above a
+      JOIN identity_users u ON u.id = a.id
+      WHERE a.id <> ${userId}::uuid AND u.status = 'ACTIVE'`;
+    return rows.map((row) => row.id);
+  },
+
   async visibleUserIds(rootId: string): Promise<string[]> {
     const rows = await getPrisma().$queryRaw<Array<{ id: string }>>`
       WITH RECURSIVE visible(id) AS (

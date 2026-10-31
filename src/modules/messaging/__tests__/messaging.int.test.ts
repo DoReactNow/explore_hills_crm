@@ -201,6 +201,20 @@ describe("older messages (P6-WORK-06)", () => {
   });
 });
 
+describe("a customer's message", () => {
+  it("notifies the lead's owner, once", async () => {
+    const owner = await makeUser();
+    const from = nextNumber();
+    await receive(from, "first");
+    const conversation = await conversationOf(from);
+    await assignLead(conversation.lead!.id, owner.id);
+    const message = await receive(from, "second");
+    expect(message.id).toBeTruthy();
+    const rows = await prisma.notificationsNotification.findMany({ where: { userId: owner.id } });
+    expect(rows.map((row) => row.kind)).toEqual(["customer_message"]);
+  });
+});
+
 describe("a lead's chat", () => {
   it("is found without creating one just by looking", async () => {
     await as("ADMIN");

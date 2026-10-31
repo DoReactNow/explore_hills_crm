@@ -6,6 +6,8 @@ export { recordFirstResponse, resolveLeadForInbound, setContactOpt } from "./lea
 export {
   addLeadTimeline,
   addSystemFollowUp,
+  followUpsDue,
+  leadsAwaitingResponse,
   createTaskForLead,
   findLeadForCall,
   findLeadOwner,

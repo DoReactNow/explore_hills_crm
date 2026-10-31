@@ -119,3 +119,44 @@ test("a phone gets the tab bar and the More sheet", async ({ browser }) => {
     page.getByRole("dialog", { name: "More" }).getByRole("button", { name: "Sign out" }),
   ).toBeVisible();
 });
+
+test("an assigned lead notifies its agent live, and opening it marks it read (P8-NOTIF-01, -02)", async ({
+  browser,
+}) => {
+  const agent = await (await browser.newContext()).newPage();
+  await signIn(agent, "AGENT", "/notifications");
+  await expect(agent.getByRole("heading", { name: "Notifications" })).toBeVisible();
+  await expect(agent.getByText("Notifications stay on")).toBeVisible();
+
+  const manager = await (await browser.newContext()).newPage();
+  await signIn(manager, "MANAGER", "/queue");
+  await manager.getByRole("checkbox", { name: "Select Sample Customer 15" }).check();
+  await manager.getByRole("button", { name: "Assign 1 lead" }).click();
+  const panel = manager.getByRole("dialog", { name: "Assign leads" });
+  await panel.getByRole("radio", { name: /One agent/ }).check();
+  await panel.getByRole("button", { name: "Next: choose agents" }).click();
+  await panel.getByRole("radio", { name: new RegExp(seededUser("AGENT").name) }).check();
+  await panel.getByRole("button", { name: "Preview" }).click();
+  await panel.getByRole("button", { name: "Assign 1 lead" }).click();
+  await panel.getByRole("status").waitFor();
+
+  const item = agent.getByRole("button", { name: /assigned to you/ }).first();
+  await expect(item).toBeVisible({ timeout: 15_000 });
+  await item.click();
+  await expect(agent).toHaveURL(/\/leads/);
+});
+
+test("a manager can turn notifications off, and an agent can't", async ({ page }) => {
+  await signIn(page, "MANAGER", "/notifications");
+  const choices = page.getByRole("region", { name: "Notification choices" });
+  const saved = page.waitForResponse(
+    (response) => response.url().includes("/preferences") && response.request().method() === "PUT",
+  );
+  await choices.getByLabel("By email").uncheck();
+  expect((await saved).status()).toBe(200);
+  await page.reload();
+  await expect(
+    page.getByRole("region", { name: "Notification choices" }).getByLabel("By email"),
+  ).not.toBeChecked();
+  await page.getByRole("region", { name: "Notification choices" }).getByLabel("By email").check();
+});

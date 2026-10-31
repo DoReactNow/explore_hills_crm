@@ -51,6 +51,7 @@ export const DEFAULT_ROLES = {
       "messaging:manage-templates",
       "telephony:call",
       "telephony:view-recordings",
+      "notifications:mute",
     ],
   },
   MANAGER: {
@@ -72,6 +73,7 @@ export const DEFAULT_ROLES = {
       "messaging:send",
       "telephony:call",
       "telephony:view-recordings",
+      "notifications:mute",
     ],
   },
   AGENT: {

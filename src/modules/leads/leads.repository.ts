@@ -173,6 +173,42 @@ export const leadRepository = {
     return tx.leadsLead.create({ data, select: LEAD_SELECT });
   },
 
+  /** Open leads still waiting for a first response, for the SLA sweep. */
+  leadsAwaitingResponse(since: Date, take: number) {
+    return getPrisma().leadsLead.findMany({
+      where: {
+        firstResponseAt: null,
+        deletedAt: null,
+        closedAt: null,
+        createdAt: { gte: since },
+        stage: { kind: "OPEN" },
+      },
+      orderBy: { createdAt: "asc" },
+      take,
+      select: {
+        id: true,
+        ownerUserId: true,
+        createdAt: true,
+        destination: true,
+        contact: { select: { name: true } },
+      },
+    });
+  },
+
+  /** How many follow-ups each person has due or overdue, on open leads. */
+  async followUpsDue(onOrBefore: Date) {
+    const rows = await getPrisma().leadsTask.groupBy({
+      by: ["assigneeUserId"],
+      where: {
+        completedAt: null,
+        dueDate: { lte: onOrBefore },
+        lead: { deletedAt: null, closedAt: null },
+      },
+      _count: { _all: true },
+    });
+    return rows.map((row) => ({ userId: row.assigneeUserId, count: row._count._all }));
+  },
+
   async isLeadVisible(id: string, scope: LeadScope): Promise<boolean> {
     const count = await getPrisma().leadsLead.count({
       where: { id, deletedAt: null, ...scopeWhere(scope) },

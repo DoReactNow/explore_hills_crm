@@ -85,3 +85,6 @@ export const createTaskForLead = (
   leadId: string,
   input: { title: string; dueDate: string },
 ) => taskService.addTask(context, leadId, input);
+
+export const leadsAwaitingResponse = leadRepository.leadsAwaitingResponse;
+export const followUpsDue = leadRepository.followUpsDue;

@@ -63,6 +63,12 @@ const baseSchema = z.object({
   STORAGE_S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   STORAGE_S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).optional(),
   FFMPEG_PATH: z.string().min(1).optional(),
+  EMAIL_DRIVER: z.enum(["fake", "smtp"]).default("fake"),
+  EMAIL_FROM: z.string().min(3).optional(),
+  SMTP_URL: z.string().min(3).optional(),
+  PUSH_DRIVER: z.enum(["fake", "webpush"]).default("fake"),
+  VAPID_PUBLIC_KEY: z.string().min(10).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(10).optional(),
 });
 
 const S3_REQUIRED = [
@@ -86,6 +92,12 @@ const envSchema = baseSchema.superRefine((env, ctx) => {
     }
   }
 
+  if (env.EMAIL_DRIVER === "smtp" && (!env.SMTP_URL || !env.EMAIL_FROM)) {
+    issue("SMTP_URL", "EMAIL_DRIVER=smtp needs SMTP_URL and EMAIL_FROM");
+  }
+  if (env.PUSH_DRIVER === "webpush" && (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY)) {
+    issue("VAPID_PUBLIC_KEY", "PUSH_DRIVER=webpush needs VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY");
+  }
   if (env.APP_ENV === "production") {
     if (isPlaceholder(env.AUTH_SECRET)) {
       issue("AUTH_SECRET", "AUTH_SECRET is a development placeholder; generate a real secret");
@@ -96,6 +108,12 @@ const envSchema = baseSchema.superRefine((env, ctx) => {
         "CREDENTIALS_ENCRYPTION_KEY",
         "CREDENTIALS_ENCRYPTION_KEY is a development placeholder; generate a real key",
       );
+    }
+    if (env.EMAIL_DRIVER === "fake") {
+      issue("EMAIL_DRIVER", 'EMAIL_DRIVER "fake" is not allowed in production');
+    }
+    if (env.PUSH_DRIVER === "fake") {
+      issue("PUSH_DRIVER", 'PUSH_DRIVER "fake" is not allowed in production');
     }
     if (env.TELEPHONY_PROVIDER === "fake") {
       issue("TELEPHONY_PROVIDER", 'TELEPHONY_PROVIDER "fake" is not allowed in production');

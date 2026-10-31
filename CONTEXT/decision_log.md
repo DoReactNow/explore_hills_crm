@@ -1185,3 +1185,22 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
   - **Push only:** a blast offer, and a new customer message on your lead.
   - **Email only:** a daily summary of overdue follow-ups, and a recording that couldn't be saved (to Admins and Managers).
   - **In-app only:** everything else.
+
+---
+
+### Decision 64: Notification and SLA Rules for Phase 8
+
+**Date:** 2026-10-31
+**Status:** Accepted (set with the Phase 8 plan and reported to the owner)
+
+#### Decision
+- **What stops the first-reply clock:** a WhatsApp reply or an answered call. A note, a stage change or an unanswered call attempt does not. This is stricter than the assignment timeout (Decision 59), which only asks whether the agent did anything.
+- **A reply at the exact deadline is on time.** Only strictly later is late.
+- **Who hears:** the owner just after the deadline, or those who can assign if it's in the queue. At twice the target, the managers above the owner, or those who can see every lead if there's none. Each fires once for each lead.
+- **Reassigning** keeps the clock running, because the customer is still waiting. The new owner is told if it's already late.
+- **A changed target** applies to leads that haven't fired yet, and never fires one twice. This is an exception to Decision 57, because the clock isn't stored.
+- **Daily reminder:** once on each working day, at `sla.reminderTime` or the first chance after it, so a worker that was down catches up. Nothing on closed days or holidays. SLA clocks look back 14 days.
+- **Grouping:** like events within 5 minutes join one notification while it's unread, and only the first of a group goes by email or push.
+- **Turning off:** by channel, for Admins and Managers (`notifications:mute`), for their own notifications only. Agents can't turn theirs off.
+- **Bad email addresses and expired push subscriptions** don't retry and don't block anyone else; expired subscriptions are removed. Outages retry.
+- **Email and push run on fakes until go-live.** Production refuses the fakes, so it needs a mail account (`SMTP_URL`, `EMAIL_FROM`) and push keys (`npx web-push generate-vapid-keys`).

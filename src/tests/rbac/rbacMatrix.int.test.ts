@@ -53,6 +53,11 @@ import * as leadCalls from "@/app/api/leads/[id]/calls/route";
 import * as callFake from "@/app/api/telephony/fake/route";
 import * as callHook from "@/app/api/webhooks/telephony/route";
 import * as callInbound from "@/app/api/webhooks/telephony/inbound/route";
+import * as noteList from "@/app/api/notifications/route";
+import * as noteRead from "@/app/api/notifications/[id]/read/route";
+import * as noteReadAll from "@/app/api/notifications/read-all/route";
+import * as notePrefs from "@/app/api/notifications/preferences/route";
+import * as notePush from "@/app/api/notifications/push/route";
 import * as leadReassign from "@/app/api/leads/[id]/reassign/route";
 import * as leadMerge from "@/app/api/leads/[id]/merge/route";
 import * as messageMedia from "@/app/api/messages/[id]/media/route";
@@ -363,6 +368,46 @@ const CASES: Case[] = [
     handler: templateItem.DELETE,
     allowed: ADMINS,
     usesId: "lead",
+  },
+  { method: "GET", path: "/api/notifications", handler: noteList.GET, allowed: EVERYONE },
+  {
+    method: "POST",
+    path: "/api/notifications/[id]/read",
+    handler: noteRead.POST,
+    allowed: EVERYONE,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/notifications/read-all",
+    handler: noteReadAll.POST,
+    allowed: EVERYONE,
+  },
+  {
+    method: "GET",
+    path: "/api/notifications/preferences",
+    handler: notePrefs.GET,
+    allowed: EVERYONE,
+  },
+  {
+    method: "PUT",
+    path: "/api/notifications/preferences",
+    handler: notePrefs.PUT,
+    allowed: ASSIGNERS,
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/notifications/push",
+    handler: notePush.POST,
+    allowed: EVERYONE,
+    body: {},
+  },
+  {
+    method: "DELETE",
+    path: "/api/notifications/push",
+    handler: notePush.DELETE,
+    allowed: EVERYONE,
   },
   { method: "GET", path: "/api/telephony/softphone", handler: callSoft.GET, allowed: LEAD_ROLES },
   { method: "POST", path: "/api/telephony/heartbeat", handler: callBeat.POST, allowed: LEAD_ROLES },

@@ -14,10 +14,13 @@ export { identityJobs, identitySchedules } from "./identity.jobs";
 export { createSessionPrincipalResolver } from "./identity.session";
 
 export {
+  getNotifiableUser,
   getUserSummary,
   getVisibleAgentIds,
   listAssignableUsers,
   listCallers,
+  listHolders,
+  listManagersAbove,
 } from "./identity.scope";
 export { userService } from "./identity.users.service";
 export { toUserView } from "./identity.users.repository";

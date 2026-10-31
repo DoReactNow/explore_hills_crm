@@ -13,6 +13,26 @@ export const SETTINGS = {
     defaultValue: 15,
     schema: minutes(1440),
   },
+  "sla.holidays": {
+    label: "Holidays",
+    help: "Dates with commas between, as YYYY-MM-DD. SLA clocks and reminders stop on these days. Empty means none.",
+    group: "Pipeline & SLA",
+    defaultValue: "",
+    schema: z
+      .string()
+      .trim()
+      .regex(
+        /^(\d{4}-\d{2}-\d{2}(,\s*\d{4}-\d{2}-\d{2})*)?$/,
+        "Please use dates like 2026-12-25, with commas between.",
+      ),
+  },
+  "sla.reminderTime": {
+    label: "Daily follow-up reminder (IST)",
+    help: "24-hour time, such as 09:30. Sent once on each working day.",
+    group: "Pipeline & SLA",
+    defaultValue: "09:30",
+    schema: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Please use a time like 09:30."),
+  },
   "assignment.timeoutMinutes": {
     label: "Response timeout",
     help: "Minutes an agent has to respond before a lead moves on.",

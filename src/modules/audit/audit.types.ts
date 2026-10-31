@@ -45,5 +45,6 @@ export const AUDIT_ACTIONS = [
   "telephony.recording_deleted",
   "telephony.endpoint_changed",
   "telephony.outcome_saved",
+  "notifications.preferences_changed",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

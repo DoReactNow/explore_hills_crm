@@ -69,42 +69,45 @@ model IdentityRolePermission {
 // Owner: identity. Staff accounts. Never hard-deleted: deactivated instead (status DEACTIVATED).
 // managerId is the one reporting line; team membership is many-to-many (Decision 55).
 model IdentityUser {
-  id                      String                      @id @default(uuid(7)) @db.Uuid
-  email                   String                      @unique // stored lowercase; lower(email) is also unique (raw SQL)
-  name                    String
-  phoneE164               String? // E.164, checked in SQL
-  passwordHash            String // argon2id; never returned by any API or written to any log
-  status                  IdentityUserStatus          @default(INVITED)
-  roleId                  String                      @db.Uuid
-  role                    IdentityRole                @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
-  failedLoginCount        Int                         @default(0)
-  lockedUntil             DateTime?                   @db.Timestamptz(3)
-  lastLoginAt             DateTime?                   @db.Timestamptz(3)
-  createdAt               DateTime                    @default(now()) @db.Timestamptz(3)
-  updatedAt               DateTime                    @updatedAt @db.Timestamptz(3)
-  deactivatedAt           DateTime?                   @db.Timestamptz(3)
-  managerId               String?                     @db.Uuid
-  manager                 IdentityUser?               @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
-  reports                 IdentityUser[]              @relation("UserManager")
-  managedTeams            IdentityTeam[]              @relation("TeamManager")
-  teamMemberships         IdentityTeamMember[]
-  sessions                IdentitySession[]
-  auditEvents             AuditEvent[] // back-relation from the audit module
-  ownedLeads              LeadsLead[]
-  notes                   LeadsNote[]
-  tasks                   LeadsTask[]
-  timelineEntries         LeadsTimelineEntry[]
-  updatedSettings         SystemSetting[]
-  sentMessages            MessagingMessage[]
-  assignmentSetting       AssignmentAgentSetting?
-  createdRules            AssignmentRule[]
-  requestedBatches        AssignmentBatch[]
-  assignmentsFrom         AssignmentRecord[]          @relation("AssignmentFrom")
-  assignmentsTo           AssignmentRecord[]          @relation("AssignmentTo")
-  claimedPoolEntries      AssignmentPoolEntry[]
-  poolEligibility         AssignmentPoolEligibility[]
-  telephonyAgentEndpoints TelephonyAgentEndpoint[]
-  telephonyCalls          TelephonyCall[]
+  id                             String                          @id @default(uuid(7)) @db.Uuid
+  email                          String                          @unique // stored lowercase; lower(email) is also unique (raw SQL)
+  name                           String
+  phoneE164                      String? // E.164, checked in SQL
+  passwordHash                   String // argon2id; never returned by any API or written to any log
+  status                         IdentityUserStatus              @default(INVITED)
+  roleId                         String                          @db.Uuid
+  role                           IdentityRole                    @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
+  failedLoginCount               Int                             @default(0)
+  lockedUntil                    DateTime?                       @db.Timestamptz(3)
+  lastLoginAt                    DateTime?                       @db.Timestamptz(3)
+  createdAt                      DateTime                        @default(now()) @db.Timestamptz(3)
+  updatedAt                      DateTime                        @updatedAt @db.Timestamptz(3)
+  deactivatedAt                  DateTime?                       @db.Timestamptz(3)
+  managerId                      String?                         @db.Uuid
+  manager                        IdentityUser?                   @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
+  reports                        IdentityUser[]                  @relation("UserManager")
+  managedTeams                   IdentityTeam[]                  @relation("TeamManager")
+  teamMemberships                IdentityTeamMember[]
+  sessions                       IdentitySession[]
+  auditEvents                    AuditEvent[] // back-relation from the audit module
+  ownedLeads                     LeadsLead[]
+  notes                          LeadsNote[]
+  tasks                          LeadsTask[]
+  timelineEntries                LeadsTimelineEntry[]
+  updatedSettings                SystemSetting[]
+  sentMessages                   MessagingMessage[]
+  assignmentSetting              AssignmentAgentSetting?
+  createdRules                   AssignmentRule[]
+  requestedBatches               AssignmentBatch[]
+  assignmentsFrom                AssignmentRecord[]              @relation("AssignmentFrom")
+  assignmentsTo                  AssignmentRecord[]              @relation("AssignmentTo")
+  claimedPoolEntries             AssignmentPoolEntry[]
+  poolEligibility                AssignmentPoolEligibility[]
+  telephonyAgentEndpoints        TelephonyAgentEndpoint[]
+  telephonyCalls                 TelephonyCall[]
+  notificationsNotifications     NotificationsNotification[]
+  notificationsPreferences       NotificationsPreference[]
+  notificationsPushSubscriptions NotificationsPushSubscription[]
 
   @@index([roleId])
   @@index([status])
@@ -799,4 +802,55 @@ model TelephonyWebhookEvent {
   @@unique([providerKey, eventKey])
   @@index([receivedAt])
   @@map("telephony_webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// notifications module
+// ---------------------------------------------------------------------------
+
+// Owner: notifications. One row can stand for several like events (groupCount). dedupeKeys holds every
+// event it covers, so the same event delivered twice notifies once.
+model NotificationsNotification {
+  id         String       @id @default(uuid(7)) @db.Uuid
+  userId     String       @db.Uuid
+  user       IdentityUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  kind       String
+  title      String
+  body       String
+  link       String?
+  groupCount Int          @default(1)
+  dedupeKeys String[]
+  readAt     DateTime?    @db.Timestamptz(3)
+  createdAt  DateTime     @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("notifications_notifications")
+}
+
+// Owner: notifications. No row means everything is on.
+model NotificationsPreference {
+  userId    String       @id @db.Uuid
+  user      IdentityUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  inApp     Boolean      @default(true)
+  email     Boolean      @default(true)
+  push      Boolean      @default(true)
+  updatedAt DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@map("notifications_preferences")
+}
+
+// Owner: notifications. A browser that accepted push notifications.
+model NotificationsPushSubscription {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  userId    String       @db.Uuid
+  user      IdentityUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  endpoint  String       @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
+  @@map("notifications_push_subscriptions")
 }

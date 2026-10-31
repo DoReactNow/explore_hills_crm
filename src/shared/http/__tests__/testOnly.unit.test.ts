@@ -20,6 +20,14 @@ async function load(appEnv: "test" | "development" | "production") {
   vi.stubEnv("AUTH_SECRET", "x".repeat(40));
   vi.stubEnv("CREDENTIALS_ENCRYPTION_KEY", Buffer.alloc(32, 1).toString("base64"));
   vi.stubEnv("TELEPHONY_PROVIDER", production ? "someprovider" : "fake");
+  if (production) {
+    vi.stubEnv("EMAIL_DRIVER", "smtp");
+    vi.stubEnv("EMAIL_FROM", "crm@example.com");
+    vi.stubEnv("SMTP_URL", "smtp://mail.example.com");
+    vi.stubEnv("PUSH_DRIVER", "webpush");
+    vi.stubEnv("VAPID_PUBLIC_KEY", "public-key-value");
+    vi.stubEnv("VAPID_PRIVATE_KEY", "private-key-value");
+  }
   vi.stubEnv("WHATSAPP_GATEWAY", production ? "somegateway" : "fake");
   vi.stubEnv("STORAGE_DRIVER", "local");
   vi.stubEnv("STORAGE_LOCAL_DIR", "./storage/test");
