@@ -658,6 +658,8 @@ Costs are being compared. For each candidate, confirm:
 
 Example candidates to evaluate: Exotel (browser SDK confirmed in its documentation), Knowlarity, Ozonetel and Plivo. Global providers may not offer domestic calling within India; verify before shortlisting.
 
+**Update, 2026-10-31:** the owner is still deciding and asked for a suggestion. Suggested: get written quotes from Exotel (first choice) and Knowlarity (price check). Plivo limits Indian routes to India-registered businesses with both call legs and media in India, and whether its browser calling qualifies is unconfirmed. Public prices are mostly third-party estimates, so the quotes must settle them.
+
 ---
 
 ### Decision 31: Open — Recording Storage Target
@@ -1129,3 +1131,40 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Quick filters** are Open, Overdue, Due today and No follow-up. Their counts ignore the chosen quick filter but respect the other filters.
 - **Shortcuts:** N (note) and F (follow-up) on a lead; J, K, Enter and / on the list. None fires while typing, inside a dialog or with a modifier held.
 - **Phones** get a bottom tab bar with the first four of Queue, Leads, Inbox, Follow-ups and Blast pool that a person can open, and the rest under More.
+
+---
+
+### Decision 61: Out-of-Hours Calls and the Recording Announcement
+
+**Date:** 2026-10-31
+**Status:** Accepted (the message and alert rule chosen by the owner, answering `test_scenarios.md` Q-13; the wording delegated to Claude in Q-15, and changeable; the rest set with these and reported to the owner)
+
+#### Decision
+- **Out of hours:** the caller is asked to leave a message, and we get back to them in working hours. The message is stored on the lead like a call recording.
+- **Missed-call alert:** goes to Admins and to the manager of the lead's owner. With no owner or no manager, it goes to everyone who can assign leads. It appears on screen in Phase 7; email and push wait for `Q-17` in Phase 8.
+- **Working hours:** a setting, starting at Monday to Saturday, 10:00 to 19:00 IST. This default is a placeholder for the owner to correct. Holidays wait for `Q-16`.
+- **Out-of-hours wording (English):** "Thank you for calling {company}. We're closed right now. Please leave a message after the tone, and we'll get back to you during working hours."
+- **Out-of-hours wording (Hindi):** "{company} को कॉल करने के लिए धन्यवाद। अभी हमारा कार्यालय बंद है। कृपया बीप के बाद अपना संदेश छोड़ें। हम कार्य समय में आपसे संपर्क करेंगे।"
+- **Recording announcement (English):** "This call may be recorded for quality and training purposes."
+- **Recording announcement (Hindi):** "गुणवत्ता और प्रशिक्षण के लिए यह कॉल रिकॉर्ड की जा सकती है।"
+- **The wording is stored as settings,** so it can change without a release. A legal adviser still has to confirm the recording notice under the DPDP Act (`Q-19`, Phase 10).
+
+---
+
+### Decision 62: Calling Rules for Phase 7
+
+**Date:** 2026-10-31
+**Status:** Accepted (set with the Phase 7 plan and reported to the owner)
+
+#### Decision
+- **One call at a time,** per agent and per customer. The same click twice returns the same call.
+- **Closing or refreshing the tab, or signing out, ends the call,** because the audio lives in that tab. Moving between pages does not. Any call that never gets an end event is closed as failed after 5 minutes of ringing or 6 hours in total.
+- **A reassigned lead or a deactivated agent doesn't cut a live call.**
+- **Starting a call counts as a response** for the lead's timeout (Decision 59), however the call turns out. A missed call counts as nobody's response.
+- **Outcome:** it opens when an answered call ends, and "Skip for now" is allowed, so it can be filled in later. It can be set once. This follows the design's Skip button rather than its "required before the next call" label.
+- **Inbound routing:** out of hours takes a message. Otherwise it rings the owner if online, free and not on leave, then follows `telephony.inboundFallback`. "Online" means the softphone reported in within 75 seconds. If deciding takes over 3 seconds, the caller is asked to leave a message.
+- **Missed or declined calls** are logged, get a same-day follow-up for the owner, and alert Admins and the managers above the owner, on screen and in the Calls page. Nobody else is rung.
+- **Unknown numbers** make one Phone lead, unassigned, in the queue. This follows `project_data.md`, not the design's "answering creates a lead you own". Hidden or malformed numbers make no lead.
+- **A number on several leads:** the customer's open lead, or a new linked lead if none is open.
+- **Recordings:** a failed download retries up to the job's limit. An expired link or a corrupt or empty file fails at once, with no file kept. Only the start of a listen is audited, not each seek. Signed links last 5 minutes.
+- **Provider logins** are encrypted with `CREDENTIALS_ENCRYPTION_KEY` and never returned. `telephony_provider_accounts` from the schema plan was left out, because nothing needs it yet.

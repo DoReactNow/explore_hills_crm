@@ -631,7 +631,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P7-INCALL-07** A hidden or malformed caller number is handled safely.
 - **P7-INCALL-08** A pop-up shows only what the agent may see.
 - **P7-INCALL-09** Routing a slow webhook falls back so the caller is not left waiting.
-- **Q-13 (needs an answer):** What does a caller hear out of hours, and who gets the missed-call alert?
+- **Q-13 (answered):** The caller is asked to leave a message, and the alert goes to Admins and the manager (Decision 61).
 
 ### Recordings
 
@@ -660,7 +660,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P7-DRIVER-04** Stored SIP logins are encrypted, never logged and never returned, and each agent has their own.
 - **P7-DRIVER-05** The S3 driver passes the storage contract, and storage:copy can run twice safely and tolerates a failure midway.
 - **Q-14 (needs an answer):** Which calling provider (Decision 30), and does it support licensed browser calling to Indian numbers?
-- **Q-15 (needs an answer):** What is the exact recording announcement?
+- **Q-15 (answered):** Wording set in Decision 61, changeable as a setting; legal confirmation stays with `Q-19`.
 
 ---
 
@@ -824,9 +824,9 @@ Collected from the sections above. Answer a phase's questions before planning it
 | Q-10 | 5 | Answered: the person deactivating chooses, defaulting to the manager queue (Decision 59) |
 | Q-11 | 5 | Answered: the timer counts only during the agent's shifts (Decision 59) |
 | Q-12 | 5 | Answered: after 2 timeouts in a row, as a setting (Decision 59) |
-| Q-13 | 7 | What does a caller hear out of hours, and who gets the missed-call alert? |
+| Q-13 | 7 | Answered: leave a message; alert to Admins and the manager (Decision 61) |
 | Q-14 | 7 | Which calling provider (Decision 30), and does it support licensed browser calling to Indian numbers? |
-| Q-15 | 7 | What is the exact recording announcement? |
+| Q-15 | 7 | Answered: wording in Decision 61, changeable |
 | Q-16 | 8 | Should SLA clocks count only working hours? Are there holidays? |
 | Q-17 | 8 | Which notifications go by email or push, and can users turn them off? |
 | Q-18 | 10 | How long must messages, recordings and audit records be kept? Are the proposed defaults right? |

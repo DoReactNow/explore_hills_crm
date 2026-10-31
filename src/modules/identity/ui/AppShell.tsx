@@ -2,6 +2,7 @@
 
 // The signed-in frame around every page: who you are, what you can open, and signing out. Items a
 // person cannot use are removed, never greyed. The server stays the authority on every action.
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { apiRequest } from "@/shared/api/client";
@@ -38,6 +39,7 @@ const NAV_ITEMS: ReadonlyArray<{
     label: "Follow-ups",
     anyOf: ["leads:view-own", "leads:view-team", "leads:view-all"],
   },
+  { href: "/calls", label: "Calls", permission: "telephony:call" },
   { href: "/queue", label: "Queue", permission: "leads:assign" },
   { href: "/blast", label: "Blast pool", permission: "leads:claim" },
   { href: "/assignment-rules", label: "Assignment rules", permission: "assignment:manage-rules" },
@@ -68,14 +70,14 @@ function Navigation({ pathname }: { pathname: string }) {
         (item) =>
           (!item.permission || can(item.permission)) && (!item.anyOf || item.anyOf.some(can)),
       ).map((item) => (
-        <a
+        <Link
           key={item.href}
           href={item.href}
           className={styles.navLink}
           aria-current={isCurrent(item.href, pathname) ? "page" : undefined}
         >
           {item.label}
-        </a>
+        </Link>
       ))}
     </div>
   );
@@ -132,9 +134,9 @@ function PhoneTabs({
           </div>
           <div className={styles.moreGrid}>
             {rest.map((item) => (
-              <a key={item.href} href={item.href} className={styles.moreLink}>
+              <Link key={item.href} href={item.href} className={styles.moreLink}>
                 {item.label}
-              </a>
+              </Link>
             ))}
           </div>
           <button
@@ -149,14 +151,14 @@ function PhoneTabs({
       ) : null}
       <nav aria-label="Phone" className={styles.tabBar}>
         {tabs.map((item) => (
-          <a
+          <Link
             key={item.href}
             href={item.href}
             className={styles.tab}
             aria-current={isCurrent(item.href, pathname) ? "page" : undefined}
           >
             {item.label}
-          </a>
+          </Link>
         ))}
         <button
           type="button"

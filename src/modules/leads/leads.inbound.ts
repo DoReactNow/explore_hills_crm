@@ -7,8 +7,15 @@ import { leadRepository, type Tx } from "./leads.repository";
 
 export async function resolveLeadForInbound(
   tx: Tx,
-  input: { phoneE164: string; profileName: string | null; occurredAt: Date },
+  input: {
+    phoneE164: string;
+    profileName: string | null;
+    occurredAt: Date;
+    source?: "WHATSAPP" | "PHONE";
+  },
 ) {
+  const source = input.source ?? "WHATSAPP";
+  const from = source === "PHONE" ? "a phone call" : "a WhatsApp message";
   const repository = leadRepository;
   await repository.lockPhone(tx, input.phoneE164);
   let contact = await repository.findContactByPhone(tx, input.phoneE164);
@@ -33,13 +40,13 @@ export async function resolveLeadForInbound(
   const lead = await repository.createLead(tx, {
     contactId: contact.id,
     stageId: stage.id,
-    source: "WHATSAPP",
+    source,
     lastActivityAt: input.occurredAt,
   });
   await repository.addTimeline(tx, {
     leadId: lead.id,
     kind: "LEAD_CREATED",
-    summary: "Lead created from a WhatsApp message",
+    summary: `Lead created from ${from}`,
     refType: "lead",
     refId: lead.id,
     occurredAt: input.occurredAt,
@@ -48,9 +55,9 @@ export async function resolveLeadForInbound(
     action: "lead.created",
     entityType: "lead",
     entityId: lead.id,
-    summary: "Lead created from a WhatsApp message",
+    summary: `Lead created from ${from}`,
     actor: null,
-    metadata: { source: "WHATSAPP" },
+    metadata: { source },
   });
   return { contact, leadId: lead.id, created: true };
 }

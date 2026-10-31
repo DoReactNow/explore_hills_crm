@@ -69,40 +69,42 @@ model IdentityRolePermission {
 // Owner: identity. Staff accounts. Never hard-deleted: deactivated instead (status DEACTIVATED).
 // managerId is the one reporting line; team membership is many-to-many (Decision 55).
 model IdentityUser {
-  id                 String                      @id @default(uuid(7)) @db.Uuid
-  email              String                      @unique // stored lowercase; lower(email) is also unique (raw SQL)
-  name               String
-  phoneE164          String? // E.164, checked in SQL
-  passwordHash       String // argon2id; never returned by any API or written to any log
-  status             IdentityUserStatus          @default(INVITED)
-  roleId             String                      @db.Uuid
-  role               IdentityRole                @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
-  failedLoginCount   Int                         @default(0)
-  lockedUntil        DateTime?                   @db.Timestamptz(3)
-  lastLoginAt        DateTime?                   @db.Timestamptz(3)
-  createdAt          DateTime                    @default(now()) @db.Timestamptz(3)
-  updatedAt          DateTime                    @updatedAt @db.Timestamptz(3)
-  deactivatedAt      DateTime?                   @db.Timestamptz(3)
-  managerId          String?                     @db.Uuid
-  manager            IdentityUser?               @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
-  reports            IdentityUser[]              @relation("UserManager")
-  managedTeams       IdentityTeam[]              @relation("TeamManager")
-  teamMemberships    IdentityTeamMember[]
-  sessions           IdentitySession[]
-  auditEvents        AuditEvent[] // back-relation from the audit module
-  ownedLeads         LeadsLead[]
-  notes              LeadsNote[]
-  tasks              LeadsTask[]
-  timelineEntries    LeadsTimelineEntry[]
-  updatedSettings    SystemSetting[]
-  sentMessages       MessagingMessage[]
-  assignmentSetting  AssignmentAgentSetting?
-  createdRules       AssignmentRule[]
-  requestedBatches   AssignmentBatch[]
-  assignmentsFrom    AssignmentRecord[]          @relation("AssignmentFrom")
-  assignmentsTo      AssignmentRecord[]          @relation("AssignmentTo")
-  claimedPoolEntries AssignmentPoolEntry[]
-  poolEligibility    AssignmentPoolEligibility[]
+  id                      String                      @id @default(uuid(7)) @db.Uuid
+  email                   String                      @unique // stored lowercase; lower(email) is also unique (raw SQL)
+  name                    String
+  phoneE164               String? // E.164, checked in SQL
+  passwordHash            String // argon2id; never returned by any API or written to any log
+  status                  IdentityUserStatus          @default(INVITED)
+  roleId                  String                      @db.Uuid
+  role                    IdentityRole                @relation(fields: [roleId], references: [id], onDelete: Restrict) // a role still held by users cannot be deleted
+  failedLoginCount        Int                         @default(0)
+  lockedUntil             DateTime?                   @db.Timestamptz(3)
+  lastLoginAt             DateTime?                   @db.Timestamptz(3)
+  createdAt               DateTime                    @default(now()) @db.Timestamptz(3)
+  updatedAt               DateTime                    @updatedAt @db.Timestamptz(3)
+  deactivatedAt           DateTime?                   @db.Timestamptz(3)
+  managerId               String?                     @db.Uuid
+  manager                 IdentityUser?               @relation("UserManager", fields: [managerId], references: [id], onDelete: Restrict)
+  reports                 IdentityUser[]              @relation("UserManager")
+  managedTeams            IdentityTeam[]              @relation("TeamManager")
+  teamMemberships         IdentityTeamMember[]
+  sessions                IdentitySession[]
+  auditEvents             AuditEvent[] // back-relation from the audit module
+  ownedLeads              LeadsLead[]
+  notes                   LeadsNote[]
+  tasks                   LeadsTask[]
+  timelineEntries         LeadsTimelineEntry[]
+  updatedSettings         SystemSetting[]
+  sentMessages            MessagingMessage[]
+  assignmentSetting       AssignmentAgentSetting?
+  createdRules            AssignmentRule[]
+  requestedBatches        AssignmentBatch[]
+  assignmentsFrom         AssignmentRecord[]          @relation("AssignmentFrom")
+  assignmentsTo           AssignmentRecord[]          @relation("AssignmentTo")
+  claimedPoolEntries      AssignmentPoolEntry[]
+  poolEligibility         AssignmentPoolEligibility[]
+  telephonyAgentEndpoints TelephonyAgentEndpoint[]
+  telephonyCalls          TelephonyCall[]
 
   @@index([roleId])
   @@index([status])
@@ -315,6 +317,7 @@ model LeadsLead {
   assignmentRecords AssignmentRecord[]
   poolEntries       AssignmentPoolEntry[]
   escalation        AssignmentEscalation?
+  telephonyCalls    TelephonyCall[]
 
   @@index([ownerUserId, stageId])
   @@index([stageId])
@@ -669,4 +672,131 @@ model AssignmentPoolEligibility {
   @@id([poolEntryId, userId])
   @@index([userId])
   @@map("assignment_pool_eligibility")
+}
+
+// ---------------------------------------------------------------------------
+// telephony module
+// ---------------------------------------------------------------------------
+
+enum TelephonyDirection {
+  OUTBOUND
+  INBOUND
+}
+
+enum TelephonyChannel {
+  BROWSER
+  PHONE
+}
+
+enum TelephonyCallStatus {
+  INITIATED
+  RINGING_AGENT
+  RINGING_CUSTOMER
+  ANSWERED
+  COMPLETED
+  NO_ANSWER
+  BUSY
+  FAILED
+  CANCELLED
+}
+
+enum TelephonyRecordingStatus {
+  PENDING
+  DOWNLOADING
+  STORED
+  FAILED
+  DELETED
+}
+
+// Owner: telephony. One per agent and provider. Logins are encrypted; token-based providers leave them
+// empty. lastSeenAt says the softphone is connected, which inbound routing needs.
+model TelephonyAgentEndpoint {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  providerKey     String
+  userId          String       @db.Uuid
+  user            IdentityUser @relation(fields: [userId], references: [id], onDelete: Restrict)
+  loginEncrypted  String?
+  secretEncrypted String?
+  isActive        Boolean      @default(true)
+  lastSeenAt      DateTime?    @db.Timestamptz(3)
+  createdAt       DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime     @updatedAt @db.Timestamptz(3)
+
+  @@unique([providerKey, userId])
+  @@map("telephony_agent_endpoints")
+}
+
+// Owner: telephony. Personal data (phone number).
+model TelephonyCall {
+  id                String              @id @default(uuid(7)) @db.Uuid
+  providerKey       String
+  providerCallId    String?
+  callRef           String              @unique
+  direction         TelephonyDirection  @default(OUTBOUND)
+  channel           TelephonyChannel    @default(BROWSER)
+  status            TelephonyCallStatus @default(INITIATED)
+  leadId            String?             @db.Uuid
+  lead              LeadsLead?          @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  agentUserId       String?             @db.Uuid
+  agent             IdentityUser?       @relation(fields: [agentUserId], references: [id], onDelete: Restrict)
+  customerPhoneE164 String
+  routingNote       String?
+  startedAt         DateTime            @db.Timestamptz(3)
+  answeredAt        DateTime?           @db.Timestamptz(3)
+  endedAt           DateTime?           @db.Timestamptz(3)
+  durationSeconds   Int?
+  billableSeconds   Int?
+  outcomeCode       String?
+  outcomeNotes      String?
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
+  recording         TelephonyRecording?
+
+  @@unique([providerKey, providerCallId])
+  @@index([leadId, startedAt])
+  @@index([agentUserId, startedAt])
+  @@index([customerPhoneE164])
+  @@index([status])
+  @@map("telephony_calls")
+}
+
+// Owner: telephony. Metadata only: the audio lives in FileStorage under storageKey.
+model TelephonyRecording {
+  id                   String                   @id @default(uuid(7)) @db.Uuid
+  callId               String                   @unique @db.Uuid
+  call                 TelephonyCall            @relation(fields: [callId], references: [id], onDelete: Cascade)
+  status               TelephonyRecordingStatus @default(PENDING)
+  providerRecordingRef String?
+  storageKey           String?                  @unique
+  contentType          String?
+  sizeBytes            Int?
+  durationSeconds      Int?
+  checksumSha256       String?
+  attempts             Int                      @default(0)
+  lastError            String?
+  readyAt              DateTime?                @db.Timestamptz(3)
+  storedAt             DateTime?                @db.Timestamptz(3)
+  expiresAt            DateTime?                @db.Timestamptz(3)
+  deletedAt            DateTime?                @db.Timestamptz(3)
+  createdAt            DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime                 @updatedAt @db.Timestamptz(3)
+
+  @@index([status])
+  @@index([expiresAt])
+  @@map("telephony_recordings")
+}
+
+// Owner: telephony. The raw webhook log; a job does the processing.
+model TelephonyWebhookEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  providerKey String
+  eventKey    String
+  payload     Json
+  receivedAt  DateTime  @default(now()) @db.Timestamptz(3)
+  processedAt DateTime? @db.Timestamptz(3)
+  error       String?
+
+  @@unique([providerKey, eventKey])
+  @@index([receivedAt])
+  @@map("telephony_webhook_events")
 }

@@ -17,13 +17,29 @@ export async function getVisibleAgentIds(
 }
 
 /** Just enough of a person for another module to check they can be given work. */
-export async function getUserSummary(
-  id: string,
-): Promise<{ id: string; name: string; status: string } | null> {
+export async function getUserSummary(id: string): Promise<{
+  id: string;
+  name: string;
+  status: string;
+  managerId: string | null;
+  phoneE164: string | null;
+} | null> {
   const user = await userRepository.getUser(id);
-  return user && { id: user.id, name: user.name, status: user.status };
+  return (
+    user && {
+      id: user.id,
+      name: user.name,
+      status: user.status,
+      managerId: user.manager?.id ?? null,
+      phoneE164: user.phoneE164,
+    }
+  );
 }
 
 /** Active people who can be given leads, among those listed. */
 export const listAssignableUsers = (ids: readonly string[] | "all", tx?: Tx) =>
   userRepository.listActiveHolders("leads:claim", ids, tx);
+
+/** Active people who can take calls. */
+export const listCallers = (tx?: Tx) =>
+  userRepository.listActiveHolders("telephony:call", "all", tx);

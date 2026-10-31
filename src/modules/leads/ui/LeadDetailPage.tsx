@@ -456,7 +456,15 @@ function MergeDialog({
   );
 }
 
-export function LeadDetailPage({ id, chat }: { id: string; chat?: ReactNode }) {
+export function LeadDetailPage({
+  id,
+  chat,
+  calls,
+}: {
+  id: string;
+  chat?: ReactNode;
+  calls?: ReactNode;
+}) {
   const access = usePageAccess(VIEW_LEADS);
   const { can } = usePrincipal();
   const router = useRouter();
@@ -712,9 +720,9 @@ export function LeadDetailPage({ id, chat }: { id: string; chat?: ReactNode }) {
         ))}
       </div>
 
-      {/* The softphone panel and live call card go here in Phase 7. */}
       <div className={`${styles.panes} ${chat ? styles.panesWithChat : ""}`} data-view={view}>
         <aside aria-label="Customer and trip" className={`${styles.side} ${styles.viewDetails}`}>
+          {calls && !gone ? calls : null}
           <section className={styles.card}>
             <div className={styles.cardHead}>Stage</div>
             {pipeline.map((stage) => (

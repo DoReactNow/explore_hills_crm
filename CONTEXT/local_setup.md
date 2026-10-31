@@ -649,3 +649,15 @@ npm run docker:local:up
 **"Refusing to run" mentioning `fake`.** Production (`APP_ENV=production`) refuses the `fake` calling provider and WhatsApp gateway. Set the real provider keys in `.env.production`.
 
 **Recordings or uploads appear in git status.** They belong in `storage/`, which is git-ignored. Check `STORAGE_LOCAL_DIR` points inside `storage/`.
+
+### Checking the S3 storage driver
+
+The S3 contract tests need a running S3-compatible server, so they are skipped unless `TEST_S3_ENDPOINT` is set:
+
+```bash
+docker run -d --rm --name s3check -p 18333:8333 -e AWS_ACCESS_KEY_ID=testkey -e AWS_SECRET_ACCESS_KEY=testsecret chrislusf/seaweedfs server -s3
+TEST_S3_ENDPOINT=http://127.0.0.1:18333 TEST_S3_ACCESS_KEY=testkey TEST_S3_SECRET_KEY=testsecret npm run test:contract:s3
+docker stop s3check
+```
+
+To move recordings to another storage, run `npm run storage:copy -- <env file of the target>`. It is safe to run twice.

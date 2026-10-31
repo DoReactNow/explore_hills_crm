@@ -121,6 +121,18 @@ export const PERMISSIONS = {
     module: "leads",
     reserved: false,
   },
+  "telephony:call": {
+    label: "Make and take calls",
+    description: "Place and receive calls on leads they can see.",
+    module: "telephony",
+    reserved: false,
+  },
+  "telephony:view-recordings": {
+    label: "Listen to recordings",
+    description: "Play call recordings on leads they can see. Every playback is audited.",
+    module: "telephony",
+    reserved: false,
+  },
   "assignment:manage-rules": {
     label: "Manage assignment rules",
     description: "Set agents' caps, tiers, shifts and leave, and the auto-assign rule.",

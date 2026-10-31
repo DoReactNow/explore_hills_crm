@@ -5,6 +5,8 @@ export const PUBLIC_ROUTES = [
   "/api/health",
   // Protected by the provider's signature, not a session.
   "/api/webhooks/whatsapp",
+  "/api/webhooks/telephony",
+  "/api/webhooks/telephony/inbound",
   "/api/auth/sign-in",
   // Public so that repeating it, or an expired session, succeeds quietly (Decision 52).
   "/api/auth/sign-out",

@@ -49,6 +49,57 @@ export const SETTINGS = {
     options: { available_agent: "Ring any available agent", manager: "Ring the manager" },
     schema: z.enum(["available_agent", "manager"]),
   },
+  "telephony.workingDays": {
+    label: "Working days",
+    help: "Numbers with commas between: 0 is Sunday and 6 is Saturday.",
+    group: "Calls & recordings",
+    defaultValue: "1,2,3,4,5,6",
+    schema: z.string().regex(/^[0-6](,[0-6])*$/, "Please use numbers 0 to 6 with commas between."),
+  },
+  "telephony.workingFrom": {
+    label: "Working hours start (IST)",
+    help: "24-hour time, such as 10:00.",
+    group: "Calls & recordings",
+    defaultValue: "10:00",
+    schema: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Please use a time like 10:00."),
+  },
+  "telephony.workingTo": {
+    label: "Working hours end (IST)",
+    help: "24-hour time, such as 19:00.",
+    group: "Calls & recordings",
+    defaultValue: "19:00",
+    schema: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Please use a time like 19:00."),
+  },
+  "telephony.outOfHoursMessage": {
+    label: "Out-of-hours message",
+    help: "What a caller hears outside working hours. {company} becomes your company's name.",
+    group: "Calls & recordings",
+    defaultValue:
+      "Thank you for calling {company}. We're closed right now. Please leave a message after the tone, and we'll get back to you during working hours.",
+    schema: z.string().trim().min(1).max(500),
+  },
+  "telephony.outOfHoursMessageHindi": {
+    label: "Out-of-hours message (Hindi)",
+    help: "The same message in Hindi.",
+    group: "Calls & recordings",
+    defaultValue:
+      "{company} को कॉल करने के लिए धन्यवाद। अभी हमारा कार्यालय बंद है। कृपया बीप के बाद अपना संदेश छोड़ें। हम कार्य समय में आपसे संपर्क करेंगे।",
+    schema: z.string().trim().min(1).max(500),
+  },
+  "telephony.recordingNotice": {
+    label: "Recording announcement",
+    help: "What a caller hears before a recorded call.",
+    group: "Calls & recordings",
+    defaultValue: "This call may be recorded for quality and training purposes.",
+    schema: z.string().trim().min(1).max(300),
+  },
+  "telephony.recordingNoticeHindi": {
+    label: "Recording announcement (Hindi)",
+    help: "The same announcement in Hindi.",
+    group: "Calls & recordings",
+    defaultValue: "गुणवत्ता और प्रशिक्षण के लिए यह कॉल रिकॉर्ड की जा सकती है।",
+    schema: z.string().trim().min(1).max(300),
+  },
   "recording.format": {
     label: "Recording format",
     help: "File format recordings are stored in.",

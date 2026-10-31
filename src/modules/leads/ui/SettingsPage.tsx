@@ -26,7 +26,10 @@ function SettingField({ setting, onSaved }: { setting: Setting; onSaved: () => v
   const id = `setting-${setting.key}`;
 
   async function save(next: string) {
-    const body = { key: setting.key, value: setting.options ? next : Number(next) };
+    const body = {
+      key: setting.key,
+      value: setting.options || typeof setting.value === "string" ? next : Number(next),
+    };
     const result = await apiRequest("/api/settings", { method: "PATCH", body });
     if (result.ok) {
       setError(null);

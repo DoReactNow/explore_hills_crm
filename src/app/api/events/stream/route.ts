@@ -3,6 +3,7 @@ import { assignmentEventTypes } from "@/modules/assignment";
 import { leadEventTypes } from "@/modules/leads";
 import { messagingEventTypes } from "@/modules/messaging";
 import { systemEventTypes, systemTestEventTypes } from "@/modules/system";
+import { telephonyEventTypes } from "@/modules/telephony";
 import { route } from "@/shared/http/route";
 import { isTestEnvironment } from "@/shared/http/testOnly";
 import { resolvePrincipal } from "@/shared/rbac/principalResolver";
@@ -18,6 +19,7 @@ function allEventTypes() {
     assignment: assignmentEventTypes,
     leads: leadEventTypes,
     messaging: messagingEventTypes,
+    telephony: telephonyEventTypes,
     system: [...systemEventTypes, ...(isTestEnvironment() ? systemTestEventTypes : [])],
   });
   return eventTypes;

@@ -62,6 +62,7 @@ const baseSchema = z.object({
   STORAGE_S3_ACCESS_KEY_ID: z.string().min(1).optional(),
   STORAGE_S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   STORAGE_S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).optional(),
+  FFMPEG_PATH: z.string().min(1).optional(),
 });
 
 const S3_REQUIRED = [

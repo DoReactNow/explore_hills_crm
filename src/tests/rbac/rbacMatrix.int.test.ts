@@ -36,6 +36,23 @@ import * as poolItem from "@/app/api/assignment/pool/[id]/route";
 import * as poolRoute from "@/app/api/assignment/pool/route";
 import * as previewRoute from "@/app/api/assignment/preview/route";
 import * as queueRoute from "@/app/api/assignment/queue/route";
+import * as callSoft from "@/app/api/telephony/softphone/route";
+import * as callBeat from "@/app/api/telephony/heartbeat/route";
+import * as callOff from "@/app/api/telephony/offline/route";
+import * as callCurrent from "@/app/api/telephony/current/route";
+import * as callItem from "@/app/api/telephony/calls/[id]/route";
+import * as callAnswer from "@/app/api/telephony/calls/[id]/answer/route";
+import * as callDecline from "@/app/api/telephony/calls/[id]/decline/route";
+import * as callRecording from "@/app/api/telephony/calls/[id]/recording/route";
+import * as callRetry from "@/app/api/telephony/calls/[id]/recording/retry/route";
+import * as callList from "@/app/api/telephony/calls/route";
+import * as callEnd from "@/app/api/telephony/calls/[id]/end/route";
+import * as callOutcome from "@/app/api/telephony/calls/[id]/outcome/route";
+import * as callEndpoint from "@/app/api/telephony/endpoints/[id]/route";
+import * as leadCalls from "@/app/api/leads/[id]/calls/route";
+import * as callFake from "@/app/api/telephony/fake/route";
+import * as callHook from "@/app/api/webhooks/telephony/route";
+import * as callInbound from "@/app/api/webhooks/telephony/inbound/route";
 import * as leadReassign from "@/app/api/leads/[id]/reassign/route";
 import * as leadMerge from "@/app/api/leads/[id]/merge/route";
 import * as messageMedia from "@/app/api/messages/[id]/media/route";
@@ -346,6 +363,99 @@ const CASES: Case[] = [
     handler: templateItem.DELETE,
     allowed: ADMINS,
     usesId: "lead",
+  },
+  { method: "GET", path: "/api/telephony/softphone", handler: callSoft.GET, allowed: LEAD_ROLES },
+  { method: "POST", path: "/api/telephony/heartbeat", handler: callBeat.POST, allowed: LEAD_ROLES },
+  { method: "POST", path: "/api/telephony/offline", handler: callOff.POST, allowed: LEAD_ROLES },
+  { method: "GET", path: "/api/telephony/current", handler: callCurrent.GET, allowed: LEAD_ROLES },
+  { method: "GET", path: "/api/telephony/calls", handler: callList.GET, allowed: LEAD_ROLES },
+  {
+    method: "GET",
+    path: "/api/telephony/calls/[id]",
+    handler: callItem.GET,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/telephony/calls/[id]/answer",
+    handler: callAnswer.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/telephony/calls/[id]/decline",
+    handler: callDecline.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/telephony/calls/[id]/end",
+    handler: callEnd.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/telephony/calls/[id]/outcome",
+    handler: callOutcome.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "GET",
+    path: "/api/telephony/calls/[id]/recording",
+    handler: callRecording.GET,
+    allowed: ASSIGNERS,
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/telephony/calls/[id]/recording/retry",
+    handler: callRetry.POST,
+    allowed: ASSIGNERS,
+    usesId: "lead",
+  },
+  {
+    method: "PUT",
+    path: "/api/telephony/endpoints/[id]",
+    handler: callEndpoint.PUT,
+    allowed: ADMINS,
+    usesId: "user",
+    body: {},
+  },
+  {
+    method: "GET",
+    path: "/api/leads/[id]/calls",
+    handler: leadCalls.GET,
+    allowed: "signed",
+    usesId: "lead",
+  },
+  {
+    method: "POST",
+    path: "/api/leads/[id]/calls",
+    handler: leadCalls.POST,
+    allowed: LEAD_ROLES,
+    usesId: "lead",
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/telephony/fake",
+    handler: callFake.POST,
+    allowed: "signed",
+    body: {},
+  },
+  { method: "POST", path: "/api/webhooks/telephony", handler: callHook.POST, allowed: "signed" },
+  {
+    method: "POST",
+    path: "/api/webhooks/telephony/inbound",
+    handler: callInbound.POST,
+    allowed: "signed",
   },
   { method: "GET", path: "/api/assignment/queue", handler: queueRoute.GET, allowed: ASSIGNERS },
   { method: "GET", path: "/api/assignment/agents", handler: agentsRoute.GET, allowed: ASSIGNERS },

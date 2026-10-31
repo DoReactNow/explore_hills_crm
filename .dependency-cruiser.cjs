@@ -92,7 +92,7 @@ module.exports = {
       name: "telephony-provider-outside-registry",
       comment: "Rule 8: only the telephony registries import a provider folder.",
       severity: "error",
-      from: { pathNot: ["^src/modules/telephony/providers/"] },
+      from: { pathNot: ["^src/modules/telephony/providers/", "^src/modules/telephony/__tests__/"] },
       to: { path: "^src/modules/telephony/providers/[^/]+/" },
     },
     {

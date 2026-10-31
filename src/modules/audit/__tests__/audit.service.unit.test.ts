@@ -139,6 +139,10 @@ describe("AUDIT_ACTIONS", () => {
         "assignment.settings_changed",
         "assignment.rule_changed",
         "assignment.pool_cancelled",
+        "telephony.recording_played",
+        "telephony.recording_deleted",
+        "telephony.endpoint_changed",
+        "telephony.outcome_saved",
       ].sort(),
     );
   });

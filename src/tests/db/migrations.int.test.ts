@@ -46,6 +46,10 @@ describe("migrations", () => {
       "messaging_webhook_events",
       "system_settings",
       "system_worker_heartbeats",
+      "telephony_agent_endpoints",
+      "telephony_calls",
+      "telephony_recordings",
+      "telephony_webhook_events",
     ]);
   });
 
