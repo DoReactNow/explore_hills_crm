@@ -49,9 +49,125 @@ export type ConversationRow = Prisma.MessagingConversationGetPayload<{
 
 const visible = (scope: LeadScope): Prisma.MessagingConversationWhereInput => ({
   lead: { deletedAt: null, ...scopeWhere(scope) },
+  contact: { anonymisedAt: null },
 });
 
 export const messagingRepository = {
+  /** Saves a downloaded file's key, unless the message was erased or deleted meanwhile. */
+  async finishDownload(
+    id: string,
+    data: { mediaRef: string; mediaStatus: string; mediaMimeType: string },
+  ): Promise<boolean> {
+    const { count } = await getPrisma().messagingMessage.updateMany({
+      where: { id, mediaStatus: "PENDING" },
+      data,
+    });
+    return count === 1;
+  },
+
+  async finishFailedDownload(id: string): Promise<void> {
+    await getPrisma().messagingMessage.updateMany({
+      where: { id, mediaStatus: "PENDING" },
+      data: { mediaStatus: "FAILED" },
+    });
+  },
+
+  // Privacy: an erased customer's messages (Section 7 of the schema notes) and the retention jobs.
+
+  async eraseConversations(tx: Tx, contactId: string): Promise<string[]> {
+    const conversations = await tx.messagingConversation.findMany({
+      where: { contactId },
+      select: { id: true },
+    });
+    const ids = conversations.map((row) => row.id);
+    const files = await tx.messagingMessage.findMany({
+      where: { conversationId: { in: ids }, mediaStatus: "STORED", mediaRef: { not: null } },
+      select: { mediaRef: true },
+    });
+    await tx.messagingMessage.updateMany({
+      where: { conversationId: { in: ids } },
+      data: {
+        waMessageId: null,
+        clientRef: null,
+        replyToWaId: null,
+        body: null,
+        mediaRef: null,
+        mediaStatus: null,
+        mediaMimeType: null,
+        mediaFilename: null,
+        templateVariables: Prisma.DbNull,
+        failureCode: null,
+      },
+    });
+    for (const id of ids) {
+      await tx.messagingConversation.update({
+        where: { id },
+        data: { waId: `erased-${id}`, unreadCount: 0 },
+      });
+    }
+    return files.map((row) => row.mediaRef as string);
+  },
+
+  /** Raw webhook logs quote the number and the words, so any that mention this number go. */
+  async eraseWebhookEvents(tx: Tx, phoneDigits: string): Promise<void> {
+    await tx.$executeRaw`
+      DELETE FROM messaging_webhook_events WHERE payload::text LIKE ${`%${phoneDigits}%`}`;
+  },
+
+  exportMessages(contactId: string) {
+    return getPrisma().messagingMessage.findMany({
+      where: { conversation: { contactId } },
+      orderBy: { occurredAt: "asc" },
+      select: {
+        occurredAt: true,
+        direction: true,
+        type: true,
+        body: true,
+        mediaFilename: true,
+        templateName: true,
+        status: true,
+      },
+    });
+  },
+
+  /**
+   * Messages past their date. A customer on hold keeps theirs, and so does a conversation whose lead is
+   * still open (Decision 66).
+   */
+  oldMessages(before: Date, take: number) {
+    return getPrisma().messagingMessage.findMany({
+      where: {
+        occurredAt: { lt: before },
+        conversation: {
+          contact: { legalHoldAt: null },
+          OR: [
+            { leadId: null },
+            { lead: { OR: [{ deletedAt: { not: null } }, { stage: { kind: { not: "OPEN" } } }] } },
+          ],
+        },
+      },
+      orderBy: { occurredAt: "asc" },
+      take,
+      select: { id: true, mediaRef: true, mediaStatus: true },
+    });
+  },
+
+  async deleteMessages(tx: Tx, ids: readonly string[]): Promise<void> {
+    await tx.messagingMessage.deleteMany({ where: { id: { in: [...ids] } } });
+  },
+
+  async deleteOldWebhookEvents(before: Date, take: number): Promise<number> {
+    const rows = await getPrisma().messagingWebhookEvent.findMany({
+      where: { receivedAt: { lt: before } },
+      take,
+      select: { id: true },
+    });
+    const { count } = await getPrisma().messagingWebhookEvent.deleteMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+    });
+    return count;
+  },
+
   /** The newest thing each lead's customer wrote, for the queue and the blast cards. */
   async latestCustomerMessages(leadIds: readonly string[]): Promise<Map<string, string>> {
     if (leadIds.length === 0) return new Map();
@@ -243,7 +359,7 @@ export const messagingRepository = {
 
   async conversationIdOfLead(leadId: string): Promise<string | null> {
     const row = await getPrisma().messagingConversation.findFirst({
-      where: { leadId },
+      where: { leadId, contact: { anonymisedAt: null } },
       orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { id: "asc" }],
       select: { id: true },
     });

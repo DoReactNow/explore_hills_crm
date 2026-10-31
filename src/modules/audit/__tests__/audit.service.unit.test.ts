@@ -145,6 +145,14 @@ describe("AUDIT_ACTIONS", () => {
         "telephony.outcome_saved",
         "notifications.preferences_changed",
         "reports.exported",
+        "audit.exported",
+        "contact.viewed",
+        "contact.consent_changed",
+        "contact.hold_changed",
+        "contact.data_exported",
+        "contact.erased",
+        "retention.messages_deleted",
+        "retention.webhook_logs_deleted",
       ].sort(),
     );
   });

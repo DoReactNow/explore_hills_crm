@@ -1222,3 +1222,27 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Assignment by mode** leaves out the note made when a leaver's leads return to the queue.
 - **No snapshots:** every number is worked out live. 100,000 leads must report within 5 seconds, which a test holds it to. Snapshots can come later if that stops being true.
 - **Exports** need `reports:export`, are audited, and stream in batches of 1,000, so size can't harm the server and no background job is needed. A byte-order mark makes Excel read Hindi and emoji, and a value starting with `=`, `+`, `-` or `@` is made plain text.
+
+---
+
+### Decision 66: Data Protection Rules for Phase 10
+
+**Date:** 2026-10-31
+**Status:** Accepted (`Q-18` and `Q-19` answered by the owner). The wording stays a placeholder until a legal adviser confirms it before go-live.
+
+#### Decision
+- **How long things are kept (`Q-18`):** messages 730 days, recordings 90 days, webhook logs 30 days, all settings the owner can change. Audit records are kept indefinitely, with no setting. The design's "kept for 2 years" no longer applies. Sessions stay as they were: 7 days after they end.
+- **The date rule:** messages and webhook logs go when their business day is more than the set number of days ago, using the setting's current value. A recording keeps the date worked out when it was stored, so changing the setting only affects new recordings (Decision 57).
+- **Wording (`Q-19`):** the privacy notice is a setting (`privacy.noticeText`) shown publicly at `/privacy-notice`, marked as a draft until the owner replaces it. Company and contact details come from `APP_CONFIG`.
+- **Holds:** an Admin can place a hold on a customer, choosing a reason from a list. Their messages and recordings then stay past their date, and erasure is refused until the hold is released. A conversation whose lead is still open also keeps its messages. An open lead doesn't hold recordings, which go on their date.
+- **Erasure refusals:** erasure is refused while the customer has an open lead, a live call or a hold. Staff close the lead first. The person must also type the customer's number.
+- **What erasure does:** in one transaction it empties the name, number, email, trip details, notes, follow-up text, free text in the timeline, message content, call notes, assignment reasons and customer names in notifications, and deletes raw webhook logs that mention the number. Rows stay, with the placeholder `erased-…` as the phone, so totals hold. The lead's stage, owner, source and budget stay, so reports don't change. An erased lead can't change any more. It can be run twice safely.
+- **Files:** a file to delete goes on a list (`system_file_deletions`) in the same transaction, and a job tries every 5 minutes until it has gone. One that keeps failing raises an alert after 12 attempts and stays listed. The privacy page shows how many are waiting.
+- **Returning customers:** an erased customer who writes or calls again is new: no link to the old record, and no consent carried over.
+- **Audit:** the trail is never changed or anonymised. It must hold no personal data, so a summary or metadata that looks like a phone number or email is refused. Consent records also stay after erasure as proof, and hold no personal data.
+- **Consent:** every change, whoever makes it, adds a row saying what, who, when and how. Withdrawing WhatsApp consent stops sending, as before. Withdrawing recording consent means new recordings of that customer aren't kept; earlier ones go on their date or on erasure. The provider may still hold its own copy until the real adapter deletes it there.
+- **Reads that are audited:** playing a recording, opening a customer's privacy record, and exporting a report, the audit trail or a customer's data. Ordinary lead pages aren't, because the trail would fill with noise.
+- **Who:** `audit:view` shows a person and those below them, `audit:view-all` everyone and automatic actions, `audit:export` the download. `privacy:manage`, `privacy:export` and `privacy:erase` are separate. Admins have all of them. Managers have `audit:view` only.
+- **Data export** is a JSON file of everything held about the customer. Media files and recordings are listed, not attached.
+- **Backups:** erasure can't reach backups. Erased data leaves when a backup expires, so Phase 12 must set a backup expiry, and a restore must be followed by erasing again.
+- **Logs:** personal fields are redacted by name, and phone numbers and emails are masked inside any text, including error messages.

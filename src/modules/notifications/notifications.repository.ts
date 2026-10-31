@@ -16,6 +16,14 @@ export const NOTIFICATION_SELECT = {
 } satisfies Prisma.NotificationsNotificationSelect;
 
 export const notificationRepository = {
+  /** These notices name the customer, so the wording goes when the customer's data does. */
+  async eraseForLeads(tx: Tx, leadIds: readonly string[]): Promise<void> {
+    await tx.notificationsNotification.updateMany({
+      where: { link: { in: leadIds.map((id) => `/leads/${id}`) } },
+      data: { body: "The customer's details were erased." },
+    });
+  },
+
   transaction<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
     return getPrisma().$transaction(work);
   },

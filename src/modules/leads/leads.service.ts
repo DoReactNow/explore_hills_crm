@@ -16,6 +16,7 @@ import {
 import { getUserSummary } from "@/modules/identity";
 import { inScope, leadScopeOf } from "./leads.access";
 import { normalisePhone } from "./leads.phone";
+import { assertNotErased } from "./leads.privacy";
 import {
   leadRepository,
   type LeadRepository,
@@ -121,6 +122,13 @@ export function createLeadService({
   }
 
   const timeline = (tx: Tx | null, entry: NewTimelineEntry) => repository.addTimeline(tx, entry);
+
+  /** The lead, for a change. */
+  async function loadChangeable(tx: Tx, id: string, scope: LeadScope): Promise<LeadRow> {
+    const lead = await loadLead(tx, id, scope);
+    assertNotErased(lead.contact);
+    return lead;
+  }
 
   /** Inside a transaction: the lead, if this person may see it. */
   async function loadLead(tx: Tx, id: string, scope: LeadScope): Promise<LeadRow> {
@@ -246,7 +254,7 @@ export function createLeadService({
       assertCan(context.principal, "leads:edit");
       const scope = await leadScopeOf(context.principal);
       return repository.transaction(async (tx) => {
-        const lead = await loadLead(tx, id, scope);
+        const lead = await loadChangeable(tx, id, scope);
         const view = toLeadView(lead);
         const start =
           input.travelStartDate === undefined ? view.travelStartDate : input.travelStartDate;
@@ -288,7 +296,7 @@ export function createLeadService({
       return repository.transaction(async (tx) => {
         const before = await loadLead(tx, id, scope);
         await repository.lockPhone(tx, before.contact.phoneE164);
-        const lead = await loadLead(tx, id, scope);
+        const lead = await loadChangeable(tx, id, scope);
         if (lead.stage.code === input.stageCode) return toLeadView(lead);
 
         const stage = await repository.findStage(tx, input.stageCode);
@@ -340,7 +348,7 @@ export function createLeadService({
       const scope = await leadScopeOf(principal);
       const now = clock.now();
       return repository.transaction(async (tx) => {
-        await loadLead(tx, id, scope);
+        await loadChangeable(tx, id, scope);
         const note = await repository.createNote(tx, {
           leadId: id,
           authorUserId: principal.userId,
@@ -377,10 +385,10 @@ export function createLeadService({
       const scope = await leadScopeOf(context.principal);
       const now = clock.now();
       return repository.transaction(async (tx) => {
-        const survivor = await loadLead(tx, intoLeadId, scope);
+        const survivor = await loadChangeable(tx, intoLeadId, scope);
         const earlier = await repository.findMergeTarget(tx, id);
         if (earlier?.mergedIntoLeadId === intoLeadId) return toLeadView(survivor);
-        await loadLead(tx, id, scope);
+        await loadChangeable(tx, id, scope);
         await repository.moveLeadHistory(tx, id, intoLeadId);
         await alsoMove?.(tx, id, intoLeadId);
         await repository.updateLead(tx, id, { deletedAt: now, mergedIntoLeadId: intoLeadId });

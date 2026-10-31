@@ -1,9 +1,22 @@
-// Background jobs of the system module. Phase 0 has none for production; the test-only probe job
-// proves the queue, retries and delayed jobs, and the worker registers it only when APP_ENV=test.
+// Background jobs of the system module. The test-only probe job proves the queue, retries and delayed
+// jobs, and the worker registers it only when APP_ENV=test.
 import { z } from "zod";
-import { defineJob, type AnyJobDefinition } from "@/shared/jobs";
+import { defineJob, type AnyJobDefinition, type JobSchedule } from "@/shared/jobs";
+import { runFileDeletions } from "./system.fileDeletion";
 
-export const systemJobs: AnyJobDefinition[] = [];
+const deleteFilesJob = defineJob({
+  name: "system.deleteFiles",
+  payload: z.object({}),
+  retry: { limit: 1, delaySeconds: 60, backoff: false },
+  handler: async () => {
+    await runFileDeletions();
+  },
+});
+
+export const systemJobs: AnyJobDefinition[] = [deleteFilesJob];
+export const systemSchedules: JobSchedule[] = [
+  { job: deleteFilesJob, cron: "*/5 * * * *", payload: {} },
+];
 
 const probeRuns = new Map<string, number>();
 

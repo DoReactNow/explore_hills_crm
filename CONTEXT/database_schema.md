@@ -986,7 +986,8 @@ Cross-module foreign keys (dotted)
 | `assignment_rules` | `CREATE UNIQUE INDEX ... ON assignment_rules ("isAutoAssign") WHERE "isAutoAssign" AND "isActive"` | At most one active auto-assign rule |
 | `assignment_shifts` | `CHECK ("startMinute" >= 0 AND "endMinute" <= 1440 AND "startMinute" < "endMinute")` | Valid shift |
 | `telephony_recordings` | `CHECK ("status" <> 'STORED' OR "storageKey" IS NOT NULL)` | A stored recording always has a storage key |
-| `audit_events`, `messaging_webhook_events`, `telephony_webhook_events` | Revoke `UPDATE` and `DELETE` for the application role, or add a trigger that raises | Append-only (the retention job for webhook logs runs as a separate maintenance role) |
+| `audit_events`, `leads_consent_records` | A trigger that raises on `UPDATE` and `DELETE` | Append-only |
+| `leads_contacts` | `CHECK` that `phoneE164` is E.164, or `erased-` plus letters once `anonymisedAt` is set | A placeholder can't pass for a number (Decision 66) |
 
 **Rules enforced in the service, not the database:** at least one **active** Super Admin must always exist (deactivating, demoting or deleting the last one fails with `CONFLICT`); an Admin cannot create, edit or deactivate a Super Admin (Decision 23).
 
@@ -1007,7 +1008,10 @@ Cross-module foreign keys (dotted)
 | `identity_users.email`, `.name`, `.phoneE164`, `.passwordHash` | Staff identity | `passwordHash` is never returned by any API or written to any log. |
 | `identity_sessions.ip`, `.userAgent` | Network identifiers | Purged after expiry plus a short retention window. |
 | `identity_login_throttle.key` | Keyed hash of an IP address or a sign-in email (Decision 52) | Not reversible; rows are removed a day after their window ends. |
-| `audit_events.metadata`, `.summary` | May reference people | Store IDs, not names or phone numbers, in `metadata`. |
+| `audit_events.metadata`, `.summary` | May reference people | IDs and fixed wording only: a value that looks like a phone number or email is refused. Kept indefinitely and never anonymised (Decision 66). |
+| `leads_notes.body`, `leads_tasks.title`, `leads_timeline_entries.summary`, `assignment_records.reason`, `notifications_notifications.body` | Staff's writing about a customer | Replaced or emptied on erasure. |
+| `messaging_webhook_events.payload`, `telephony_webhook_events.payload` | Raw provider data | Deleted after `retention.webhookEventDays`, and on erasure if it mentions the number. |
+| `leads_consent_records` | Who consented, when and how | Append-only. Holds no personal data, so it outlives an erasure. |
 
 Logs must redact all of the above (see `project_data.md` Section 8).
 

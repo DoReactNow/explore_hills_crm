@@ -10,7 +10,18 @@ export {
   type DatabaseState,
   type WorkerState,
 } from "./system.types";
-export { getTestProbeRuns, resetTestProbeRuns, systemJobs, systemTestJobs } from "./system.jobs";
+export {
+  getTestProbeRuns,
+  resetTestProbeRuns,
+  systemJobs,
+  systemSchedules,
+  systemTestJobs,
+} from "./system.jobs";
+export {
+  enqueueFileDeletions,
+  pendingFileDeletions,
+  runFileDeletions,
+} from "./system.fileDeletion";
 export { systemEventTypes, systemTestEventTypes, workerStatusChangedEvent } from "./system.events";
 
 export { ensureDefaultSettings, getSetting } from "./system.settings.service";

@@ -748,8 +748,8 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P10-ERASE-11** Audit rows are kept or anonymised by a stated rule, and never break the append-only protection.
 - **P10-ERASE-12** Privacy notices use APP_CONFIG values.
 - **P10-ERASE-13** Logs are reviewed for personal data, with a test that the redaction list covers every sensitive field.
-- **Q-18 (needs an answer):** How long must messages, recordings and audit records be kept? Are the proposed defaults right?
-- **Q-19 (needs an answer):** What is the exact DPDP wording and process, confirmed by a legal adviser?
+- **Q-18 (answered):** Messages 730 days, recordings 90, webhook logs 30, audit records indefinitely (Decision 66).
+- **Q-19 (partly answered):** Placeholder wording the owner can edit. A legal adviser must confirm it before go-live (`CONTEXT/dpdp_checklist.md`).
 
 ---
 

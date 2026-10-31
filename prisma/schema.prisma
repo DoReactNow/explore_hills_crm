@@ -92,6 +92,7 @@ model IdentityUser {
   auditEvents                    AuditEvent[] // back-relation from the audit module
   ownedLeads                     LeadsLead[]
   notes                          LeadsNote[]
+  consentsRecorded               LeadsConsentRecord[]
   tasks                          LeadsTask[]
   timelineEntries                LeadsTimelineEntry[]
   updatedSettings                SystemSetting[]
@@ -205,6 +206,21 @@ model AuditEvent {
 // system module
 // ---------------------------------------------------------------------------
 
+// Owner: system. Files waiting to be deleted from FileStorage. A row is written in the same transaction
+// as the change that makes the file unwanted, and goes only once the file has gone (P10-ERASE-02).
+model SystemFileDeletion {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  storageKey String   @unique
+  reason     String
+  attempts   Int      @default(0)
+  lastError  String?
+  createdAt  DateTime @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@map("system_file_deletions")
+}
+
 // Owner: system. Written by the worker every few seconds; read by diagnostics.
 model SystemWorkerHeartbeat {
   workerId   String   @id // hostname + process id
@@ -240,6 +256,16 @@ enum LeadsOptInStatus {
   OPTED_OUT
 }
 
+enum LeadsConsentPurpose {
+  WHATSAPP
+  CALL_RECORDING
+}
+
+enum LeadsConsentStatus {
+  GRANTED
+  WITHDRAWN
+}
+
 enum LeadsTimelineKind {
   LEAD_CREATED
   STAGE_CHANGED
@@ -268,21 +294,44 @@ model LeadsPipelineStage {
 
 // Owner: leads. Personal data. One row per phone number: the duplicate-merge key.
 model LeadsContact {
-  id            String                  @id @default(uuid(7)) @db.Uuid
-  phoneE164     String                  @unique
-  name          String?
-  email         String?
-  optInStatus   LeadsOptInStatus        @default(UNKNOWN)
-  optInAt       DateTime?               @db.Timestamptz(3)
-  optInSource   String?
-  anonymisedAt  DateTime?               @db.Timestamptz(3)
-  createdAt     DateTime                @default(now()) @db.Timestamptz(3)
-  updatedAt     DateTime                @updatedAt @db.Timestamptz(3)
-  deletedAt     DateTime?               @db.Timestamptz(3)
-  leads         LeadsLead[]
-  conversations MessagingConversation[]
+  id                String                  @id @default(uuid(7)) @db.Uuid
+  phoneE164         String                  @unique
+  name              String?
+  email             String?
+  optInStatus       LeadsOptInStatus        @default(UNKNOWN)
+  optInAt           DateTime?               @db.Timestamptz(3)
+  optInSource       String?
+  anonymisedAt      DateTime?               @db.Timestamptz(3)
+  // Set while the customer has withdrawn consent to call recording.
+  recordingOptOutAt DateTime?               @db.Timestamptz(3)
+  // Set while a legal or open-case hold applies: no retention deletion and no erasure (Decision 66).
+  legalHoldAt       DateTime?               @db.Timestamptz(3)
+  createdAt         DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime                @updatedAt @db.Timestamptz(3)
+  deletedAt         DateTime?               @db.Timestamptz(3)
+  leads             LeadsLead[]
+  conversations     MessagingConversation[]
+  consents          LeadsConsentRecord[]
 
   @@map("leads_contacts")
+}
+
+// Owner: leads. Who consented or withdrew, when and how. Append-only (a trigger refuses changes), and it
+// holds no personal data of its own, so it outlives an erasure as the proof (Decision 66).
+model LeadsConsentRecord {
+  id               String              @id @default(uuid(7)) @db.Uuid
+  contactId        String              @db.Uuid
+  contact          LeadsContact        @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  purpose          LeadsConsentPurpose
+  status           LeadsConsentStatus
+  source           String
+  recordedByUserId String?             @db.Uuid // null = the customer's own action or a job
+  recordedBy       IdentityUser?       @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  occurredAt       DateTime            @db.Timestamptz(3)
+  createdAt        DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([contactId, occurredAt])
+  @@map("leads_consent_records")
 }
 
 // Owner: leads. Unassigned means ownerUserId is null; it is never a stage.

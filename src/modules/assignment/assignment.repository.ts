@@ -7,6 +7,14 @@ export type Tx = Prisma.TransactionClient;
 const LONG_TRANSACTION = { timeout: 60_000, maxWait: 15_000 };
 
 export const assignmentRepository = {
+  /** A reason is staff's own writing and may mention the customer. */
+  async eraseReasons(tx: Tx, leadIds: readonly string[]): Promise<void> {
+    await tx.assignmentRecord.updateMany({
+      where: { leadId: { in: [...leadIds] } },
+      data: { reason: null },
+    });
+  },
+
   transaction<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
     return getPrisma().$transaction(work, LONG_TRANSACTION);
   },

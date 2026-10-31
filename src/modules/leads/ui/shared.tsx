@@ -37,7 +37,7 @@ export interface LeadRow {
   lostReason: string | null;
   createdAt: string;
   version: string;
-  contact: { id: string; name: string | null; phoneE164: string };
+  contact: { id: string; name: string | null; phoneE164: string; anonymisedAt: string | null };
   stage: { code: string; name: string; kind: string };
   owner: { id: string; name: string; status: string } | null;
 }
@@ -62,6 +62,7 @@ export function tripDates(lead: Pick<LeadRow, "travelStartDate" | "travelEndDate
 }
 
 export function phoneLabel(e164: string) {
+  if (e164.startsWith("erased-")) return "Number erased";
   const india = /^\+91(\d{5})(\d{5})$/.exec(e164);
   return india ? `+91 ${india[1]} ${india[2]}` : e164;
 }
