@@ -1168,3 +1168,19 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **A number on several leads:** the customer's open lead, or a new linked lead if none is open.
 - **Recordings:** a failed download retries up to the job's limit. An expired link or a corrupt or empty file fails at once, with no file kept. Only the start of a listen is audited, not each seek. Signed links last 5 minutes.
 - **Provider logins** are encrypted with `CREDENTIALS_ENCRYPTION_KEY` and never returned. `telephony_provider_accounts` from the schema plan was left out, because nothing needs it yet.
+
+---
+
+### Decision 63: Holidays and Notification Choices
+
+**Date:** 2026-10-31
+**Status:** Accepted (the owner's answers to `test_scenarios.md` Q-16 and Q-17, with the notification list delegated to Claude; whether SLA clocks count only working hours is still open)
+
+#### Decision
+- **Holidays:** there will be holidays, but which days count is decided later. Phase 8 builds an editable list that starts empty, so nothing is assumed.
+- **Turning notifications off:** Admins and Managers can turn them off.
+- **Which notifications go out** (in-app always; the owner left this choice to Claude):
+  - **Email and push:** a lead assigned or reassigned to you, a missed call, a lead flagged for a manager, a first-reply target missed.
+  - **Push only:** a blast offer, and a new customer message on your lead.
+  - **Email only:** a daily summary of overdue follow-ups, and a recording that couldn't be saved (to Admins and Managers).
+  - **In-app only:** everything else.
