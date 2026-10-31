@@ -689,6 +689,8 @@ model AssignmentPoolEligibility {
 
 ### 3.5 `telephony` module (Phase 7)
 
+> **As built (Decision 62); `prisma/schema.prisma` is the authority.** `TelephonyProviderAccount` was left out, and `TelephonyAgentEndpoint` gained `lastSeenAt`.
+
 > Browser calling through a provider-agnostic layer (Decision 24). Recordings are copied into our own storage (Decisions 25 and 26). No audio is ever stored in the database.
 
 ```prisma

@@ -1148,3 +1148,23 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Recording announcement (English):** "This call may be recorded for quality and training purposes."
 - **Recording announcement (Hindi):** "गुणवत्ता और प्रशिक्षण के लिए यह कॉल रिकॉर्ड की जा सकती है।"
 - **The wording is stored as settings,** so it can change without a release. A legal adviser still has to confirm the recording notice under the DPDP Act (`Q-19`, Phase 10).
+
+---
+
+### Decision 62: Calling Rules for Phase 7
+
+**Date:** 2026-10-31
+**Status:** Accepted (set with the Phase 7 plan and reported to the owner)
+
+#### Decision
+- **One call at a time,** per agent and per customer. The same click twice returns the same call.
+- **Closing or refreshing the tab, or signing out, ends the call,** because the audio lives in that tab. Moving between pages does not. Any call that never gets an end event is closed as failed after 5 minutes of ringing or 6 hours in total.
+- **A reassigned lead or a deactivated agent doesn't cut a live call.**
+- **Starting a call counts as a response** for the lead's timeout (Decision 59), however the call turns out. A missed call counts as nobody's response.
+- **Outcome:** it opens when an answered call ends, and "Skip for now" is allowed, so it can be filled in later. It can be set once. This follows the design's Skip button rather than its "required before the next call" label.
+- **Inbound routing:** out of hours takes a message. Otherwise it rings the owner if online, free and not on leave, then follows `telephony.inboundFallback`. "Online" means the softphone reported in within 75 seconds. If deciding takes over 3 seconds, the caller is asked to leave a message.
+- **Missed or declined calls** are logged, get a same-day follow-up for the owner, and alert Admins and the managers above the owner, on screen and in the Calls page. Nobody else is rung.
+- **Unknown numbers** make one Phone lead, unassigned, in the queue. This follows `project_data.md`, not the design's "answering creates a lead you own". Hidden or malformed numbers make no lead.
+- **A number on several leads:** the customer's open lead, or a new linked lead if none is open.
+- **Recordings:** a failed download retries up to the job's limit. An expired link or a corrupt or empty file fails at once, with no file kept. Only the start of a listen is audited, not each seek. Signed links last 5 minutes.
+- **Provider logins** are encrypted with `CREDENTIALS_ENCRYPTION_KEY` and never returned. `telephony_provider_accounts` from the schema plan was left out, because nothing needs it yet.

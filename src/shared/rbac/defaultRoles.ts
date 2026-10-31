@@ -49,6 +49,8 @@ export const DEFAULT_ROLES = {
       "messaging:view",
       "messaging:send",
       "messaging:manage-templates",
+      "telephony:call",
+      "telephony:view-recordings",
     ],
   },
   MANAGER: {
@@ -68,6 +70,8 @@ export const DEFAULT_ROLES = {
       "leads:merge",
       "messaging:view",
       "messaging:send",
+      "telephony:call",
+      "telephony:view-recordings",
     ],
   },
   AGENT: {
@@ -81,6 +85,7 @@ export const DEFAULT_ROLES = {
       "leads:claim",
       "messaging:view",
       "messaging:send",
+      "telephony:call",
     ],
   },
 } as const satisfies Record<SystemRoleCode, RoleDefinition<PermissionCode>>;

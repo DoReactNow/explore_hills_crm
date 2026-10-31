@@ -13,7 +13,12 @@ export { createUserIfMissing, ensureFirstSuperAdmin } from "./identity.operator"
 export { identityJobs, identitySchedules } from "./identity.jobs";
 export { createSessionPrincipalResolver } from "./identity.session";
 
-export { getUserSummary, getVisibleAgentIds, listAssignableUsers } from "./identity.scope";
+export {
+  getUserSummary,
+  getVisibleAgentIds,
+  listAssignableUsers,
+  listCallers,
+} from "./identity.scope";
 export { userService } from "./identity.users.service";
 export { toUserView } from "./identity.users.repository";
 export type { UserContext } from "./identity.context";

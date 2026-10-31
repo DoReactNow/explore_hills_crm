@@ -5,6 +5,11 @@ export { leadScopeOf } from "./leads.access";
 export { recordFirstResponse, resolveLeadForInbound, setContactOpt } from "./leads.inbound";
 export {
   addLeadTimeline,
+  addSystemFollowUp,
+  createTaskForLead,
+  findLeadForCall,
+  findLeadOwner,
+  isLeadVisible,
   addLeadTimelines,
   countOpenLeads,
   findLeadForChat,

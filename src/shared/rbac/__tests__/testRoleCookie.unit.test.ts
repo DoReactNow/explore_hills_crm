@@ -98,7 +98,7 @@ describe("instrumentation register()", () => {
     );
   });
 
-  it("fails at startup when the storage driver is not available", async () => {
+  it("starts with the s3 driver configured", async () => {
     stubEnv("development");
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
     vi.stubEnv("STORAGE_DRIVER", "s3");
@@ -106,7 +106,7 @@ describe("instrumentation register()", () => {
       vi.stubEnv(`STORAGE_S3_${name}`, name === "ENDPOINT" ? "https://s3.example.com" : "x");
     }
     const { register } = await import("@/instrumentation");
-    await expect(register()).rejects.toThrow(/Phase 7/);
+    await expect(register()).resolves.toBeUndefined();
   });
 
   it("ignores the test cookie outside APP_ENV=test", async () => {

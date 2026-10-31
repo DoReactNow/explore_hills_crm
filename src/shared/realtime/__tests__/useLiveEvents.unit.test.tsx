@@ -80,6 +80,33 @@ describe("useLiveEvents()", () => {
     expect(onResync).toHaveBeenCalledTimes(1);
   });
 
+  it("shares one connection in a tab, giving each listener only its own types", () => {
+    const [ping, other] = [vi.fn(), vi.fn()];
+    function Two() {
+      useLiveEvents({ types: ["system.ping"], onEvent: ping, onResync: vi.fn() });
+      useLiveEvents({ types: ["system.other"], onEvent: other, onResync: vi.fn() });
+      return null;
+    }
+    const { unmount } = render(<Two />);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    const source = FakeEventSource.instances[0];
+    act(() => source.emit("system.ping", {}));
+    expect(ping).toHaveBeenCalledOnce();
+    expect(other).not.toHaveBeenCalled();
+    unmount();
+    expect(source.closed).toBe(true);
+  });
+
+  it("keeps the connection until the last listener leaves", () => {
+    const { unmount } = render(<Probe onEvent={vi.fn()} onResync={vi.fn()} />);
+    const second = render(<Probe onEvent={vi.fn()} onResync={vi.fn()} />);
+    const source = FakeEventSource.instances[0];
+    unmount();
+    expect(source.closed).toBe(false);
+    second.unmount();
+    expect(source.closed).toBe(true);
+  });
+
   it("closes the stream when the component unmounts", () => {
     const { unmount } = render(<Probe onEvent={vi.fn()} onResync={vi.fn()} />);
     unmount();

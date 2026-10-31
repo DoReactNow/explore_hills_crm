@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phase 6 is built and in review; next is Phase 7, which needs `Q-13`, `Q-14` and `Q-15` answered. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 6 are complete. Phase 7 is built on the fake provider and in review (Decisions 61, 62); only the real provider adapter waits for `Q-14`. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1149,12 +1149,14 @@ Built beyond the plan: the design's 30-second Undo, `assignment.maxTimeouts`, an
 
 Unassigned queue, bulk selection, all six modes (manual, round-robin, least-loaded, priority, random, blast), preview before confirm, atomic claim pool with the `assignment_pool_eligibility` join table, caps, shifts and eligibility, timeouts with return-to-pool or escalation as **delayed jobs plus a sweeper** (Decision 27), pool expiry jobs, idempotent assignment, audit events, **live updates** so a claimed lead disappears for other agents and new leads appear in the queue. Heavy concurrency tests. E2E journeys 2 and 3.
 
-### Phase 6: Agent Workspace — IN REVIEW
-Built on branch `phase-6-agent-workspace`. `P6-WORK-08` (call outcome form) moved to Phase 7, because no calls exist until then; `P6-WORK-10` was delivered with the blast pool in Phase 5. Not built: the design's saved filters and quick-reply chips above the composer. The softphone's place is reserved on the lead page.
+### Phase 6: Agent Workspace — DONE
+Merged in PR #34. `P6-WORK-08` (call outcome form) moved to Phase 7, because no calls exist until then; `P6-WORK-10` was delivered with the blast pool in Phase 5. Not built: the design's saved filters and quick-reply chips above the composer. The softphone's place is reserved on the lead page.
 
 "My leads" screen, lead record with chat panel, notes, call outcome (disposition) form, trip details, follow-up tasks, pool claiming UI, quick filters, keyboard-friendly layout, live updates. Reserve the place for the softphone panel and call card; the calling itself arrives in Phase 7.
 
-### Phase 7: Browser Calling, Call Logging and Recordings — PENDING
+### Phase 7: Browser Calling, Call Logging and Recordings — IN REVIEW (real provider waits for Q-14)
+Built on branch `phase-7-calling`, on the fake provider. Moved in and covered: `P6-WORK-08`. Still open: step 7 below (the first real adapter), which needs the owner's provider choice. Not built: the design's waveform player (the browser's own audio control is used) and a stage picker in the outcome form. Email and push alerts wait for Phase 8.
+
 Design: Decisions 24, 25, 26. Build in this order, so nothing waits on the provider choice:
 1. `TelephonyProvider` (server) and `SoftphoneClient` (browser) interfaces, capability flags, normalised `TelephonyCallStatus`, the two provider registries (`registry.server.ts`, server-only; `registry.browser.ts`), and the **`fake` provider** (server + browser) with the shared **contract test suite**.
 2. Outbound browser calling from a lead: `callRef`, short-lived agent credentials, softphone panel, live call card (softphone events + SSE), call outcome form, call timeline entries, "call via my phone" fallback when the provider has `clickToCall`.
