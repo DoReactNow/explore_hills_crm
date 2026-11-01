@@ -464,7 +464,7 @@ export function createMessagingService({
     async runDownload(messageId: string, isFinalAttempt: boolean): Promise<void> {
       const message = await repository.findForSend(messageId);
       if (!message || message.mediaStatus !== "PENDING" || !message.mediaRef) return;
-      const failed = () => repository.updateMessage(messageId, { mediaStatus: "FAILED" });
+      const failed = () => repository.finishFailedDownload(messageId);
       const declaredType = message.mediaMimeType?.split(";")[0].trim() ?? "";
       if (!FILE_TYPES[declaredType]) {
         await failed();
@@ -483,11 +483,15 @@ export function createMessagingService({
           extension: FILE_TYPES[declaredType].extension,
         });
         await getFileStorage().put(key, bytes, declaredType);
-        await repository.updateMessage(messageId, {
+        const saved = await repository.finishDownload(messageId, {
           mediaRef: key,
           mediaStatus: "STORED",
           mediaMimeType: declaredType,
         });
+        if (!saved) {
+          await getFileStorage().delete(key);
+          return;
+        }
         await announce(message.conversationId);
       } catch (error) {
         if (isFinalAttempt) {

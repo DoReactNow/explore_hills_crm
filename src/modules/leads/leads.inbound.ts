@@ -78,6 +78,16 @@ export async function setContactOpt(
     optInAt: input.at,
     optInSource: input.source,
   });
+  await tx.leadsConsentRecord.create({
+    data: {
+      contactId: input.contactId,
+      purpose: "WHATSAPP",
+      status: input.status === "OPTED_IN" ? "GRANTED" : "WITHDRAWN",
+      source: input.source,
+      recordedByUserId: input.actor?.userId ?? null,
+      occurredAt: input.at,
+    },
+  });
   await recordAudit(tx, {
     action: "contact.opt_changed",
     entityType: "contact",

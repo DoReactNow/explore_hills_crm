@@ -11,6 +11,7 @@ import {
   type Clock,
 } from "@/shared/time";
 import { inScope, leadScopeOf } from "./leads.access";
+import { assertNotErased } from "./leads.privacy";
 import { leadRepository, type LeadRepository } from "./leads.repository";
 import type { AddTaskInput, ListFollowUpsInput, SetTaskInput } from "./leads.schemas";
 import { isUuid, type LeadContext } from "./leads.service";
@@ -41,7 +42,9 @@ export function createTaskService({
       }
       const now = clock.now();
       return repository.transaction(async (tx) => {
-        if (!(await repository.findLead(tx, leadId, scope))) throw notFound();
+        const lead = await repository.findLead(tx, leadId, scope);
+        if (!lead) throw notFound();
+        assertNotErased(lead.contact);
         const task = await repository.createTask(tx, {
           leadId,
           assigneeUserId,

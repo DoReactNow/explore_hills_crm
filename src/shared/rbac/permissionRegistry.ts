@@ -175,6 +175,42 @@ export const PERMISSIONS = {
     module: "assignment",
     reserved: false,
   },
+  "audit:view": {
+    label: "View the audit trail",
+    description: "See what they and the people below them did. It can't be changed.",
+    module: "audit",
+    reserved: false,
+  },
+  "audit:view-all": {
+    label: "View the whole audit trail",
+    description: "See what everyone did, including automatic actions.",
+    module: "audit",
+    reserved: false,
+  },
+  "audit:export": {
+    label: "Export the audit trail",
+    description: "Download the audit trail as a spreadsheet. Every export is audited.",
+    module: "audit",
+    reserved: false,
+  },
+  "privacy:manage": {
+    label: "Manage customer privacy",
+    description: "Find any customer's privacy record, record consent and place a hold.",
+    module: "privacy",
+    reserved: false,
+  },
+  "privacy:export": {
+    label: "Export a customer's data",
+    description: "Download everything held about one customer. Every export is audited.",
+    module: "privacy",
+    reserved: false,
+  },
+  "privacy:erase": {
+    label: "Erase a customer's data",
+    description: "Permanently remove a customer's personal data. This can't be undone.",
+    module: "privacy",
+    reserved: false,
+  },
   "settings:manage": {
     label: "Manage settings",
     description: "Change system settings and the pipeline stages.",

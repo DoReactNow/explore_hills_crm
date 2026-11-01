@@ -13,6 +13,7 @@ import { LogoMark } from "./LogoMark";
 import styles from "./identity.module.css";
 
 const SIGN_IN_PATH = "/sign-in";
+const PRIVACY_NOTICE_PATH = "/privacy-notice";
 const leave = () => window.location.replace(SIGN_IN_PATH);
 
 interface Me {
@@ -48,6 +49,8 @@ const NAV_ITEMS: ReadonlyArray<{
   { href: "/teams", label: "Teams", permission: "teams:view" },
   { href: "/templates", label: "Templates", permission: "messaging:manage-templates" },
   { href: "/settings", label: "Settings", permission: "settings:manage" },
+  { href: "/audit", label: "Audit trail", permission: "audit:view" },
+  { href: "/privacy", label: "Customer privacy", permission: "privacy:manage" },
   { href: "/diagnostics", label: "Diagnostics", permission: "system:view-diagnostics" },
   { href: "/roles", label: "Roles & Permissions", permission: "roles:manage" },
 ];
@@ -188,7 +191,7 @@ export function AppShell({
   onSignedOut?: () => void;
 }) {
   const pathname = usePathname();
-  const bare = pathname === SIGN_IN_PATH;
+  const bare = pathname === SIGN_IN_PATH || pathname === PRIVACY_NOTICE_PATH;
   const [me, setMe] = useState<Me | null | undefined>(undefined);
   const [signingOut, setSigningOut] = useState(false);
   const phone = useIsPhone();

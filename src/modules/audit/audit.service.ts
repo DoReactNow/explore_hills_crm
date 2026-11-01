@@ -14,7 +14,7 @@ export interface AuditInput {
   summary: string;
   /** Who did it; null for a system action (a job or webhook). */
   actor: { userId: string; roleCode: string } | null;
-  /** IDs and flags only: values that look like an email or phone number are refused. */
+  /** IDs and flags only: values that look like an email or phone number are refused, here and in the summary. */
   metadata?: Record<string, AuditMetadataValue>;
   requestId?: string;
 }
@@ -48,6 +48,10 @@ function assertValid(input: AuditInput): void {
   }
   for (const field of ["entityType", "entityId", "summary"] as const) {
     if (!input[field].trim()) throw new Error(`Audit event is missing ${field}`);
+  }
+  // The trail is kept for good, and an erasure can't reach it, so no personal data may go in (Decision 66).
+  if (looksPersonal(input.summary)) {
+    throw new Error("Audit summary looks like it holds an email or phone number");
   }
   for (const [key, value] of Object.entries(input.metadata ?? {})) {
     if (holdsPersonalData(value)) {

@@ -1,6 +1,6 @@
 // P9-EXPORT-04, -05: spreadsheet-safe values.
 import { describe, expect, it } from "vitest";
-import { CSV_BOM, csvCell, csvRow } from "../reporting.csv";
+import { CSV_BOM, csvCell, csvRow } from "../csv";
 
 describe("csvCell", () => {
   it.each(["=SUM(A1)", "+91 98000", "-5", "@cmd", "\tx", "\rx"])(

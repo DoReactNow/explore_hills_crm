@@ -61,6 +61,15 @@ import * as notePush from "@/app/api/notifications/push/route";
 import * as reportsRoute from "@/app/api/reports/route";
 import * as reportOptions from "@/app/api/reports/options/route";
 import * as reportExport from "@/app/api/reports/export/route";
+import * as auditRoute from "@/app/api/audit/route";
+import * as auditOptions from "@/app/api/audit/options/route";
+import * as auditExport from "@/app/api/audit/export/route";
+import * as privacySearch from "@/app/api/privacy/contacts/route";
+import * as privacyItem from "@/app/api/privacy/contacts/[id]/route";
+import * as privacyConsent from "@/app/api/privacy/contacts/[id]/consent/route";
+import * as privacyHold from "@/app/api/privacy/contacts/[id]/hold/route";
+import * as privacyExport from "@/app/api/privacy/contacts/[id]/export/route";
+import * as privacyErase from "@/app/api/privacy/contacts/[id]/erase/route";
 import * as dashboardRoute from "@/app/api/dashboard/route";
 import * as leadReassign from "@/app/api/leads/[id]/reassign/route";
 import * as leadMerge from "@/app/api/leads/[id]/merge/route";
@@ -376,6 +385,38 @@ const CASES: Case[] = [
   { method: "GET", path: "/api/reports", handler: reportsRoute.GET, allowed: ASSIGNERS },
   { method: "GET", path: "/api/reports/options", handler: reportOptions.GET, allowed: ASSIGNERS },
   { method: "GET", path: "/api/reports/export", handler: reportExport.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/audit", handler: auditRoute.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/audit/options", handler: auditOptions.GET, allowed: ASSIGNERS },
+  { method: "GET", path: "/api/audit/export", handler: auditExport.GET, allowed: ADMINS },
+  { method: "GET", path: "/api/privacy/contacts", handler: privacySearch.GET, allowed: ADMINS },
+  { method: "GET", path: "/api/privacy/contacts/[id]", handler: privacyItem.GET, allowed: ADMINS },
+  {
+    method: "POST",
+    path: "/api/privacy/contacts/[id]/consent",
+    handler: privacyConsent.POST,
+    allowed: ADMINS,
+    body: {},
+  },
+  {
+    method: "POST",
+    path: "/api/privacy/contacts/[id]/hold",
+    handler: privacyHold.POST,
+    allowed: ADMINS,
+    body: {},
+  },
+  {
+    method: "GET",
+    path: "/api/privacy/contacts/[id]/export",
+    handler: privacyExport.GET,
+    allowed: ADMINS,
+  },
+  {
+    method: "POST",
+    path: "/api/privacy/contacts/[id]/erase",
+    handler: privacyErase.POST,
+    allowed: ADMINS,
+    body: {},
+  },
   { method: "GET", path: "/api/dashboard", handler: dashboardRoute.GET, allowed: LEAD_ROLES },
   { method: "GET", path: "/api/notifications", handler: noteList.GET, allowed: EVERYONE },
   {

@@ -27,6 +27,12 @@ export const DEFAULT_ROLES = {
     bypassesAccess: false,
     permissions: [
       "system:view-diagnostics",
+      "audit:view",
+      "audit:view-all",
+      "audit:export",
+      "privacy:manage",
+      "privacy:export",
+      "privacy:erase",
       "users:view",
       "users:view-all",
       "users:create",
@@ -83,6 +89,7 @@ export const DEFAULT_ROLES = {
       "dashboard:view-team",
       "reports:view",
       "reports:export",
+      "audit:view",
     ],
   },
   AGENT: {

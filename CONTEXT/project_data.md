@@ -217,6 +217,7 @@ The telephony module additionally contains `providers/<key>/server.ts` and `prov
 | `notifications` | In-app (and later email/push) notifications, reminders |
 | `reporting` | Dashboards and exports |
 | `audit` | Append-only audit trail (table and writer from Phase 1; views in Phase 10) |
+| `privacy` | A customer's data rights: consent, holds, export and erasure. Owns no table; calls each module's public API |
 
 **Boundary rules (enforced by `npm run lint:arch` using dependency-cruiser)**
 
@@ -360,7 +361,9 @@ Only `system:view-diagnostics` is implemented in Phase 0. Every other permission
 | `roles:manage` | Create roles and edit permission bundles (**reserved**: Super Admin only, never grantable) | NO | NO | NO |
 | `users:manage-super-admins` | Create, edit or deactivate Super Admins; give the `SUPER_ADMIN` role (**reserved**) | NO | NO | NO |
 | `settings:manage` | System settings | YES | NO | NO |
-| `audit:view` | View the audit trail | YES | YES | NO |
+| `audit:view` | View the audit trail for themselves and those below them | YES | YES | NO |
+| `audit:view-all` / `audit:export` | See everyone in the audit trail; download it | YES | NO | NO |
+| `privacy:manage` / `privacy:export` / `privacy:erase` | A customer's consent and holds; download their data; erase it | YES | NO | NO |
 
 ---
 

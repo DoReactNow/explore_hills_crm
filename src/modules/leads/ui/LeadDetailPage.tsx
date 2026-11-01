@@ -482,7 +482,7 @@ export function LeadDetailPage({
     null,
   );
 
-  const [gone, setGone] = useState(false);
+  const [movedAway, setGone] = useState(false);
   const [ownerNotice, setOwnerNotice] = useState("");
   const [view, setView] = useState<"chat" | "details" | "activity">("chat");
   const loaded = useRef(false);
@@ -561,6 +561,7 @@ export function LeadDetailPage({
   if (!lead) return <main aria-busy="true">Loading…</main>;
 
   const canEdit = can("leads:edit");
+  const gone = movedAway || Boolean(lead.contact.anonymisedAt);
   const editable = canEdit && !gone;
   const lostStage = stages.find((stage) => stage.kind === "LOST" && stage.isActive);
   const pipeline = stages.filter(
@@ -693,7 +694,13 @@ export function LeadDetailPage({
         ) : null}
       </div>
       <FormError error={actionError} />
-      {gone ? (
+      {lead.contact.anonymisedAt ? (
+        <div role="status" className={styles.notice}>
+          <b>This customer&apos;s data was erased.</b> The lead stays for the totals in reports, and
+          can&apos;t change any more.
+        </div>
+      ) : null}
+      {movedAway ? (
         <div role="alert" className={styles.notice}>
           <b>This lead has moved and is no longer yours.</b> You can&apos;t change it any more.
           Anything you were typing is still here to copy.{" "}

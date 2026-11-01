@@ -156,6 +156,19 @@ export const SETTINGS = {
     defaultValue: 30,
     schema: z.number().int().min(1).max(3650),
   },
+  "privacy.noticeText": {
+    label: "Privacy notice",
+    help: "Shown at /privacy-notice. {company}, {email}, {phone}, {messageDays} and {recordingDays} are filled in. Leave a blank line between paragraphs. Your legal adviser must confirm this before go-live.",
+    group: "Data & retention",
+    defaultValue: [
+      "Draft wording, waiting for legal review.",
+      "{company} collects your name, phone number, email address, trip details, WhatsApp messages and call recordings so that we can answer your enquiry and plan your trip.",
+      "We keep WhatsApp messages for {messageDays} days and call recordings for {recordingDays} days, then delete them. Calls may be recorded, and you will be told when they are.",
+      "You can ask to see your data, ask us to correct or erase it, or withdraw your consent at any time. To stop WhatsApp messages, reply STOP.",
+      "To make a request or a complaint, write to {email} or call {phone}.",
+    ].join("\n\n"),
+    schema: z.string().trim().min(1).max(5000),
+  },
   "realtime.pollFallbackSeconds": {
     label: "Refresh without live updates (seconds)",
     help: "How often screens refresh if the live connection can't be made.",

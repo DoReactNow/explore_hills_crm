@@ -31,16 +31,71 @@ const REDACTED = "[redacted]";
 const SECRET_KEY =
   /pass(word)?|secret|token|authorization|cookie|api[-_]?key|encrypted|credential|database_?url|dsn/i;
 
+// Personal data has no place in logs either (database_schema.md Section 7). Each entry is a field
+// name from the personal data map, tested in logger.unit.test.ts.
+export const PERSONAL_FIELDS = [
+  "phone",
+  "phoneE164",
+  "customerPhone",
+  "customerPhoneE164",
+  "agentPhone",
+  "waId",
+  "email",
+  "name",
+  "profileName",
+  "contactName",
+  "customerName",
+  "body",
+  "rawBody",
+  "payload",
+  "note",
+  "notes",
+  "outcomeNotes",
+  "routingNote",
+  "reason",
+  "lostReason",
+  "destination",
+  "travelStartDate",
+  "travelEndDate",
+  "travellerCount",
+  "budgetAmount",
+  "customFields",
+  "sourceDetail",
+  "templateVariables",
+  "mediaFilename",
+  "title",
+  "ip",
+  "userAgent",
+] as const;
+const PERSONAL_KEY = new Set<string>(PERSONAL_FIELDS.map((field) => field.toLowerCase()));
+
+const isSensitiveKey = (key: string) => SECRET_KEY.test(key) || PERSONAL_KEY.has(key.toLowerCase());
+
+const EMAIL_TEXT = /[^@\s"'<>]+@[^@\s"'<>]+\.[^@\s"'<>]+/g;
+const PHONE_TEXT = /(?<![\w:.-])\+?\d[\d\s()-]{8,}\d(?![\w:.-])/g;
+
+/** Text can carry a number or address too, such as a provider's error message. */
+function maskText(text: string): string {
+  return text
+    .replace(EMAIL_TEXT, REDACTED)
+    .replace(PHONE_TEXT, (match) => (match.replace(/\D/g, "").length >= 10 ? REDACTED : match));
+}
+
 function sanitise(value: unknown, depth = 0): unknown {
   if (value instanceof Error) {
-    return { name: value.name, message: value.message, stack: value.stack };
+    return {
+      name: value.name,
+      message: maskText(value.message),
+      stack: value.stack && maskText(value.stack),
+    };
   }
+  if (typeof value === "string") return maskText(value);
   if (depth > 8 || value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map((item) => sanitise(item, depth + 1));
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
-      SECRET_KEY.test(key) ? REDACTED : sanitise(item, depth + 1),
+      isSensitiveKey(key) ? REDACTED : sanitise(item, depth + 1),
     ]),
   );
 }

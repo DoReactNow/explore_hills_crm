@@ -28,5 +28,11 @@ export const retentionDef = {
   retry: { limit: 3, delaySeconds: 300, backoff: true },
 };
 
+export const webhookRetentionDef = {
+  name: "telephony.deleteOldWebhookEvents",
+  payload: z.object({}),
+  retry: { limit: 3, delaySeconds: 300, backoff: true },
+};
+
 export const processEventRef = defineJob({ ...processEventDef, handler: notHere });
 export const storeRecordingRef = defineJob({ ...storeRecordingDef, handler: notHere });

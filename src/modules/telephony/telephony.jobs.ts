@@ -1,6 +1,12 @@
 // Background jobs of the telephony module. All are idempotent: a repeat finds the work already done.
 import { defineJob, type AnyJobDefinition, type JobSchedule } from "@/shared/jobs";
-import { processEventDef, retentionDef, storeRecordingDef, sweepDef } from "./telephony.jobdefs";
+import {
+  processEventDef,
+  retentionDef,
+  storeRecordingDef,
+  sweepDef,
+  webhookRetentionDef,
+} from "./telephony.jobdefs";
 import { telephonyService } from "./telephony.service";
 
 const processEventJob = defineJob({
@@ -20,14 +26,23 @@ const retentionJob = defineJob({
   },
 });
 
+const webhookRetentionJob = defineJob({
+  ...webhookRetentionDef,
+  handler: async () => {
+    await telephonyService.deleteOldWebhookEvents();
+  },
+});
+
 export const telephonyJobs: AnyJobDefinition[] = [
   processEventJob,
   storeRecordingJob,
   sweepJob,
   retentionJob,
+  webhookRetentionJob,
 ];
 
 export const telephonySchedules: JobSchedule[] = [
   { job: sweepJob, cron: "* * * * *", payload: {} },
   { job: retentionJob, cron: "15 4 * * *", payload: {} },
+  { job: webhookRetentionJob, cron: "50 4 * * *", payload: {} },
 ];

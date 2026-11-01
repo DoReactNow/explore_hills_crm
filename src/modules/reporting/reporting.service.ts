@@ -22,7 +22,7 @@ import {
   type BusinessDate,
   type Clock,
 } from "@/shared/time";
-import { CSV_BOM, csvRow } from "./reporting.csv";
+import { CSV_BOM, csvRow } from "@/shared/http/csv";
 import { reportingRepository as repository, type ReportWhere } from "./reporting.repository";
 import type { DashboardInput, ExportInput, ReportFilters } from "./reporting.schemas";
 
@@ -377,7 +377,7 @@ export function createReportingService({ clock = systemClock }: Deps = {}) {
               yield csvRow([
                 formatInstant(lead.createdAt, "dateTime"),
                 lead.contact.name,
-                lead.contact.phoneE164,
+                lead.contact.phoneE164.startsWith("erased-") ? "" : lead.contact.phoneE164,
                 lead.source,
                 lead.destination,
                 lead.travellerCount,

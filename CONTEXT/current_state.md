@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is complete, with email and push on fakes (Decisions 63, 64). Phase 9 is complete (Decision 65). Phase 10 is next and needs the owner's answers to Q-18 and Q-19. Before go-live: real WhatsApp and calling adapters, a mail account and push keys. Global search from the design has no phase yet. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is complete, with email and push on fakes (Decisions 63, 64). Phase 9 is complete (Decision 65). Phase 10 is built and in review (Decision 66), and its wording needs a legal adviser before go-live (`CONTEXT/dpdp_checklist.md`). Before go-live: real WhatsApp and calling adapters, a mail account and push keys. Global search from the design has no phase yet. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1177,7 +1177,9 @@ Merged in PR #39 (Decision 65). No snapshots: `P9-REPORT-14` doesn't apply. Not 
 
 Own/team/company dashboards, volume, assignment and response-time reports, conversion funnel, exports, daily buckets in the business timezone, performance tests on realistic data volumes.
 
-### Phase 10: Audit, Data Protection and Retention — PENDING (next)
+### Phase 10: Audit, Data Protection and Retention — IN REVIEW
+Built on branch `phase-10-data-protection` (Decision 66). The privacy notice is placeholder wording until a legal adviser confirms it. Not built from the design: the "Where from" column (browser and city aren't recorded; the column shows the record instead). Data export lists files rather than attaching them.
+
 Audit trail views (the table and writer exist since Phase 1), consent records, retention and deletion policies as scheduled jobs (recordings, messages, webhook logs, sessions), erasure that also deletes files from `FileStorage`, data export on request, DPDP readiness checklist including the call-recording announcement and notice, privacy notices sourced from `APP_CONFIG`, log redaction review.
 
 ### Phase 11: Hardening, Observability and Performance — PENDING
