@@ -9,6 +9,7 @@ import { AppError } from "@/shared/errors/AppError";
 import { GENERIC_FIELD_MESSAGE } from "@/shared/errors/errorCatalog";
 import { parseInput, toErrorResponse } from "@/shared/errors/toErrorResponse";
 import { logger as rootLogger, type Logger } from "@/shared/logger";
+import { enforceRateLimit, WINDOW_SECONDS, type RateLimit } from "@/shared/http/rateLimit";
 import { readSessionToken } from "@/shared/http/sessionCookie";
 import { checkAccess, requiredPermissions, type Access } from "@/shared/rbac/guard";
 import type { Principal } from "@/shared/rbac/principal";
@@ -39,6 +40,8 @@ export interface RawResult {
 
 export interface RouteOptions<T, I, P> {
   access: Access;
+  /** Counted per person, or per address when nobody is signed in (Decision 67). */
+  rateLimit?: RateLimit;
   /** Validates the JSON body (or the query string for GET, HEAD and DELETE). */
   input?: z.ZodType<I>;
   handler: (context: RouteContext<I, P>) => Promise<HandlerResult<T> | RawResult>;
@@ -101,6 +104,8 @@ export function route<T, I = undefined, P extends object = Record<string, string
         });
       }
 
+      if (options.rateLimit) await enforceRateLimit(options.rateLimit, request, principal);
+
       const input = options.input
         ? parseInput(options.input, await readRawInput(request))
         : (undefined as I);
@@ -122,7 +127,10 @@ export function route<T, I = undefined, P extends object = Record<string, string
       );
     } catch (error) {
       const { status, body } = toErrorResponse(error, { requestId, logger });
-      return Response.json(body, { status, headers });
+      return Response.json(body, {
+        status,
+        headers: status === 429 ? { ...headers, "retry-after": String(WINDOW_SECONDS) } : headers,
+      });
     }
   };
 }

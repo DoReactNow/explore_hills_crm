@@ -1,6 +1,7 @@
 // The worker process (Decision 27): runs every module's background jobs and writes a heartbeat.
 // `npm run worker` in development; the "worker" service in Docker. The web app only enqueues.
 import { hostname } from "node:os";
+import { trackErrors } from "@/modules/monitoring";
 import { HEARTBEAT_INTERVAL_SECONDS, workerStatusChangedEvent } from "@/modules/system";
 import { getEnv } from "@/shared/config/env";
 import { getPrisma } from "@/shared/db/prisma";
@@ -13,6 +14,7 @@ import { collectWorkerJobs, collectWorkerSchedules } from "./workerJobs";
 
 async function main(): Promise<void> {
   const env = getEnv();
+  trackErrors("worker");
   getFileStorage(); // fail at startup, not on the first recording, when the storage driver is wrong
   const workerId = `${hostname()}:${process.pid}`;
   const jobs = collectWorkerJobs(env.APP_ENV);

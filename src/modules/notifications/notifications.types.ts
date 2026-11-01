@@ -57,6 +57,16 @@ export const NOTIFICATION_KINDS = {
     single: "A lead is up for grabs",
     grouped: "leads are up for grabs",
   },
+  // Each one matters on its own and goes out at once, so these never join a group (Decision 67).
+  system_alert: {
+    list: "/diagnostics",
+    email: true,
+    push: true,
+    ungrouped: true,
+    label: "System alert",
+    single: "System alert",
+    grouped: "system alerts",
+  },
   customer_message: {
     list: "/inbox",
     email: false,

@@ -2,6 +2,7 @@
 import { assignmentJobs, assignmentSchedules } from "@/modules/assignment";
 import { identityJobs, identitySchedules } from "@/modules/identity";
 import { messagingJobs, messagingSchedules } from "@/modules/messaging";
+import { monitoringJobs, monitoringSchedules } from "@/modules/monitoring";
 import { notificationJobs, notificationSchedules } from "@/modules/notifications";
 import { systemJobs, systemSchedules, systemTestJobs } from "@/modules/system";
 import { telephonyJobs, telephonySchedules } from "@/modules/telephony";
@@ -13,6 +14,7 @@ export function collectWorkerJobs(appEnv: Env["APP_ENV"]) {
     assignment: assignmentJobs,
     identity: identityJobs,
     messaging: messagingJobs,
+    monitoring: monitoringJobs,
     notifications: notificationJobs,
     telephony: telephonyJobs,
     system: [...systemJobs, ...(appEnv === "test" ? systemTestJobs : [])],
@@ -26,6 +28,7 @@ export function collectWorkerSchedules() {
     ...telephonySchedules,
     ...notificationSchedules,
     ...messagingSchedules,
+    ...monitoringSchedules,
     ...systemSchedules,
   ];
 }

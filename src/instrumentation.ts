@@ -21,11 +21,22 @@ export async function register(): Promise<void> {
   const { buildPrincipalForRole, createSessionPrincipalResolver } =
     await import("@/modules/identity");
   const sessionResolver = createSessionPrincipalResolver();
+  const { startChecks, trackErrors } = await import("@/modules/monitoring");
+  trackErrors("app");
   if (appEnv !== "test") {
+    startChecks();
     const { configurePrincipalResolver } = await import("@/shared/rbac/principalResolver");
     configurePrincipalResolver(sessionResolver);
     return;
   }
   const { installTestRoleCookieResolver } = await import("@/shared/rbac/testRoleCookie");
   installTestRoleCookieResolver(buildPrincipalForRole, sessionResolver);
+}
+
+/** Errors while rendering a page never pass through route(), so they are logged and tracked here. */
+export async function onRequestError(error: unknown): Promise<void> {
+  // eslint-disable-next-line no-restricted-properties
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { logger } = await import("@/shared/logger");
+  logger.error("page failed to render", { err: error });
 }

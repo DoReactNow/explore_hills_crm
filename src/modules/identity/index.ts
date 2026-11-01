@@ -20,6 +20,7 @@ export {
   listAssignableUsers,
   listCallers,
   listHolders,
+  listPeopleWhoCan,
   listManagersAbove,
 } from "./identity.scope";
 export { userService } from "./identity.users.service";

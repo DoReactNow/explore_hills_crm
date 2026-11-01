@@ -3,6 +3,7 @@ import {
   leadsController,
   listLeadsSchema,
 } from "@/modules/leads/leads.controller";
+import { RATE_LIMITS } from "@/shared/http/rateLimit";
 import { route } from "@/shared/http/route";
 
 export const GET = route({
@@ -13,6 +14,7 @@ export const GET = route({
 
 export const POST = route({
   access: { permission: "leads:create" },
+  rateLimit: RATE_LIMITS.write,
   input: createLeadSchema,
   handler: leadsController.createLead,
 });

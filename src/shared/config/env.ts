@@ -44,6 +44,8 @@ const baseSchema = z.object({
       /^postgres(ql)?:\/\/[^/]+\/[^/?]+/,
       "DATABASE_URL must be a postgresql:// URL with a database name",
     ),
+  /** Database connections each process may hold in its main pool (Decision 67). */
+  DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   AUTH_SECRET: z
     .string({ error: "AUTH_SECRET is required" })
     .min(32, "AUTH_SECRET must be at least 32 characters"),

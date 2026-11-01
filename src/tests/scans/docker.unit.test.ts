@@ -1,5 +1,6 @@
 // W-010: the Docker setup stays in step with the rest of the repo.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const read = (file: string) => readFileSync(file, "utf8");
@@ -44,6 +45,31 @@ describe("Docker files", () => {
       const body =
         prod.split(new RegExp(`^FROM .* AS ${stage}$`, "m"))[1]?.split(/^FROM /m)[0] ?? "";
       expect(body, stage).toMatch(/^USER node$/m);
+    }
+  });
+
+  it("removes from the worker image only what the worker's code doesn't import", () => {
+    const removed = [
+      ...read("docker/Dockerfile.prod").matchAll(/node_modules\/((?:@[^/\s]+)|[^/\s]+)/g),
+    ].map((match) => match[1]);
+    const workerFiles = (dir: string): string[] =>
+      readdirSync(dir).flatMap((name) => {
+        const path = join(dir, name);
+        if (statSync(path).isDirectory())
+          return name === "__tests__" || name === "ui" ? [] : workerFiles(path);
+        return /\.ts$/.test(name) ? [path] : [];
+      });
+    const sources = [
+      ...workerFiles("src/worker"),
+      ...workerFiles("src/modules"),
+      ...workerFiles("src/shared"),
+    ].filter((file) => !/\.controller\.ts$/.test(file));
+    for (const file of sources) {
+      const text = read(file);
+      if (text.startsWith('"use client"')) continue; // browser code, never in the worker's bundle
+      for (const name of removed) {
+        expect(text, `${file} imports ${name}`).not.toMatch(new RegExp(`from "${name}(/|")`));
+      }
     }
   });
 });

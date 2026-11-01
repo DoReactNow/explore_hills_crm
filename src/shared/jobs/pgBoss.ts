@@ -24,6 +24,9 @@ export function createPgBoss({ connectionString, role, clock }: CreatePgBossOpti
     connectionString,
     schema: PGBOSS_SCHEMA,
     application_name: `explorehills-${role}`,
+    // Small on purpose: with the main pool and the live-update listener, each process stays well
+    // inside the database's connection limit (Decision 67).
+    max: role === "worker" ? 5 : 2,
     supervise: role === "worker",
     schedule: role === "worker",
     ...(clock ? { clock } : {}),

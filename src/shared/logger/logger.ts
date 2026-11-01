@@ -106,6 +106,14 @@ const defaultSink = (record: LogRecord) => {
   else console.log(line);
 };
 
+const ERROR_LEVELS: readonly LogLevel[] = ["error", "fatal"];
+let errorListener: ((record: LogRecord) => void) | null = null;
+
+/** Error tracking listens here, after redaction, so it only ever sees what the log sees. */
+export function setErrorListener(listener: ((record: LogRecord) => void) | null): void {
+  errorListener = listener;
+}
+
 export function createLogger(options: LoggerOptions): Logger {
   const { sink = defaultSink, clock = systemClock, bindings = {} } = options;
   const currentLevel =
@@ -115,7 +123,9 @@ export function createLogger(options: LoggerOptions): Logger {
     const threshold = currentLevel();
     if (threshold === "silent" || LOG_LEVELS.indexOf(level) < LOG_LEVELS.indexOf(threshold)) return;
     const extra = sanitise({ ...bindings, ...fields }) as LogFields;
-    sink({ time: clock.now().toISOString(), level, msg, ...extra });
+    const record: LogRecord = { time: clock.now().toISOString(), level, msg, ...extra };
+    sink(record);
+    if (ERROR_LEVELS.includes(level)) errorListener?.(record);
   };
 
   return {

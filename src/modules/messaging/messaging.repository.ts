@@ -373,9 +373,9 @@ export const messagingRepository = {
     return count === 1;
   },
 
-  findByClientRef(tx: Tx | null, clientRef: string) {
-    return (tx ?? getPrisma()).messagingMessage.findUnique({
-      where: { clientRef },
+  findByClientRef(tx: Tx | null, clientRef: string, conversationId: string) {
+    return (tx ?? getPrisma()).messagingMessage.findFirst({
+      where: { clientRef, conversationId },
       select: MESSAGE_SELECT,
     });
   },

@@ -75,6 +75,9 @@ export async function subscribe(subscriber: RelaySubscriber): Promise<() => void
   };
 }
 
+/** Open live-update streams on this instance. */
+export const connectedStreams = (): number => state.subscribers.size;
+
 /** Closes the LISTEN connection (tests and shutdown). */
 export async function stopRealtimeRelay(): Promise<void> {
   const client = state.client;

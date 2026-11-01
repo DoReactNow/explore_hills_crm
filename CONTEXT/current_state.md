@@ -23,15 +23,15 @@ This is the source of truth for what is done and what is next. **Check this file
 | 2 | Teams, hierarchy and the Roles & Permissions page | **DONE** (2026-10-31) |
 | 3 | Lead core and agent-facing lead screens | **DONE** (2026-10-31) |
 | 4 | WhatsApp integration (inbox, leads from messages) | **DONE** (2026-10-31, on the fake gateway; a real adapter is needed before go-live) |
-| 5 | Manager queue and assignment engine | **PENDING (next)** |
-| 6 | Agent workspace | PENDING |
-| 7 | Browser calling (telephony adapters), call logging and recordings | PENDING |
-| 8 | Notifications and SLA automation | PENDING |
-| 9 | Reports and dashboards | PENDING |
-| 10 | Audit, data protection and retention | PENDING |
-| 11 | Hardening, observability and performance | PENDING |
-| 12 | Production deployment and runbook | PENDING |
-| 13 | Future: WhatsApp calling inside the platform | DEFERRED |
+| 5 | Manager queue and assignment engine | **DONE** (2026-10-31) |
+| 6 | Agent workspace | **DONE** (2026-10-31) |
+| 7 | Browser calling (telephony adapters), call logging and recordings | **DONE** (2026-10-31, on the fake provider; a real adapter is needed before go-live) |
+| 8 | Notifications and SLA automation | **DONE** (2026-10-31, on fake channels until the mail account and push keys are set) |
+| 9 | Reports and dashboards | **DONE** (2026-10-31) |
+| 10 | Audit, data protection and retention | **DONE** (2026-11-01; wording needs a legal adviser before go-live) |
+| 11 | Hardening, observability and performance | **IN REVIEW** (branch `phase-11-hardening`) |
+| 12 | Production deployment and runbook | **IN PROGRESS** (real deployment waits for the owner) |
+| 13 | WhatsApp calling inside the platform (optional channel) | PENDING (waits for provider quotes) |
 
 ---
 
@@ -1182,11 +1182,29 @@ Merged in PR #41 (Decision 66). The privacy notice is placeholder wording until 
 
 Audit trail views (the table and writer exist since Phase 1), consent records, retention and deletion policies as scheduled jobs (recordings, messages, webhook logs, sessions), erasure that also deletes files from `FileStorage`, data export on request, DPDP readiness checklist including the call-recording announcement and notice, privacy notices sourced from `APP_CONFIG`, log redaction review.
 
-### Phase 11: Hardening, Observability and Performance — PENDING (next)
+### Phase 11: Hardening, Observability and Performance — IN REVIEW
+Rules are in Decision 67. Built on branch `phase-11-hardening`, in this order:
+
+| Work item | What | Scenarios |
+|:---|:---|:---|
+| W-1101 | Security headers and a nonce-based content security policy | `P11-SEC-02` |
+| W-1102 | Rate limits on sensitive routes | `P11-SEC-02` |
+| W-1103 | Automated attack tests: changed IDs, stored scripts, files and secrets; dependency audit in CI | `P11-SEC-01`, `-03`, `-04`, `-05`, `-06` |
+| W-1104 | Production-build check of test-only routes, cookies and jobs | `P11-SEC-07` |
+| W-1105 | Monitoring module: alerts, error tracking and the Diagnostics screen | `P11-OBS-01` |
+| W-1106 | Accessibility checks on every main screen | `P11-OBS-07` |
+| W-1107 | Connection limits, load tests and indexes | `P11-OBS-04`, `-05` |
+| W-1108 | Drills: restarts, two instances, and a timed backup and restore | `P11-OBS-02`, `-03`, `-06` |
+
+- [x] W-1101  - [x] W-1102  - [x] W-1103  - [x] W-1104
+- [x] W-1105  - [x] W-1106  - [x] W-1107  - [x] W-1108
+
+Results and limits are in `CONTEXT/hardening_results.md`. Three extra scenarios came from this work: `P11-SEC-08`, `P11-OBS-08`, `P11-OBS-09`. No scenario was moved. Two checklist items went to Phase 12: reviewing production access, and a request-size limit at the reverse proxy.
+
 Security review and penetration test fixes, rate limiting, security headers, structured logging and metrics, error tracking, job-queue monitoring (failed and stuck jobs, worker down alerts), live-update connection load test, database indexing review, load tests, accessibility pass, backup and restore drill (database **and** recording storage).
 
 ### Phase 12: Production Deployment and Runbook — PENDING
 Choose the hosting target (must be always-on for the worker and live updates; a VPS fits), finish the `deploy.yml` rollout step for `app` and `worker`, production secrets management (provider keys, storage keys, `CREDENTIALS_ENCRYPTION_KEY`), domain and HTTPS (required for browser microphone access), reverse proxy with buffering off for `/api/events/stream`, the recording storage target and its off-server backup (Decision 31), first production seed (first Super Admin) by an operator, monitoring and alerts, rollback procedure, and an operations runbook.
 
-### Phase 13: Future — WhatsApp Calling Inside the Platform — DEFERRED
-Only if the business decides to add it. Evaluate the three routes in Decision 18 (buy through a provider, build a media layer, hybrid), plug into the existing call adapter, add permission-request flow, recording and consent handling, and cost review.
+### Phase 13: WhatsApp Calling Inside the Platform — PENDING
+Needed as an optional channel, about 5% of calls (Decision 68); it waits for provider quotes (`Q-20`). Customers call on WhatsApp and agents answer in the CRM. Confirm the route (buying through a provider is recommended), plug into the existing call adapter, add an on/off setting, permission-request flow, recording and consent handling, and cost review.

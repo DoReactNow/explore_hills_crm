@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, Noto_Sans, Noto_Sans_Devanagari } from "next/font/google";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { NotificationsLink } from "@/modules/notifications/ui/NotificationsLink";
 import { SoftphoneProvider } from "@/modules/telephony/ui/SoftphoneProvider";
@@ -31,7 +32,8 @@ export const metadata: Metadata = {
   description: `${APP_CONFIG.product.name} for ${APP_CONFIG.company.legalName}`,
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  await connection(); // every page renders per request, so its scripts carry that request's nonce
   return (
     <html
       lang={APP_CONFIG.locale.locale}

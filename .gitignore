@@ -131,3 +131,7 @@ Desktop.ini
 
 # Personal Claude Code settings
 .claude/settings.local.json
+
+# Load test working files
+scripts/load/.sessions.json
+scripts/load/.results.json

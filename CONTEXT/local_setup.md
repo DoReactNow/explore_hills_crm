@@ -580,6 +580,12 @@ With `STORAGE_DRIVER=local`, recordings live in the `explorehills_storage` volum
 |:---|:---|
 | `npm run dev` | Dev server (port 47213) |
 | `npm run build` | Production build |
+| `npm run check:built-output` | After a build: nothing sent to browsers holds a secret (`P11-SEC-05`) |
+| `npm run check:production-surface` | After a build: test-only routes, cookies and pages are unreachable as production (`P11-SEC-07`) |
+| `scripts/load/prepare.sh`, `scripts/load/run.sh` | Fill a throwaway `explorehills_load` database at the agreed size, then run the load test (build first) |
+| `scripts/drills/run-resilience.sh` | Two instances and restarts on the load database. Restarts the local database container |
+| `. scripts/load/env.sh; node scripts/drills/restore-drill.mjs` | Timed backup and restore on the load database |
+| `scripts/ops/backup.sh`, `scripts/ops/restore.sh` | Back up and restore the database and files. A restore refuses a non-empty target or damaged backup |
 | `npm run start` / `start:test` | Serve the build with `.env` / `.env.test` |
 | `npm run worker` | Development background worker (restarts on change) |
 | `npm run build:worker` / `worker:start` | Bundle the worker / run the bundled worker |

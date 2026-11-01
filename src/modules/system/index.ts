@@ -28,3 +28,4 @@ export { ensureDefaultSettings, getSetting } from "./system.settings.service";
 export type { SettingKey } from "./system.settings";
 
 export const recordWorkerHeartbeat = systemService.recordHeartbeat;
+export const getWorkerStatus = systemService.getWorkerStatus;

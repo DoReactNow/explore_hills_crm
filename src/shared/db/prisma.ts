@@ -7,8 +7,9 @@ import { getEnv } from "@/shared/config/env";
 const holder = globalThis as unknown as { explorehillsPrisma?: PrismaClient };
 
 export function getPrisma(): PrismaClient {
+  const { DATABASE_URL, DATABASE_POOL_MAX } = getEnv();
   holder.explorehillsPrisma ??= new PrismaClient({
-    adapter: new PrismaPg({ connectionString: getEnv().DATABASE_URL }),
+    adapter: new PrismaPg({ connectionString: DATABASE_URL, max: DATABASE_POOL_MAX }),
   });
   return holder.explorehillsPrisma;
 }
