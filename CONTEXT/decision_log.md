@@ -1308,7 +1308,7 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 ### Decision 70: Screens Matched to the Owner's Design
 
 **Date:** 2026-11-02
-**Status:** Accepted (asked for by the owner after a screen-by-screen comparison with the design).
+**Status:** Accepted and merged in PR #46 (asked for by the owner after a screen-by-screen comparison with the design).
 
 #### Decision
 - **App frame:** the sidebar has icons, counts where work is waiting (Inbox unread, Queue, Blast pool, follow-ups due or overdue), an "Admin" heading for people who run the system, "Recently opened" leads, the person's card with Sign out, and a collapse button. Item names follow the role: "My leads", "Team leads" or "Leads"; "My numbers" or "Dashboard"; "Team" or "Teams". A top bar shows the live-update status and a notifications bell with its panel. Phones get a tab bar with icons and counts, and a More sheet.
