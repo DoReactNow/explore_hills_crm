@@ -10,6 +10,7 @@ import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePageAccess } from "@/shared/rbac/usePrincipal";
 import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
 import { parseInstant, systemClock } from "@/shared/time";
+import { formatPhone } from "@/shared/ui/Avatar";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
 import { UNDO_SECONDS } from "../assignment.types";
 import styles from "./assignment.module.css";
@@ -684,7 +685,7 @@ export function QueuePage() {
                     <Link className={styles.name} href={`/leads/${lead.id}`}>
                       {name}
                     </Link>
-                    <span className={styles.sub}>{lead.contact.phoneE164}</span>
+                    <span className={styles.sub}>{formatPhone(lead.contact.phoneE164)}</span>
                     {lead.escalated ? (
                       <span className={`${styles.chip} ${styles.chipWarn}`}>Needs a manager</span>
                     ) : null}

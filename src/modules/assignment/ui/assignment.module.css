@@ -390,3 +390,214 @@
     min-height: 56px;
   }
 }
+
+/* Blast pool (Blast-Desktop design): centred heading and empty state */
+.blastHead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.blastEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  text-align: center;
+}
+.blastEmptyIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: #eaf2ff;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.blastFoot {
+  text-align: center;
+}
+
+/* Assignment rules (AssignRules design): limits and tiers left, one agent's settings right */
+.rulesLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+.rulesColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.agentPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.agentPanel h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.subTitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.hiddenLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.limits {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+.limits > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #f0f1f4;
+  font-size: 14px;
+}
+.limits dt {
+  color: var(--color-text);
+}
+.limits dd {
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.tierRow {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--color-canvas);
+}
+.tierName {
+  font-size: 13px;
+  font-weight: 600;
+}
+.tierPeople {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.personChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.personChip[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: #eaf2ff;
+}
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.dayOn,
+.dayOff {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: #eaf2ff;
+  color: #0f57cc;
+  text-align: center;
+}
+.dayOff {
+  background: #f1f2f5;
+  color: var(--color-text-subtle);
+}
+.dayName {
+  font-size: 12px;
+  font-weight: 700;
+}
+.dayTime {
+  font-size: 11px;
+}
+.chipField {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.valueChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: #eaf2ff;
+  color: #0f57cc;
+  font-size: 13px;
+}
+.valueChip button {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.chipInput {
+  width: 120px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+}
+@media (max-width: 1000px) {
+  .rulesLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .week {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

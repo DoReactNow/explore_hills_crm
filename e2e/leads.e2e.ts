@@ -13,7 +13,7 @@ test("an agent creates a lead, moves its stage, adds a note and a follow-up", as
   const phone = newPhone();
   await signIn(page, "AGENT");
   await expect(page.getByRole("heading", { name: /My leads/ })).toBeVisible();
-  await page.getByRole("button", { name: "+ New lead" }).click();
+  await page.getByRole("button", { name: "New lead", exact: true }).click();
   const form = page.getByRole("dialog");
   await expect(form.getByLabel("Owner")).toHaveCount(0);
   await form.getByRole("button", { name: "Create lead" }).click();
@@ -32,7 +32,7 @@ test("an agent creates a lead, moves its stage, adds a note and a follow-up", as
   await expect(page.getByText("Stage changed: New → Qualified")).toBeVisible();
 
   await page.getByLabel("Add a note").fill("दो बच्चे <b>8 और 11</b>");
-  await page.getByRole("button", { name: "Add note" }).click();
+  await page.getByRole("button", { name: "Save note" }).click();
   await page.getByRole("tab", { name: /Notes/ }).click();
   await expect(page.getByText("दो बच्चे <b>8 और 11</b>")).toBeVisible(); // shown as plain text
 
@@ -40,7 +40,9 @@ test("an agent creates a lead, moves its stage, adds a note and a follow-up", as
   await page.getByLabel("Follow-up", { exact: true }).fill("Send houseboat photos");
   await page.getByLabel("Due date").fill("2099-01-01");
   await page.getByRole("button", { name: "Add follow-up" }).click();
-  await expect(page.getByText(/Next follow-up: 1 Jan 2099/)).toBeVisible();
+  const side = page.getByRole("complementary", { name: "Customer and trip" });
+  await expect(side.getByText("1 Jan 2099")).toBeVisible();
+  await expect(side.getByText("Send houseboat photos")).toBeVisible();
 
   await page.goto("/follow-ups?bucket=upcoming");
   await expect(page.getByText("Send houseboat photos")).toBeVisible();
@@ -51,7 +53,7 @@ test("Lost asks for a reason; the customer returning gets a new linked lead", as
   await signIn(page, "AGENT");
   const create = async (destination: string) => {
     await page.goto("/leads");
-    await page.getByRole("button", { name: "+ New lead" }).click();
+    await page.getByRole("button", { name: "New lead", exact: true }).click();
     const form = page.getByRole("dialog");
     await form.getByLabel("Customer name").fill("Arjun Nair");
     await form.getByLabel("Phone").fill(phone);
@@ -85,14 +87,16 @@ test("an agent can't open someone else's lead; a manager sees the queue; filters
 }) => {
   await signIn(page, "MANAGER");
   await expect(page.getByRole("heading", { name: /Team leads/ })).toBeVisible();
-  await page.getByLabel("Owner").selectOption("unassigned");
+  await page.getByRole("button", { name: /^Owner: Any/ }).click();
+  await page.getByRole("button", { name: "Unassigned", exact: true }).click();
   await expect(page).toHaveURL(/owner=unassigned/);
   const first = page.getByRole("link", { name: /Sample Customer/ }).first();
   const href = await first.getAttribute("href");
   await first.click();
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
   await expect(page.getByText("Unassigned").first()).toBeVisible();
   await page.goBack();
-  await expect(page.getByLabel("Owner")).toHaveValue("unassigned");
+  await expect(page.getByRole("button", { name: /^Owner: Unassigned/ })).toBeVisible();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 
@@ -106,7 +110,7 @@ test("search finds a phone in any format", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Sample Customer 4", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Sample Customer 5", exact: true })).toHaveCount(0);
   await page.getByLabel("Search name or phone").fill("zzzz");
-  await expect(page.getByText("No leads match these filters")).toBeVisible();
+  await expect(page.getByText("No leads match “zzzz”")).toBeVisible();
 });
 
 test("an Admin changes a setting and a wrong value is refused; a Manager can't open Settings", async ({

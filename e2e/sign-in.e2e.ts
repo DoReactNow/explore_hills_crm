@@ -48,7 +48,7 @@ test("after sign-out, Back shows no protected data (P1-SESSION-11)", async ({ pa
   await expect(page.getByText("Database: up")).toBeVisible();
 
   // Leave a protected page in the history behind the one we sign out from.
-  await page.getByRole("link", { name: "Home" }).click();
+  await page.getByRole("link", { name: "Dashboard" }).click();
   await expect(page).toHaveURL(/\/$/);
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);

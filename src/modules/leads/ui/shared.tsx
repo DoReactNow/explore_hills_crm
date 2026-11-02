@@ -6,10 +6,12 @@ import type { FriendlyError } from "@/shared/api/friendlyError";
 import {
   formatBusinessDate,
   formatInstant,
+  formatRecent,
   parseInstant,
   todayBusinessDate,
   systemClock,
 } from "@/shared/time";
+import { formatPhone } from "@/shared/ui/Avatar";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
 import styles from "./leads.module.css";
 
@@ -45,6 +47,7 @@ export interface LeadRow {
 const rupees = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
+  minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 });
 
@@ -52,20 +55,28 @@ export const budgetLabel = (value: string | null) =>
   value === null ? "—" : rupees.format(Number(value));
 export const instantLabel = (iso: string | null) =>
   iso ? formatInstant(parseInstant(iso), "dateTime") : "—";
+/** "8:58 pm", "Yesterday", "27 Oct": how lists show when something last happened. */
+export const recentLabel = (iso: string | null) =>
+  iso ? formatRecent(parseInstant(iso), systemClock) : "—";
 export const dateLabel = (date: string | null) => (date ? formatBusinessDate(date, "date") : "—");
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "10–16 Dec 2026", "30 Dec – 2 Jan 2027": the design's short trip dates. */
 export function tripDates(lead: Pick<LeadRow, "travelStartDate" | "travelEndDate">) {
   const { travelStartDate: start, travelEndDate: end } = lead;
   if (!start && !end) return "—";
-  if (start && end && start !== end) return `${dateLabel(start)} – ${dateLabel(end)}`;
-  return dateLabel(start ?? end);
+  if (!start || !end || start === end) return dateLabel(start ?? end);
+  const [y1, m1, d1] = start.split("-").map(Number);
+  const [y2, m2, d2] = end.split("-").map(Number);
+  if (![y1, m1, d1, y2, m2, d2].every(Number.isFinite))
+    return `${dateLabel(start)} – ${dateLabel(end)}`;
+  if (y1 === y2 && m1 === m2) return `${d1}–${d2} ${MONTHS[m2 - 1]} ${y2}`;
+  if (y1 === y2) return `${d1} ${MONTHS[m1 - 1]} – ${d2} ${MONTHS[m2 - 1]} ${y2}`;
+  return `${d1} ${MONTHS[m1 - 1]} ${y1} – ${d2} ${MONTHS[m2 - 1]} ${y2}`;
 }
 
-export function phoneLabel(e164: string) {
-  if (e164.startsWith("erased-")) return "Number erased";
-  const india = /^\+91(\d{5})(\d{5})$/.exec(e164);
-  return india ? `+91 ${india[1]} ${india[2]}` : e164;
-}
+export const phoneLabel = formatPhone;
 
 export function StageChip({ code, name }: { code: string; name: string }) {
   const tone = (styles as Record<string, string>)[`chip${code}`] ?? "";

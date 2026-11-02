@@ -186,20 +186,25 @@
   color: #33404f;
 }
 
-/* App shell */
+/* App shell (Sidebar, NavByRole and Shell-Mobile designs) */
 .shell {
   min-height: 100vh;
   display: flex;
   background: var(--color-canvas);
 }
 .sidebar {
+  position: sticky;
+  top: 0;
   width: 264px;
+  height: 100vh;
   flex: none;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 22px 16px 18px;
+  overflow-y: auto;
+  background: var(--color-canvas);
 }
 .brand {
   display: flex;
@@ -210,15 +215,82 @@
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+.brandText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.collapse {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.collapse:hover {
+  background: #eef0f3;
+}
+.searchButton {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #dde1e7;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.searchButton:hover {
+  border-color: var(--color-border-strong);
+}
+.searchText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.kbd {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: #f1f2f5;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 11px;
+}
 .navList {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+.navHeading {
+  margin: 12px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
 .navLink {
   display: flex;
   align-items: center;
+  gap: 12px;
   height: 44px;
+  flex: none;
   padding: 0 12px;
   border-radius: 12px;
   font-size: 14px;
@@ -228,16 +300,78 @@
 }
 .navLink:hover {
   background: #eef0f3;
+  color: var(--color-text);
 }
 .navLink[aria-current="page"] {
   background: #e9ecf0;
   color: var(--color-text);
   font-weight: 600;
 }
+.navIcon {
+  flex: none;
+  color: var(--color-text-muted);
+}
+.navLink[aria-current="page"] .navIcon {
+  color: var(--color-primary);
+}
+.navLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.count,
+.countOn {
+  min-width: 22px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e3e7ed;
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+.countOn {
+  background: var(--color-primary);
+  color: #ffffff;
+}
 .sidebarEnd {
   margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.recentTitle {
+  margin: 0 12px 6px;
+  font-size: 12px;
+  color: var(--color-text-subtle);
+}
+.recentLink {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recentLink:hover {
+  background: #eef0f3;
+  color: var(--color-text);
 }
 .userCard {
   display: flex;
@@ -277,10 +411,13 @@
 .userRole {
   font-size: 12px;
   color: var(--color-text-muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .signOut {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex: none;
   border: none;
   border-radius: 10px;
@@ -306,15 +443,102 @@
   font-weight: 600;
   text-decoration: none;
 }
+
+/* Collapsed: icons only, labels kept for screen readers */
+.sidebarCollapsed {
+  width: 76px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.sidebarCollapsed .brand {
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+}
+.sidebarCollapsed .brandText,
+.sidebarCollapsed .searchText,
+.sidebarCollapsed .kbd,
+.sidebarCollapsed .recent,
+.sidebarCollapsed .userText,
+.sidebarCollapsed .navHeading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.sidebarCollapsed .navLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.sidebarCollapsed .navLink,
+.sidebarCollapsed .searchButton {
+  position: relative;
+  justify-content: center;
+  padding: 0;
+}
+.sidebarCollapsed .count,
+.sidebarCollapsed .countOn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+}
+.sidebarCollapsed .userCard {
+  flex-direction: column;
+  padding: 6px 0;
+}
+
 .content {
   flex: 1;
   min-width: 0;
   box-sizing: border-box;
-  padding: 24px 32px;
+  padding: 16px 32px 24px;
   background: var(--color-surface);
 }
 .content :global(main) {
-  max-width: 1200px;
+  max-width: 1600px;
+}
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  min-height: 36px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.live,
+.livePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.livePill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e5f5ec;
+  color: #146c3b;
+  font-size: 12px;
+}
+.liveDot,
+.liveDotOff {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22a05a;
+}
+.liveDotOff {
+  background: #d08a1e;
 }
 
 @media (max-width: 767px) {
@@ -348,15 +572,13 @@
     flex-direction: column;
   }
   .sidebar {
-    width: 100%;
-    padding: 12px 16px;
-    gap: 10px;
-  }
-  .sidebar > *:not(.brand) {
     display: none;
   }
   .content {
-    padding: 16px 16px 96px;
+    padding: 8px 16px 104px;
+  }
+  .topBar {
+    min-height: 32px;
   }
   .tabBar {
     position: fixed;
@@ -365,20 +587,22 @@
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    padding: 6px 4px calc(10px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--color-border);
     background: var(--color-surface);
   }
   .tab {
-    min-height: 48px;
+    min-height: 56px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 3px;
     border: none;
     background: none;
     color: var(--color-text-muted);
     font: inherit;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     text-align: center;
     text-decoration: none;
@@ -389,26 +613,79 @@
     color: var(--color-primary);
     font-weight: 600;
   }
+  .tabIcon {
+    position: relative;
+    display: inline-flex;
+  }
+  .tabCount {
+    position: absolute;
+    top: -6px;
+    left: calc(100% - 6px);
+    min-width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .moreBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 28;
+    border: none;
+    background: rgba(16, 19, 24, 0.55);
+    cursor: default;
+  }
   .moreSheet {
     position: fixed;
-    inset: auto 0 60px 0;
+    inset: auto 0 0 0;
     z-index: 29;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    max-height: 75vh;
+    max-height: 85vh;
     overflow: auto;
-    padding: 18px 16px;
+    padding: 10px 16px calc(96px + env(safe-area-inset-bottom));
     border-radius: 28px 28px 0 0;
     background: var(--color-surface);
-    box-shadow: var(--shadow-md);
+  }
+  .grabber {
+    width: 40px;
+    height: 5px;
+    flex: none;
+    align-self: center;
+    border-radius: 4px;
+    background: var(--color-border-strong);
   }
   .moreUser {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     padding: 12px;
     border-radius: 18px;
     background: var(--color-canvas);
+  }
+  .moreUser b {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .moreAvatar {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border-radius: 50%;
+    background: #fdf1e3;
+    color: #8a4b06;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
   }
   .moreGrid {
     display: grid;
@@ -416,21 +693,42 @@
     gap: 10px;
   }
   .moreLink {
-    min-height: 72px;
+    position: relative;
+    min-height: 88px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     padding: 6px;
     border: 1px solid var(--color-border);
     border-radius: 18px;
+    background: var(--color-surface);
     color: var(--color-text);
+    font: inherit;
     font-size: 13px;
     font-weight: 500;
     text-align: center;
     text-decoration: none;
+    cursor: pointer;
+  }
+  .moreLink svg {
+    color: #33404f;
+  }
+  .moreLink .count {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: var(--color-primary);
+    color: #ffffff;
   }
   .moreSignOut {
     min-height: 52px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     border: 1px solid #f3c7cb;
     border-radius: 16px;
     background: var(--color-surface);

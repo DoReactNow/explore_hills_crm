@@ -383,8 +383,8 @@ export const leadRepository = {
       const like = `%${escapeLike(query.search)}%`;
       conditions.push(
         query.phoneDigits
-          ? Prisma.sql`(c.name ILIKE ${like} OR c."phoneE164" LIKE ${`%${query.phoneDigits}%`})`
-          : Prisma.sql`c.name ILIKE ${like}`,
+          ? Prisma.sql`(c.name ILIKE ${like} OR l.destination ILIKE ${like} OR c."phoneE164" LIKE ${`%${query.phoneDigits}%`})`
+          : Prisma.sql`(c.name ILIKE ${like} OR l.destination ILIKE ${like})`,
       );
     }
     if (query.stage) conditions.push(Prisma.sql`s.code = ${query.stage}`);
@@ -520,6 +520,15 @@ export const leadRepository = {
     const { count } = await tx.leadsTask.updateMany({
       where: { id, completedAt: at ? null : { not: null } },
       data: { completedAt: at },
+    });
+    return count === 1;
+  },
+
+  /** Moves an open follow-up to another day; a done one stays where it was. */
+  async setTaskDue(tx: Tx, id: string, dueDate: Date): Promise<boolean> {
+    const { count } = await tx.leadsTask.updateMany({
+      where: { id, completedAt: null },
+      data: { dueDate },
     });
     return count === 1;
   },

@@ -15,9 +15,9 @@ const signOut = async (page: Page) => {
 test("journey 7: a Super Admin edits a role and it applies on the next request", async ({
   page,
 }) => {
-  // The Manager starts with Teams.
+  // The Manager starts with their team ("Team" in a Manager's menu).
   await signIn(page, "MANAGER");
-  await expect(page.getByRole("link", { name: "Teams" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Team", exact: true })).toBeVisible();
   await signOut(page);
 
   await signIn(page, "SUPER_ADMIN", "/roles");
@@ -28,7 +28,7 @@ test("journey 7: a Super Admin edits a role and it applies on the next request",
   await signOut(page);
 
   await signIn(page, "MANAGER", "/teams");
-  await expect(page.getByRole("link", { name: "Teams" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Team", exact: true })).toHaveCount(0);
   await expect(page.locator("main").getByRole("alert")).toContainText("You don't have access");
   await signOut(page);
 

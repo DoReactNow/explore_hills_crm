@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/shared/api/client";
 import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePageAccess, usePrincipal } from "@/shared/rbac/usePrincipal";
+import { Avatar } from "@/shared/ui/Avatar";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
 import { AUTO_MODES, type AutoMode } from "../assignment.types";
 import styles from "./assignment.module.css";
@@ -57,11 +58,95 @@ const toMinute = (time: string) => {
   const [hours, minutes] = time.split(":").map(Number);
   return hours * 60 + minutes;
 };
-const toList = (text: string) =>
-  text
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+
+const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+const clock12 = (minute: number) => {
+  const hours = Math.floor(minute / 60) % 24;
+  const suffix = hours < 12 ? "am" : "pm";
+  const shown = hours % 12 === 0 ? 12 : hours % 12;
+  const minutes = minute % 60;
+  return minutes ? `${shown}:${String(minutes).padStart(2, "0")} ${suffix}` : `${shown} ${suffix}`;
+};
+
+/** The week at a glance (AssignRules design): each day's shifts, or Off. */
+function WeekGrid({ shifts }: { shifts: Shift[] }) {
+  if (shifts.length === 0) {
+    return <span className={styles.muted}>No shifts set, so this agent counts as always on.</span>;
+  }
+  return (
+    <div className={styles.week}>
+      {WEEK_ORDER.map((day) => {
+        const today = shifts.filter((shift) => shift.weekday === day);
+        return (
+          <div key={day} className={today.length ? styles.dayOn : styles.dayOff}>
+            <span className={styles.dayName}>{DAY_SHORT[day]}</span>
+            {today.length ? (
+              today.map((shift, index) => (
+                <span key={index} className={styles.dayTime}>
+                  {clock12(shift.startMinute)}–{clock12(shift.endMinute)}
+                </span>
+              ))
+            ) : (
+              <span className={styles.dayTime}>Off</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Values as removable chips with "+ Add" (languages, destinations). */
+function ChipInput({
+  label,
+  values,
+  onChange,
+}: {
+  label: string;
+  values: string[];
+  onChange: (values: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const next = draft.trim();
+    if (next && !values.some((value) => value.toLowerCase() === next.toLowerCase())) {
+      onChange([...values, next]);
+    }
+    setDraft("");
+  };
+  return (
+    <div className={styles.chipField} role="group" aria-label={label}>
+      {values.map((value) => (
+        <span key={value} className={styles.valueChip}>
+          {value}
+          <button
+            type="button"
+            aria-label={`Remove ${value}`}
+            onClick={() => onChange(values.filter((item) => item !== value))}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      <input
+        aria-label={`Add to ${label.toLowerCase()}`}
+        className={styles.chipInput}
+        placeholder="+ Add"
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === ",") {
+            event.preventDefault();
+            add();
+          }
+        }}
+        onBlur={add}
+      />
+    </div>
+  );
+}
 
 function AgentEditor({
   agent,
@@ -75,8 +160,8 @@ function AgentEditor({
   const [available, setAvailable] = useState(agent.isAvailable);
   const [cap, setCap] = useState(agent.cap === defaultCap ? "" : String(agent.cap));
   const [tier, setTier] = useState(String(agent.tier));
-  const [languages, setLanguages] = useState(agent.languages.join(", "));
-  const [destinations, setDestinations] = useState(agent.destinations.join(", "));
+  const [languages, setLanguages] = useState<string[]>(agent.languages);
+  const [destinations, setDestinations] = useState<string[]>(agent.destinations);
   const [leaveFrom, setLeaveFrom] = useState(agent.leaveFrom ?? "");
   const [leaveTo, setLeaveTo] = useState(agent.leaveTo ?? "");
   const [shifts, setShifts] = useState<Shift[]>(
@@ -101,8 +186,8 @@ function AgentEditor({
         isAvailable: available,
         openLeadCap: cap === "" ? null : Number(cap),
         priorityTier: Number(tier) || 0,
-        languages: toList(languages),
-        destinations: toList(destinations),
+        languages,
+        destinations,
         leaveFromDate: leaveFrom || null,
         leaveToDate: leaveTo || null,
         shifts,
@@ -115,11 +200,10 @@ function AgentEditor({
   }
 
   return (
-    <section className={styles.section} aria-label={agent.name}>
+    <div className={styles.editor} role="group" aria-label={agent.name}>
       <div className={styles.cardRow}>
-        <h2>{agent.name}</h2>
         <span className={styles.muted}>
-          {agent.openLeads} of {agent.cap} open
+          {agent.openLeads} of {agent.cap} open leads
         </span>
         <label className={styles.right}>
           <input
@@ -127,7 +211,7 @@ function AgentEditor({
             checked={available}
             onChange={(event) => setAvailable(event.target.checked)}
           />{" "}
-          Available
+          Taking new leads
         </label>
       </div>
       {error ? <ErrorMessage error={error} /> : null}
@@ -153,41 +237,9 @@ function AgentEditor({
             onChange={(event) => setTier(event.target.value)}
           />
         </label>
-        <label className={styles.field}>
-          Languages (commas between)
-          <input
-            className={styles.input}
-            value={languages}
-            onChange={(event) => setLanguages(event.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          Destinations (commas between)
-          <input
-            className={styles.input}
-            value={destinations}
-            onChange={(event) => setDestinations(event.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          Leave from
-          <input
-            className={styles.input}
-            type="date"
-            value={leaveFrom}
-            onChange={(event) => setLeaveFrom(event.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          Leave to
-          <input
-            className={styles.input}
-            type="date"
-            value={leaveTo}
-            onChange={(event) => setLeaveTo(event.target.value)}
-          />
-        </label>
       </div>
+      <h3 className={styles.subTitle}>Shifts</h3>
+      <WeekGrid shifts={shifts} />
       <span className={styles.muted}>
         Shifts (IST). A shift that ends earlier than it starts runs overnight and counts toward the
         day it started. With no shifts, the agent is always on.
@@ -230,16 +282,43 @@ function AgentEditor({
           </button>
         </div>
       ))}
+      <button
+        type="button"
+        className={styles.linkButton}
+        style={{ alignSelf: "flex-start" }}
+        onClick={() =>
+          setShifts((now) => [...now, { weekday: 1, startMinute: 540, endMinute: 1080 }])
+        }
+      >
+        + Add a shift
+      </button>
+      <h3 className={styles.subTitle}>Leave</h3>
+      <div className={styles.form}>
+        <label className={styles.field}>
+          From
+          <input
+            className={styles.input}
+            type="date"
+            value={leaveFrom}
+            onChange={(event) => setLeaveFrom(event.target.value)}
+          />
+        </label>
+        <label className={styles.field}>
+          To
+          <input
+            className={styles.input}
+            type="date"
+            value={leaveTo}
+            onChange={(event) => setLeaveTo(event.target.value)}
+          />
+        </label>
+      </div>
+      <h3 className={styles.subTitle}>Languages</h3>
+      <ChipInput label="Languages" values={languages} onChange={setLanguages} />
+      <h3 className={styles.subTitle}>Destinations they’re best at</h3>
+      <span className={styles.muted}>Matching leads go to them first.</span>
+      <ChipInput label="Destinations" values={destinations} onChange={setDestinations} />
       <div className={styles.bar}>
-        <button
-          type="button"
-          className={styles.linkButton}
-          onClick={() =>
-            setShifts((now) => [...now, { weekday: 1, startMinute: 540, endMinute: 1080 }])
-          }
-        >
-          + Add a shift
-        </button>
         <span className={styles.spacer} />
         {saved ? (
           <span role="status" className={styles.muted}>
@@ -255,7 +334,7 @@ function AgentEditor({
           Save {agent.name}
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -266,6 +345,7 @@ export function AssignmentRulesPage() {
   const [rule, setRule] = useState<AutoRule | null>(null);
   const [error, setError] = useState<FriendlyError | null>(null);
   const [ruleSaved, setRuleSaved] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [agents, auto] = await Promise.all([
@@ -304,61 +384,141 @@ export function AssignmentRulesPage() {
     else setError(result.error);
   }
 
+  const agents = data?.items ?? [];
+  const chosen = agents.find((agent) => agent.id === selected) ?? agents[0] ?? null;
+  const tiers = [...new Set(agents.map((agent) => agent.tier))].sort((a, b) => b - a);
+
   return (
     <main className={styles.page}>
       <h1 className={styles.headline}>Assignment rules</h1>
       {error ? <ErrorMessage error={error} /> : null}
-      {data ? (
-        <section className={styles.section}>
-          <h2>Timers &amp; limits</h2>
-          <span>
-            Response timeout: {data.timeoutMinutes} min, counted during the agent&apos;s shift
-          </span>
-          <span>Blast offer: {data.poolExpiryMinutes} min</span>
-          <span>Default open-lead cap: {data.defaultCap}</span>
-          <span>Flag for a manager after {data.maxTimeouts} timeouts in a row</span>
-          {can("settings:manage") ? (
-            <Link href="/settings">Change these in Settings</Link>
-          ) : (
-            <span className={styles.muted}>An Admin can change these in Settings.</span>
-          )}
-        </section>
-      ) : null}
-      {rule ? (
-        <section className={styles.section}>
-          <h2>Auto-assign</h2>
-          <label>
-            <input
-              type="checkbox"
-              checked={rule.enabled}
-              onChange={(event) => saveRule({ ...rule, enabled: event.target.checked })}
-            />{" "}
-            Assign new leads automatically, within about a minute of arriving
-          </label>
-          <label className={styles.field}>
-            How
-            <select
-              className={styles.input}
-              value={rule.mode}
-              onChange={(event) => saveRule({ ...rule, mode: event.target.value as AutoMode })}
-            >
-              {AUTO_MODES.map((mode) => (
-                <option key={mode} value={mode}>
-                  {AUTO_LABELS[mode]}
-                </option>
+      <div className={styles.rulesLayout}>
+        <div className={styles.rulesColumn}>
+          {data ? (
+            <section className={styles.section}>
+              <h2>Timers &amp; limits</h2>
+              <dl className={styles.limits}>
+                <div>
+                  <dt>Reclaim if no reply</dt>
+                  <dd>{data.timeoutMinutes} min</dd>
+                </div>
+                <div>
+                  <dt>Blast offer expiry</dt>
+                  <dd>{data.poolExpiryMinutes} min</dd>
+                </div>
+                <div>
+                  <dt>Default open-lead cap</dt>
+                  <dd>{data.defaultCap} leads</dd>
+                </div>
+                <div>
+                  <dt>Flag for a manager after</dt>
+                  <dd>{data.maxTimeouts} timeouts</dd>
+                </div>
+              </dl>
+              <span className={styles.muted}>
+                The reply timer counts only during the agent&apos;s shift.{" "}
+                {can("settings:manage") ? (
+                  <Link href="/settings">Change these in Settings</Link>
+                ) : (
+                  "An Admin can change these in Settings."
+                )}
+              </span>
+            </section>
+          ) : null}
+          {rule ? (
+            <section className={styles.section}>
+              <h2>Auto-assign</h2>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={rule.enabled}
+                  onChange={(event) => saveRule({ ...rule, enabled: event.target.checked })}
+                />{" "}
+                Assign new leads automatically, within about a minute of arriving
+              </label>
+              <label className={styles.field}>
+                How
+                <select
+                  className={styles.input}
+                  value={rule.mode}
+                  onChange={(event) => saveRule({ ...rule, mode: event.target.value as AutoMode })}
+                >
+                  {AUTO_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {AUTO_LABELS[mode]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className={styles.muted}>
+                It applies to each new lead once, and never to a lead a manager is handling.
+                {ruleSaved ? " Saved." : ""}
+              </span>
+            </section>
+          ) : null}
+          {agents.length > 0 ? (
+            <section className={styles.section}>
+              <div className={styles.cardRow}>
+                <h2>Priority tiers</h2>
+                <span className={`${styles.muted} ${styles.right}`}>
+                  Higher tiers are served first
+                </span>
+              </div>
+              {tiers.map((tier) => (
+                <div key={tier} className={styles.tierRow}>
+                  <span className={styles.tierName}>Tier {tier}</span>
+                  <span className={styles.tierPeople}>
+                    {agents
+                      .filter((agent) => agent.tier === tier)
+                      .map((agent) => (
+                        <button
+                          key={agent.id}
+                          type="button"
+                          className={styles.personChip}
+                          aria-pressed={chosen?.id === agent.id}
+                          onClick={() => setSelected(agent.id)}
+                        >
+                          <Avatar name={agent.name} size={22} />
+                          {agent.name}
+                        </button>
+                      ))}
+                  </span>
+                </div>
               ))}
-            </select>
-          </label>
-          <span className={styles.muted}>
-            It applies to each new lead once, and never to a lead a manager is handling.
-            {ruleSaved ? " Saved." : ""}
-          </span>
-        </section>
-      ) : null}
-      {data?.items.length === 0 ? <p className={styles.muted}>No agents yet.</p> : null}
-      {data?.items.map((agent) => (
-        <AgentEditor key={agent.id} agent={agent} defaultCap={data.defaultCap} onSaved={load} />
-      ))}
+            </section>
+          ) : null}
+        </div>
+        <div className={styles.rulesColumn}>
+          {data && agents.length === 0 ? <p className={styles.muted}>No agents yet.</p> : null}
+          {chosen && data ? (
+            <div className={styles.agentPanel}>
+              <div className={styles.cardRow}>
+                <h2>Agent settings</h2>
+                <label className={styles.right}>
+                  <span className={styles.hiddenLabel}>Agent</span>
+                  <select
+                    className={styles.input}
+                    value={chosen.id}
+                    onChange={(event) => setSelected(event.target.value)}
+                  >
+                    {agents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <AgentEditor
+                key={chosen.id}
+                agent={chosen}
+                defaultCap={data.defaultCap}
+                onSaved={load}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
     </main>
   );
 }

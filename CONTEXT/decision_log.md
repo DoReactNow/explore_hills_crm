@@ -1302,3 +1302,21 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Migrations must work with the previous version**, so a rollback is safe: no dropping or renaming. A scan refuses them unless marked as reviewed, after which they go in a later release than the code that stopped using them.
 - **Going live before WhatsApp and calling are ready:** production refuses fake providers. Provider key `none` starts the app with those features not working, for checking the server only.
 - **Outside monitoring:** something off the server must watch for the whole server being down. A free uptime service is enough, and needs an account from the owner. The app itself alerts on an HTTPS certificate within 14 days of expiry.
+
+---
+
+### Decision 70: Screens Matched to the Owner's Design
+
+**Date:** 2026-11-02
+**Status:** Accepted (asked for by the owner after a screen-by-screen comparison with the design).
+
+#### Decision
+- **App frame:** the sidebar has icons, counts where work is waiting (Inbox unread, Queue, Blast pool, follow-ups due or overdue), an "Admin" heading for people who run the system, "Recently opened" leads, the person's card with Sign out, and a collapse button. Item names follow the role: "My leads", "Team leads" or "Leads"; "My numbers" or "Dashboard"; "Team" or "Teams". A top bar shows the live-update status and a notifications bell with its panel. Phones get a tab bar with icons and counts, and a More sheet.
+- **Global search** (⌘K or the sidebar box) uses the existing Leads and Employees list APIs, so it finds only what the person may already see. Lead search now also matches the destination.
+- **Recently opened** is kept in the browser only, per person, and holds the lead's id, name and destination. It is cleared on sign-out and drops a lead whose customer was erased.
+- **Dashboards by role:** an agent sees their own numbers with "Done" on follow-ups and a week of calls; a manager sees the team pulse, each agent's availability and open/cap, and what needs attention; an Admin sees the company overview for this or last month (funnel, sources, destinations, team comparison) from the reports API. The design's "response time by hour" chart is replaced by calls per day, since no hourly data exists.
+- **Leads list:** filter pills, saved views (in this browser, per person), ticking several leads to reassign, change stage or set a follow-up (each lead goes through its own API, so every check still applies; Lost stays per lead because it needs a reason), cards and a + button on phones. Export downloads the leads report for the last 90 days.
+- **Follow-ups** can be snoozed (Tomorrow, In 3 days, Next Monday): `PATCH /api/leads/:id/tasks/:taskId` accepts `{ dueDate }` for an open follow-up, today or later, and records it on the timeline.
+- **Inbox** has "Mine" (`GET /api/conversations?mine=true`), avatars, stage and destination per chat, the 24-hour window countdown, and the lead card. The conversation list now carries the lead's trip fields for that card.
+- **Smaller pages:** the lead page header, stage list and owner card; Settings with a section menu; Assignment rules in two columns with one agent at a time; a centred Blast pool; styled toasts.
+- **Left as they are:** Audit, Diagnostics and Teams show the design's content in a simpler layout.

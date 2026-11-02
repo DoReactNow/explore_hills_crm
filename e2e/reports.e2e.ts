@@ -8,17 +8,17 @@ const signIn = async (page: Page, role: Parameters<typeof seededUser>[0], next: 
 };
 
 test("each role gets its own dashboard (P9-REPORT-01)", async ({ browser }) => {
-  for (const [role, word] of [
-    ["AGENT", "Your numbers"],
-    ["MANAGER", "Team pulse"],
-    ["ADMIN", "Company overview"],
+  for (const [role, heading, tile, period] of [
+    ["AGENT", /^Good (morning|afternoon|evening)/, "Open leads", "7 days"],
+    ["MANAGER", /^Team pulse$/, "Team’s open leads", "7 days"],
+    ["ADMIN", /^Company overview$/, "New leads", "Last month"],
   ] as const) {
     const page = await (await browser.newContext()).newPage();
     await signIn(page, role, "/");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(word);
-    await expect(page.getByText("Open leads")).toBeVisible();
-    await page.getByRole("button", { name: "7 days" }).click();
-    await expect(page.getByRole("button", { name: "7 days" })).toHaveAttribute(
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(heading);
+    await expect(page.getByText(tile, { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: period }).click();
+    await expect(page.getByRole("button", { name: period })).toHaveAttribute(
       "aria-pressed",
       "true",
     );

@@ -8,9 +8,13 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { apiRequest } from "@/shared/api/client";
 import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePageAccess, usePrincipal } from "@/shared/rbac/usePrincipal";
+import { Avatar } from "@/shared/ui/Avatar";
+import { Icon, type IconName } from "@/shared/ui/Icon";
+import { forgetRecentLead, rememberRecentLead } from "@/shared/ui/recentLeads";
 import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
 import { Dialog } from "@/shared/ui/Dialog";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
+import { systemClock, todayBusinessDate } from "@/shared/time";
 import { useShortcuts } from "@/shared/ui/useShortcuts";
 import { useUnsavedWarning } from "@/shared/ui/useUnsavedWarning";
 import { LOST_REASONS, SOURCE_LABELS, type LeadSource } from "../leads.types";
@@ -25,6 +29,7 @@ import {
   fieldMessage,
   instantLabel,
   phoneLabel,
+  recentLabel,
   tripDates,
   type LeadRow,
   type StageOption,
@@ -456,6 +461,76 @@ function MergeDialog({
   );
 }
 
+const TIMELINE_ICONS: Record<string, IconName> = {
+  CALL: "calls",
+  STAGE_CHANGED: "arrowRight",
+  WON: "check",
+  LOST: "close",
+  NOTE: "note",
+  ASSIGNED: "assign",
+  LEAD_CREATED: "plus",
+  MESSAGE: "inbox",
+  TASK: "followups",
+};
+
+/** A menu behind "⋯" for the rarer actions (LeadDetail-Desktop design). */
+function MoreMenu({
+  items,
+}: {
+  items: Array<{ label: string; danger?: boolean; onPick: () => void }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: PointerEvent) => {
+      if (wrap.current && !wrap.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  if (items.length === 0) return null;
+  return (
+    <div className={styles.moreWrap} ref={wrap}>
+      <button
+        type="button"
+        className={`${styles.button} ${styles.iconButton}`}
+        aria-label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+      >
+        <Icon name="dots" size={20} strokeWidth={2.5} />
+      </button>
+      {open ? (
+        <div role="menu" className={styles.menu}>
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              className={item.danger ? `${styles.menuItem} ${styles.menuDanger}` : styles.menuItem}
+              onClick={() => {
+                setOpen(false);
+                item.onPick();
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function LeadDetailPage({
   id,
   chat,
@@ -466,7 +541,7 @@ export function LeadDetailPage({
   calls?: ReactNode;
 }) {
   const access = usePageAccess(VIEW_LEADS);
-  const { can } = usePrincipal();
+  const { can, person } = usePrincipal();
   const router = useRouter();
   const [lead, setLead] = useState<LeadDetail | null>(null);
   const [loadError, setLoadError] = useState<FriendlyError | null>(null);
@@ -547,6 +622,18 @@ export function LeadDetailPage({
     });
     return () => controller.abort();
   }, [access, id]);
+
+  // "Recently opened" in the sidebar: what this person just looked at, kept in their browser.
+  const recentName = lead && !lead.contact.anonymisedAt ? lead.contact.name : null;
+  const recentDestination = lead?.destination ?? null;
+  const erased = Boolean(lead?.contact.anonymisedAt);
+  useEffect(() => {
+    if (!person) return;
+    if (erased) forgetRecentLead(person.id, id);
+    else if (recentName) {
+      rememberRecentLead(person.id, { id, name: recentName, destination: recentDestination });
+    }
+  }, [person, id, recentName, recentDestination, erased]);
 
   if (access === "loading") return <main>Loading…</main>;
   const refusal = access !== "allowed" ? access : loadError;
@@ -633,6 +720,30 @@ export function LeadDetailPage({
     }
   }
 
+  const leadsHeading = can("leads:view-all")
+    ? "Leads"
+    : can("leads:view-team")
+      ? "Team leads"
+      : "My leads";
+  function focusNote() {
+    setView("activity");
+    setTab("activity");
+    setTimeout(() => document.getElementById("lead-note")?.focus(), 0);
+  }
+  function focusFollowUp() {
+    setView("activity");
+    setTab("tasks");
+    setTimeout(() => document.getElementById("lead-task")?.focus(), 0);
+  }
+  const currentIndex = pipeline.findIndex((stage) => stage.code === lead.stage.code);
+  const stageSince =
+    lead.timeline.find((entry) => entry.kind === "STAGE_CHANGED")?.occurredAt ?? lead.createdAt;
+  const nextTask = lead.tasks
+    .filter((task) => !task.completedAt)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+  const today = todayBusinessDate(systemClock);
+  const ownerIsMe = Boolean(person && lead.owner?.id === person.id);
+
   const composer = canEdit ? (
     <form onSubmit={submitNote} className={styles.composer} noValidate>
       <input
@@ -644,7 +755,7 @@ export function LeadDetailPage({
         onChange={(event) => setNote(event.target.value)}
       />
       <button type="submit" className={styles.button} disabled={gone}>
-        Add note
+        Save note
       </button>
       {fieldMessage(noteError, "body") ? (
         <span className={styles.fieldError}>{fieldMessage(noteError, "body")}</span>
@@ -655,43 +766,69 @@ export function LeadDetailPage({
   return (
     <main className={styles.page}>
       <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
-        <Link href="/leads">Leads</Link> / <span>{name}</span>
+        <Link href="/leads">{leadsHeading}</Link> / <span>{name}</span>
       </nav>
       <div className={styles.leadHead}>
+        <Avatar name={name} size={48} className={styles.leadAvatar} />
         <div className={styles.leadName}>
           <div className={styles.nameLine}>
             <h1>{name}</h1>
             <StageChip code={lead.stage.code} name={lead.stage.name} />
+            <span className={styles.sourceChip}>
+              {SOURCE_LABELS[lead.source as LeadSource] ?? lead.source}
+            </span>
           </div>
           <span className={styles.muted}>
-            {phoneLabel(lead.contact.phoneE164)} · {lead.destination ?? "No destination yet"} ·{" "}
-            {tripDates(lead)}
+            {[
+              phoneLabel(lead.contact.phoneE164),
+              lead.destination ?? "No destination yet",
+              tripDates(lead) === "—" ? null : tripDates(lead),
+              lead.travellerCount
+                ? `${lead.travellerCount} ${lead.travellerCount === 1 ? "traveller" : "travellers"}`
+                : null,
+              `Owner: ${lead.owner?.name ?? "Unassigned"}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </div>
-        {can("messaging:view") && !gone ? (
-          <button type="button" className={`${styles.button} ${styles.primary}`} onClick={openChat}>
-            Open chat
-          </button>
-        ) : null}
-        {can("leads:reassign") && lead.closedAt === null && !gone ? (
-          <button type="button" className={styles.button} onClick={() => setDialog("reassign")}>
-            Reassign…
-          </button>
-        ) : null}
-        {can("leads:merge") && !gone ? (
-          <button type="button" className={styles.button} onClick={() => setDialog("merge")}>
-            Merge…
-          </button>
-        ) : null}
-        {can("leads:delete") && !gone ? (
-          <button
-            type="button"
-            className={`${styles.button} ${styles.danger}`}
-            onClick={() => setDialog("delete")}
-          >
-            Delete
-          </button>
-        ) : null}
+        <div className={styles.headActions}>
+          {canEdit && !gone ? (
+            <>
+              <button type="button" className={styles.button} onClick={focusNote}>
+                <Icon name="note" size={18} />
+                <span className={styles.btnText}>Add note</span>
+              </button>
+              <button type="button" className={styles.button} onClick={focusFollowUp}>
+                <Icon name="followups" size={18} />
+                <span className={styles.btnText}>Follow-up</span>
+              </button>
+            </>
+          ) : null}
+          {can("messaging:view") && !gone ? (
+            <button
+              type="button"
+              className={chat ? styles.button : `${styles.button} ${styles.primary}`}
+              onClick={openChat}
+            >
+              <Icon name="inbox" size={18} />
+              <span className={styles.btnText}>Open chat</span>
+            </button>
+          ) : null}
+          <MoreMenu
+            items={[
+              ...(can("leads:reassign") && lead.closedAt === null && !gone
+                ? [{ label: "Reassign…", onPick: () => setDialog("reassign") }]
+                : []),
+              ...(can("leads:merge") && !gone
+                ? [{ label: "Merge with another lead…", onPick: () => setDialog("merge") }]
+                : []),
+              ...(can("leads:delete") && !gone
+                ? [{ label: "Delete lead…", danger: true, onPick: () => setDialog("delete") }]
+                : []),
+            ]}
+          />
+        </div>
       </div>
       <FormError error={actionError} />
       {lead.contact.anonymisedAt ? (
@@ -732,29 +869,49 @@ export function LeadDetailPage({
           {calls && !gone ? calls : null}
           <section className={styles.card}>
             <div className={styles.cardHead}>Stage</div>
-            {pipeline.map((stage) => (
-              <button
-                key={stage.code}
-                type="button"
-                className={styles.stageButton}
-                aria-current={stage.code === lead.stage.code ? "step" : undefined}
-                disabled={!editable}
-                onClick={() => move(stage.code)}
-              >
-                {stage.name}
-              </button>
-            ))}
+            <ol className={styles.stageList}>
+              {pipeline.map((stage, index) => {
+                const state =
+                  lead.stage.kind === "LOST"
+                    ? "future"
+                    : index < currentIndex
+                      ? "done"
+                      : index === currentIndex
+                        ? "current"
+                        : "future";
+                return (
+                  <li key={stage.code}>
+                    <button
+                      type="button"
+                      className={styles.stageButton}
+                      data-state={state}
+                      aria-current={stage.code === lead.stage.code ? "step" : undefined}
+                      disabled={!editable}
+                      onClick={() => move(stage.code)}
+                    >
+                      <span className={styles.stageMark} aria-hidden="true">
+                        {state === "done" ? <Icon name="check" size={12} strokeWidth={3} /> : null}
+                      </span>
+                      <span className={styles.stageName}>{stage.name}</span>
+                      {state === "current" ? (
+                        <span className={styles.stageWhen}>{recentLabel(stageSince)}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
             {editable && lostStage && lead.stage.kind !== "LOST" ? (
               <button
                 type="button"
-                className={`${styles.button} ${styles.danger}`}
+                className={`${styles.button} ${styles.danger} ${styles.lostButton}`}
                 onClick={() => setDialog("lost")}
               >
                 Mark as Lost…
               </button>
             ) : null}
             {lead.stage.kind === "LOST" ? (
-              <span className={styles.muted}>Lost: {lead.lostReason}</span>
+              <span className={styles.lostNote}>Lost: {lead.lostReason ?? "no reason given"}</span>
             ) : null}
           </section>
 
@@ -762,7 +919,11 @@ export function LeadDetailPage({
             <div className={styles.cardHead}>
               Trip details
               {editable ? (
-                <button type="button" className={styles.button} onClick={() => setDialog("edit")}>
+                <button
+                  type="button"
+                  className={styles.linkAction}
+                  onClick={() => setDialog("edit")}
+                >
                   Edit
                 </button>
               ) : null}
@@ -798,12 +959,42 @@ export function LeadDetailPage({
 
           <section className={styles.card}>
             <div className={styles.cardHead}>Owner &amp; follow-up</div>
-            <div>
-              <OwnerLabel owner={lead.owner} />
+            <div className={styles.ownerRow}>
+              {lead.owner ? (
+                <>
+                  <Avatar name={lead.owner.name} size={28} />
+                  <span>
+                    <b>{lead.owner.name}</b>
+                    {ownerIsMe ? <span className={styles.muted}> · you</span> : null}
+                  </span>
+                </>
+              ) : (
+                <OwnerLabel owner={null} />
+              )}
             </div>
-            <span className={dueClass(lead.nextFollowUpDate)}>
-              Next follow-up: {dateLabel(lead.nextFollowUpDate)}
-            </span>
+            {nextTask ? (
+              <div
+                className={
+                  nextTask.dueDate < today
+                    ? `${styles.followBox} ${styles.followLate}`
+                    : styles.followBox
+                }
+              >
+                <Icon name="clock" size={18} />
+                <span>
+                  <b>
+                    {nextTask.dueDate < today
+                      ? `Overdue · ${dateLabel(nextTask.dueDate)}`
+                      : nextTask.dueDate === today
+                        ? "Today"
+                        : dateLabel(nextTask.dueDate)}
+                  </b>
+                  <span className={styles.followText}>{nextTask.title}</span>
+                </span>
+              </div>
+            ) : (
+              <span className={styles.muted}>No follow-up set.</span>
+            )}
           </section>
 
           {lead.otherLeads.length > 0 ? (
@@ -846,10 +1037,15 @@ export function LeadDetailPage({
               {composer}
               <ol className={styles.timeline}>
                 {lead.timeline.map((entry) => (
-                  <li key={entry.id} className={styles.timelineItem}>
-                    <span>{entry.summary}</span>
-                    <span className={styles.when}>
-                      {entry.actor?.name ?? "System"} · {instantLabel(entry.occurredAt)}
+                  <li key={entry.id} className={styles.timelineItem} data-kind={entry.kind}>
+                    <span className={styles.timelineIcon} aria-hidden="true">
+                      <Icon name={TIMELINE_ICONS[entry.kind] ?? "dots"} size={14} strokeWidth={2} />
+                    </span>
+                    <span className={styles.timelineText}>
+                      <span>{entry.summary}</span>
+                      <span className={styles.when}>
+                        {entry.actor?.name ?? "System"} · {instantLabel(entry.occurredAt)}
+                      </span>
                     </span>
                   </li>
                 ))}

@@ -124,7 +124,15 @@ export const addTaskSchema = z.object({
 });
 export type AddTaskInput = z.output<typeof addTaskSchema>;
 
-export const setTaskSchema = z.object({ completed: z.boolean() });
+/** Mark a follow-up done or not, or snooze it to another day (one at a time). */
+export const setTaskSchema = z.union([
+  z.object({ completed: z.boolean() }),
+  z.object({
+    dueDate: z
+      .string({ error: "Please choose a date." })
+      .refine(isBusinessDate, { message: "Please choose a valid date." }),
+  }),
+]);
 export type SetTaskInput = z.output<typeof setTaskSchema>;
 
 export const listLeadsSchema = z.object({

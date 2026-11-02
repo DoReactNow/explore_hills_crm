@@ -302,3 +302,349 @@
     line-height: 32px;
   }
 }
+
+/* Role dashboards (Dash-Agent, Dash-Manager, Dash-Admin designs) */
+.subtitle {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+.good {
+  color: #146c3b !important;
+  font-weight: 600;
+}
+.columnsWide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 16px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.cardLink {
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.taskList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.taskRow {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid #f0f1f4;
+}
+.when {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f1f2f5;
+  color: #33404f;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.whenLate {
+  background: #fcebec;
+  color: #a12a33;
+}
+.whenToday {
+  background: #fdf1e3;
+  color: #8a4b06;
+}
+.taskText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.taskText .muted {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.taskName {
+  font-size: 14px;
+  font-weight: 600;
+}
+.doneButton {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.doneButton:hover {
+  background: #e5f5ec;
+  border-color: #a9ddbe;
+  color: #146c3b;
+}
+.conversion {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+.columnsChart {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+  height: 170px;
+}
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.columnValue {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.columnTrack {
+  flex: 1;
+  width: 100%;
+  max-width: 36px;
+  display: flex;
+  align-items: flex-end;
+}
+.columnFill,
+.columnFillNow {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: #bfd6fb;
+}
+.columnFillNow {
+  background: var(--chart-bar);
+}
+.columnDay {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.agentCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.agentText {
+  display: flex;
+  flex-direction: column;
+}
+.agentName {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.presence {
+  font-size: 12px;
+  white-space: nowrap;
+}
+.presence::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.presenceOn {
+  color: #146c3b;
+}
+.presenceBusy {
+  color: #8a4b06;
+}
+.presenceAway {
+  color: var(--color-text-subtle);
+}
+.atCap {
+  color: #8a4b06;
+  font-weight: 600;
+}
+.attention {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 0;
+  border-top: 1px solid #f0f1f4;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.tagWarning {
+  background: #fdf1e3;
+  color: #8a4b06;
+}
+.tagDanger {
+  background: #fcebec;
+  color: #a12a33;
+}
+.funnelRow {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) 80px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+.funnelLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.funnelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.funnelTrack {
+  height: 22px;
+  border-radius: 6px;
+  background: var(--chart-track);
+  display: flex;
+}
+.funnelFill {
+  height: 100%;
+  border-radius: 6px;
+}
+.funnelValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+.funnelValue strong {
+  color: var(--color-text);
+}
+.toneNew {
+  background: #cbd3de;
+}
+.funnelDot.toneNew {
+  background: #64748b;
+}
+.toneContacted {
+  background: #b5d6f6;
+}
+.funnelDot.toneContacted {
+  background: #2d8ce6;
+}
+.toneQualified {
+  background: #d3c6f7;
+}
+.funnelDot.toneQualified {
+  background: #7c5ce0;
+}
+.toneQuoted {
+  background: #f6d3a6;
+}
+.funnelDot.toneQuoted {
+  background: #e08a1e;
+}
+.toneWon {
+  background: #a9ddbe;
+}
+.funnelDot.toneWon {
+  background: #22a05a;
+}
+.toneLost {
+  background: #f2b8bc;
+}
+.funnelDot.toneLost {
+  background: #d9454f;
+}
+.stacked {
+  display: flex;
+  gap: 2px;
+  height: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stackPart {
+  height: 100%;
+}
+.legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  font-size: 13px;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 3px;
+}
+.srcWhatsapp {
+  background: #1f9d55;
+}
+.srcAd {
+  background: #e08a1e;
+}
+.srcWebsite {
+  background: #1468f0;
+}
+.srcPhone {
+  background: #4b5260;
+}
+.srcManual {
+  background: #7c5ce0;
+}
+.srcImport {
+  background: #a3acb9;
+}
+.subhead {
+  margin: 8px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.hFillSoft {
+  display: block;
+  height: 10px;
+  border-radius: 4px;
+  background: #bfd6fb;
+}
+@media (max-width: 1000px) {
+  .columnsWide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 767px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .taskRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .taskRow .when {
+    grid-column: 1 / -1;
+  }
+  .legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
