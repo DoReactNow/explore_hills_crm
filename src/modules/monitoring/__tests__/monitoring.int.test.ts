@@ -232,6 +232,59 @@ describe("the disk", () => {
   });
 });
 
+describe("off-server backups", () => {
+  const withStamp = (stamp: Date | "off" | null) =>
+    createMonitoringService({
+      clock,
+      disk: roomy,
+      backupStamp: async () => stamp,
+      certificateEnd: async () => null,
+    });
+
+  it("stays silent until backups are switched on", async () => {
+    await withStamp("off").runChecks();
+    expect(await open("backup_stale")).toHaveLength(0);
+  });
+
+  it("alerts when none has ever finished", async () => {
+    await withStamp(null).runChecks();
+    expect((await open("backup_stale"))[0].detail).toBe("None has finished yet.");
+  });
+
+  it("allows a missed hour or two, then alerts, then clears", async () => {
+    await withStamp(plusDuration(clock.now(), { hours: -35 })).runChecks();
+    expect(await open("backup_stale")).toHaveLength(0);
+    await withStamp(plusDuration(clock.now(), { hours: -37 })).runChecks();
+    expect(await open("backup_stale")).toHaveLength(1);
+    await withStamp(clock.now()).runChecks();
+    expect(await open("backup_stale")).toHaveLength(0);
+  });
+});
+
+describe("the HTTPS certificate", () => {
+  const withEnd = (end: Date | null) =>
+    createMonitoringService({
+      clock,
+      disk: roomy,
+      backupStamp: async () => "off",
+      certificateEnd: async () => end,
+    });
+
+  it("alerts inside 14 days, and clears after renewal", async () => {
+    await withEnd(plusDuration(clock.now(), { days: 15 })).runChecks();
+    expect(await open("certificate_expiring")).toHaveLength(0);
+    await withEnd(plusDuration(clock.now(), { days: 13 })).runChecks();
+    expect((await open("certificate_expiring"))[0].detail).toContain("13 days left");
+    await withEnd(plusDuration(clock.now(), { days: 90 })).runChecks();
+    expect(await open("certificate_expiring")).toHaveLength(0);
+  });
+
+  it("ignores an address with no certificate", async () => {
+    await withEnd(null).runChecks();
+    expect(await open("certificate_expiring")).toHaveLength(0);
+  });
+});
+
 describe("error tracking", () => {
   const record = (msg: string, message: string, requestId?: string) => ({
     time: NOW,

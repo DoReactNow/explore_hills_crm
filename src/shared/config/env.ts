@@ -44,6 +44,8 @@ const baseSchema = z.object({
       /^postgres(ql)?:\/\/[^/]+\/[^/?]+/,
       "DATABASE_URL must be a postgresql:// URL with a database name",
     ),
+  /** Set once nightly off-server backups run; a missed one then raises an alert (Decision 69). */
+  OFFSITE_BACKUP_EXPECTED: z.enum(["true", "false"]).default("false"),
   /** Database connections each process may hold in its main pool (Decision 67). */
   DATABASE_POOL_MAX: z.coerce.number().int().min(1).max(100).default(10),
   AUTH_SECRET: z
@@ -101,6 +103,14 @@ const envSchema = baseSchema.superRefine((env, ctx) => {
     issue("VAPID_PUBLIC_KEY", "PUSH_DRIVER=webpush needs VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY");
   }
   if (env.APP_ENV === "production") {
+    for (const [name, value] of Object.entries(env)) {
+      if (typeof value === "string" && value.startsWith("<")) {
+        issue(name, `${name} still holds the example file's placeholder`);
+      }
+    }
+    if (!env.APP_URL.startsWith("https://")) {
+      issue("APP_URL", "APP_URL must start with https:// in production");
+    }
     if (isPlaceholder(env.AUTH_SECRET)) {
       issue("AUTH_SECRET", "AUTH_SECRET is a development placeholder; generate a real secret");
     }

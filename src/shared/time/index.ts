@@ -1,6 +1,12 @@
 // All date and time logic lives in this module (Decision 6). Import from "@/shared/time".
 export { createTestClock, systemClock, type Clock, type TestClock } from "./clock";
-export { instantFromEpochMs, parseInstant, plusDuration, toIsoInstant } from "./instants";
+export {
+  instantFromEpochMs,
+  parseCertificateDate,
+  parseInstant,
+  plusDuration,
+  toIsoInstant,
+} from "./instants";
 export {
   addBusinessDays,
   assertBusinessDate,

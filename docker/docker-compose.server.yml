@@ -1,0 +1,93 @@
+# Production on the VPS (Decision 69). Images come from the deploy step, tagged by version; nothing is
+# built here. Run through scripts/server/deploy.sh, which sets IMAGE_TAG.
+name: explorehills
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "20m", max-file: "5" }
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: UTC
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    restart: always
+
+  migrate:
+    image: explorehills-migrator:${IMAGE_TAG:-none}
+    env_file: ${ENV_FILE:-.env.production}
+    profiles: [tools]
+    depends_on:
+      db: { condition: service_healthy }
+    logging: *logging
+    restart: "no"
+
+  app:
+    image: explorehills-app:${IMAGE_TAG:-none}
+    env_file: ${ENV_FILE:-.env.production}
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 47213
+    depends_on:
+      db: { condition: service_healthy }
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache:uid=1000,gid=1000
+    volumes:
+      - ${STORAGE_HOST_DIR:-./storage}:/app/storage
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    restart: always
+
+  worker:
+    image: explorehills-worker:${IMAGE_TAG:-none}
+    env_file: ${ENV_FILE:-.env.production}
+    command: ["node", "dist/worker.js"]
+    depends_on:
+      db: { condition: service_healthy }
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ${STORAGE_HOST_DIR:-./storage}:/app/storage
+    # Time to finish what it is doing. A job cut off anyway is picked up again by the queue.
+    stop_grace_period: 30s
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+    restart: always
+
+  caddy:
+    image: caddy:2.10-alpine
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL, for certificate notices}
+      HTTP_PORT: ${HTTP_PORT:-80}
+      HTTPS_PORT: ${HTTPS_PORT:-443}
+    ports:
+      - "${HTTP_PORT:-80}:${HTTP_PORT:-80}"
+      - "${HTTPS_PORT:-443}:${HTTPS_PORT:-443}"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+    logging: *logging
+    restart: always
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

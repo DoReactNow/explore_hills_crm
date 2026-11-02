@@ -16,7 +16,7 @@ const child = spawn("npx", ["next", "start", "-p", String(PORT)], {
     APP_ENV: "production",
     APP_HOST: "127.0.0.1",
     APP_PORT: String(PORT),
-    APP_URL: BASE,
+    APP_URL: "https://crm.example.test",
     LOG_LEVEL: "silent",
     DATABASE_URL: "postgresql://nobody:nobody@127.0.0.1:1/explorehills_surface",
     AUTH_SECRET: randomBytes(32).toString("hex"),

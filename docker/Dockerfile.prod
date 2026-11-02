@@ -44,6 +44,8 @@ COPY package.json prisma.config.ts ./
 COPY prisma ./prisma
 COPY --from=builder /app/dist/sync-rbac.js ./dist/sync-rbac.js
 COPY --from=builder /app/dist/reset-super-admin-password.js ./dist/reset-super-admin-password.js
+COPY --from=builder /app/dist/first-super-admin.js ./dist/first-super-admin.js
+COPY --from=builder /app/dist/send-test-email.js ./dist/send-test-email.js
 USER node
 CMD ["npx", "prisma", "migrate", "deploy"]
 

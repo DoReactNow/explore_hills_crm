@@ -2,8 +2,10 @@
 // the people who hold system:view-diagnostics once per problem. The app runs these checks, not the
 // worker, so a stuck worker can't silence them. A dead server can't alert anyone: Phase 12 covers that.
 import { createHash } from "node:crypto";
-import { statfs } from "node:fs/promises";
+import { stat, statfs } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { connect } from "node:tls";
 import { listPeopleWhoCan } from "@/modules/identity";
 import { notify } from "@/modules/notifications";
 import { getWorkerStatus } from "@/modules/system";
@@ -13,6 +15,7 @@ import { logger, type LogRecord } from "@/shared/logger";
 import { connectedStreams } from "@/shared/realtime/relay";
 import {
   instantFromEpochMs,
+  parseCertificateDate,
   parseInstant,
   plusDuration,
   systemClock,
@@ -23,6 +26,9 @@ import { monitoringRepository as repository } from "./monitoring.repository";
 import {
   ALERTS,
   ALERT_RETENTION_DAYS,
+  BACKUP_STALE_HOURS,
+  BACKUP_STAMP_FILE,
+  CERTIFICATE_WARNING_DAYS,
   DISK_MIN_FREE_BYTES,
   DISK_MIN_FREE_RATIO,
   ERROR_RETENTION_DAYS,
@@ -49,6 +55,39 @@ async function readDisk(): Promise<DiskSpace> {
   return { freeBytes: stats.bavail * stats.bsize, totalBytes: stats.blocks * stats.bsize };
 }
 
+/** When the last off-server backup finished, or null if none has, or null checks are off. */
+async function readBackupStamp(): Promise<Date | "off" | null> {
+  const { OFFSITE_BACKUP_EXPECTED, STORAGE_LOCAL_DIR } = getEnv();
+  if (OFFSITE_BACKUP_EXPECTED !== "true" || !STORAGE_LOCAL_DIR) return "off";
+  return stat(join(STORAGE_LOCAL_DIR, BACKUP_STAMP_FILE)).then(
+    (file) => file.mtime,
+    () => null,
+  );
+}
+
+/** When the certificate this app is served with ends, or null where there is none to check. */
+async function readCertificateEnd(): Promise<Date | null> {
+  const url = new URL(getEnv().APP_URL);
+  if (url.protocol !== "https:") return null;
+  return new Promise((resolve, reject) => {
+    const socket = connect(
+      {
+        host: url.hostname,
+        port: Number(url.port) || 443,
+        servername: url.hostname,
+        rejectUnauthorized: false,
+      },
+      () => {
+        const { valid_to: validTo } = socket.getPeerCertificate();
+        socket.end();
+        resolve(validTo ? parseCertificateDate(validTo) : null);
+      },
+    );
+    socket.setTimeout(10_000, () => socket.destroy(new Error("certificate check timed out")));
+    socket.on("error", reject);
+  });
+}
+
 const byQueue = (rows: Array<{ name: string; count: number }>) =>
   rows.map((row) => `${row.name} (${row.count})`).join(", ");
 
@@ -63,7 +102,14 @@ export function errorFingerprint(msg: string, name: string, message: string): st
 export function createMonitoringService({
   clock = systemClock,
   disk = readDisk,
-}: { clock?: Clock; disk?: () => Promise<DiskSpace> } = {}) {
+  backupStamp = readBackupStamp,
+  certificateEnd = readCertificateEnd,
+}: {
+  clock?: Clock;
+  disk?: () => Promise<DiskSpace>;
+  backupStamp?: () => Promise<Date | "off" | null>;
+  certificateEnd?: () => Promise<Date | null>;
+} = {}) {
   async function raise(code: AlertCode, detail: string): Promise<void> {
     const now = clock.now();
     const opened = await repository.open(code, detail, now);
@@ -128,6 +174,32 @@ export function createMonitoringService({
     );
   }
 
+  async function checkBackup(): Promise<void> {
+    const stamp = await backupStamp();
+    if (stamp === "off") return;
+    const stale =
+      stamp === null || clock.now().getTime() - stamp.getTime() > BACKUP_STALE_HOURS * HOUR_MS;
+    await settle(
+      "backup_stale",
+      stale
+        ? stamp
+          ? `The last one finished at ${toIsoInstant(stamp)}.`
+          : "None has finished yet."
+        : null,
+    );
+  }
+
+  async function checkCertificate(): Promise<void> {
+    const end = await certificateEnd();
+    const days = end ? (end.getTime() - clock.now().getTime()) / (24 * HOUR_MS) : null;
+    await settle(
+      "certificate_expiring",
+      days !== null && days < CERTIFICATE_WARNING_DAYS
+        ? `${Math.max(0, Math.floor(days))} days left. It normally renews by itself, so check Caddy.`
+        : null,
+    );
+  }
+
   const hourOf = (at: Date) => instantFromEpochMs(Math.floor(at.getTime() / HOUR_MS) * HOUR_MS);
 
   return {
@@ -138,6 +210,8 @@ export function createMonitoringService({
         checkJobs,
         checkDisk,
         checkErrors,
+        checkBackup,
+        checkCertificate,
       ];
       for (const check of checks) {
         await check().catch((error: unknown) =>

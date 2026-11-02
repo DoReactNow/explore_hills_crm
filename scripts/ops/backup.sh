@@ -13,5 +13,6 @@ mkdir -p "$target"
 chmod 700 "$target"
 ${PG_TOOLS:-} pg_dump --format=custom --no-owner --no-privileges "$BACKUP_DATABASE_URL" > "$target/database.dump"
 if [ -n "$storage" ]; then tar -czf "$target/files.tar.gz" -C "$storage" .; fi
-(cd "$target" && { sha256sum ./* 2>/dev/null || shasum -a 256 ./*; } > checksums.sha256)
+# Written under a hidden name first, so the list never includes itself.
+(cd "$target" && { sha256sum ./* 2>/dev/null || shasum -a 256 ./*; } > .checksums.tmp && mv .checksums.tmp checksums.sha256)
 echo "Backup written to $target"
