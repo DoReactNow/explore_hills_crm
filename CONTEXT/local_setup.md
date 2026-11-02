@@ -580,6 +580,8 @@ With `STORAGE_DRIVER=local`, recordings live in the `explorehills_storage` volum
 |:---|:---|
 | `npm run dev` | Dev server (port 47213) |
 | `npm run build` | Production build |
+| `npm run db:seed:demo` | Invented data for looking around: 100 leads, chats, calls, staff. Development database only |
+| `scripts/drills/deploy-rehearsal.sh <older git ref>` | The whole deployment as production on this machine, in throwaway containers (`CONTEXT/runbook.md`) |
 | `npm run check:built-output` | After a build: nothing sent to browsers holds a secret (`P11-SEC-05`) |
 | `npm run check:production-surface` | After a build: test-only routes, cookies and pages are unreachable as production (`P11-SEC-07`) |
 | `scripts/load/prepare.sh`, `scripts/load/run.sh` | Fill a throwaway `explorehills_load` database at the agreed size, then run the load test (build first) |

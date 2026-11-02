@@ -662,10 +662,10 @@ Example candidates to evaluate: Exotel (browser SDK confirmed in its documentati
 
 ---
 
-### Decision 31: Open — Recording Storage Target
+### Decision 31: Recording Storage Target
 
 **Date:** 2026-10-29
-**Status:** Open (needed before production go-live; development and tests use `local`)
+**Status:** Resolved by Decision 69: the `local` driver on the VPS, with encrypted off-server backups
 
 Options:
 - An S3-compatible cloud service (for example Cloudflare R2).
@@ -1279,3 +1279,26 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **WhatsApp calling:** about 5% of calls. Customers can call on WhatsApp and agents answer in the CRM. It is needed, so Phase 13 is planned, no longer deferred. It has an on/off setting that does not affect regular calls.
 - **Recommended route:** buy calling through a WhatsApp provider, using the existing telephony layer. A custom media layer is not worth building for this share of calls.
 - **Provider quotes** must confirm: customer-to-business calling in India, answering in a browser, whether and with what permission agents can call customers, recording and its download, and all prices. Ask about calling when comparing the WhatsApp messaging providers (Decision 19), because one provider for both is simpler.
+
+---
+
+### Decision 69: Production Target for Phase 12
+
+**Date:** 2026-11-01
+**Status:** Accepted (hosting, domain and mail chosen by the owner; the recording choice was left to the project). Real deployment still waits for the owner's go-ahead.
+
+#### Decision
+- **Hosting:** a Hostinger VPS running Ubuntu with Docker. Access by SSH key only, never a shared root password. The owner supplies the address later.
+- **Address:** `https://crm.explorehills.in`. Only a new `crm` DNS record is needed. The live site and mail on `explorehills.in` stay untouched.
+- **HTTPS:** Caddy in front of the app gets and renews the certificate, forces HTTPS, doesn't buffer live updates, and limits request size. `TRUSTED_PROXY_HOPS=1`.
+- **Database:** Postgres 16 in a container on the same VPS, reachable only by the app and worker.
+- **Recordings and files (Decision 31):** the `local` driver on the VPS. Google Drive is not a live driver, because it isn't S3-compatible.
+- **Off-server backups:** nightly database dump and files, encrypted with rclone before leaving the server, copied to the owner's Google Drive. The VPS alone doesn't count as off-server. The encryption passwords must be kept outside the VPS too, or the backups can't be read after losing it.
+- **Backup expiry:** 30 days off-server and 7 days on the VPS, so erased data leaves backups within 30 days (Decision 66). A missed backup raises an alert.
+- **Mail:** Zoho over SMTP, which the existing mail code supports. `explorehills.in` has its DNS and mail at GoDaddy with a strict SPF record, so MX records must not change. Sending from `crm.explorehills.in` keeps Zoho's SPF and DKIM records on that name alone.
+- **Push keys** are generated on the server, and need nothing from the owner.
+- **Secrets** live only in `.env.production` on the VPS, readable by the deploy user alone. GitHub holds only the SSH key that can reach the server.
+- **Deploys:** GitHub builds the images and copies them to the VPS by SSH, so no image registry is needed. Order: backup, migrate, sync permissions, new app, health check, new worker. A failed migration or health check leaves the previous version running.
+- **Migrations must work with the previous version**, so a rollback is safe: no dropping or renaming. A scan refuses them unless marked as reviewed, after which they go in a later release than the code that stopped using them.
+- **Going live before WhatsApp and calling are ready:** production refuses fake providers. Provider key `none` starts the app with those features not working, for checking the server only.
+- **Outside monitoring:** something off the server must watch for the whole server being down. A free uptime service is enough, and needs an account from the owner. The app itself alerts on an HTTPS certificate within 14 days of expiry.

@@ -96,6 +96,18 @@ describe("parseEnv: environment and database guards", () => {
     expect(() => parseEnv(source)).toThrow(/AUTH_SECRET/);
   });
 
+  it("refuses a value left as the example file's placeholder", () => {
+    expect(() => parseEnv(prodSource({ SMTP_URL: "<smtps://user:password@host:465>" }))).toThrow(
+      /SMTP_URL still holds/,
+    );
+  });
+
+  it("refuses plain http in production", () => {
+    expect(() => parseEnv(prodSource({ APP_URL: "http://crm.explorehills.in" }))).toThrow(
+      /must start with https/,
+    );
+  });
+
   it("accepts a valid production source", () => {
     expect(parseEnv(prodSource()).APP_ENV).toBe("production");
   });

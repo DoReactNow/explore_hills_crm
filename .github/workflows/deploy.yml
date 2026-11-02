@@ -1,10 +1,8 @@
-# CD scaffold (Decision 12). After CI passes on main: build the production images, apply the
-# migrations and the RBAC sync with the migrator image BEFORE rollout, then deploy app and worker.
-# The rollout step is a TODO until the hosting target is chosen (Phase 12).
+# Deploys to the VPS after CI passes on main (Decisions 12 and 69): builds the images, copies them over SSH,
+# and runs scripts/server/deploy.sh there.
 #
-# To enable it: create the protected "production" environment, add the secret PRODUCTION_ENV
-# (the production env file in Docker --env-file format: KEY=value lines, no quotes) and set the
-# repository variable DEPLOY_ENABLED=true. Until then the job is skipped.
+# To enable it: create the protected "production" environment, add the secrets VPS_HOST, VPS_SSH_KEY and
+# VPS_KNOWN_HOSTS, and set the repository variable DEPLOY_ENABLED=true. Until then the job is skipped.
 name: Deploy
 
 on:
@@ -37,24 +35,30 @@ jobs:
           docker build -f docker/Dockerfile.prod --target runner -t explorehills-app:${{ github.sha }} .
           docker build -f docker/Dockerfile.prod --target worker -t explorehills-worker:${{ github.sha }} .
 
-      - name: Write the production env file
+      # Secrets stay on the server (Decision 69). The images travel over SSH, so no registry is needed.
+      - name: Set up SSH
         env:
-          PRODUCTION_ENV: ${{ secrets.PRODUCTION_ENV }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
         run: |
           umask 077
-          printf '%s\n' "$PRODUCTION_ENV" > "$RUNNER_TEMP/production.env"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_deploy
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
-      # A failed migration stops the workflow here, so the new version is never rolled out.
-      - name: Apply migrations
-        run: docker run --rm --env-file "$RUNNER_TEMP/production.env" explorehills-migrator:${{ github.sha }} npx prisma migrate deploy
-
-      - name: Sync permissions and roles
-        run: docker run --rm --env-file "$RUNNER_TEMP/production.env" explorehills-migrator:${{ github.sha }} node dist/sync-rbac.js
-
-      - name: Deploy app and worker
+      - name: Copy the images and server files
+        env:
+          VPS: deploy@${{ secrets.VPS_HOST }}
+          TAG: ${{ github.sha }}
         run: |
-          echo "TODO: deploy step for the hosting target chosen in Phase 12 (push explorehills-app and explorehills-worker, then roll out)."
+          docker save "explorehills-migrator:$TAG" "explorehills-app:$TAG" "explorehills-worker:$TAG" |
+            gzip | ssh -i ~/.ssh/id_deploy "$VPS" 'gunzip | docker load'
+          scp -i ~/.ssh/id_deploy docker/docker-compose.server.yml docker/Caddyfile "$VPS:/opt/explorehills/"
+          scp -i ~/.ssh/id_deploy scripts/server/*.sh scripts/ops/*.sh "$VPS:/opt/explorehills/scripts/"
 
-      - name: Remove the env file
-        if: always()
-        run: rm -f "$RUNNER_TEMP/production.env"
+      # A failed migration or health check stops here, with the previous version still serving.
+      - name: Deploy
+        env:
+          VPS: deploy@${{ secrets.VPS_HOST }}
+          TAG: ${{ github.sha }}
+        run: ssh -i ~/.ssh/id_deploy "$VPS" "cd /opt/explorehills && scripts/deploy.sh $TAG"

@@ -30,7 +30,7 @@ This is the source of truth for what is done and what is next. **Check this file
 | 9 | Reports and dashboards | **DONE** (2026-10-31) |
 | 10 | Audit, data protection and retention | **DONE** (2026-11-01; wording needs a legal adviser before go-live) |
 | 11 | Hardening, observability and performance | **IN REVIEW** (branch `phase-11-hardening`) |
-| 12 | Production deployment and runbook | **IN PROGRESS** (real deployment waits for the owner) |
+| 12 | Production deployment and runbook | **IN REVIEW** (branch `phase-12-deployment`; real deployment waits for the owner) |
 | 13 | WhatsApp calling inside the platform (optional channel) | PENDING (waits for provider quotes) |
 
 ---
@@ -661,7 +661,7 @@ Users, credentials, sessions, login/logout, the real server-side principal resol
 
 - [x] Revised plan re-approved by the owner
 
-> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is complete, with email and push on fakes (Decisions 63, 64). Phase 9 is complete (Decision 65). Phase 10 is complete (Decision 66), and its wording needs a legal adviser before go-live (`CONTEXT/dpdp_checklist.md`). Phase 11 is next. Before go-live: real WhatsApp and calling adapters, a mail account and push keys. Global search from the design has no phase yet. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
+> **Handoff, 2026-10-31.** Phases 1 to 5 are complete, with WhatsApp on the fake gateway (Decision 59 holds the assignment rules). Phases 1 to 7 are complete, with WhatsApp and calling on fake providers; the real adapters wait for Decisions 19 and 30. Phase 8 is complete, with email and push on fakes (Decisions 63, 64). Phase 9 is complete (Decision 65). Phase 10 is complete (Decision 66), and its wording needs a legal adviser before go-live (`CONTEXT/dpdp_checklist.md`). Phases 11 and 12 are built and in review (Decisions 67, 69); deployment waits for the owner (`CONTEXT/runbook.md`). Before go-live: real WhatsApp and calling adapters, a mail account and push keys. Global search from the design has no phase yet. The production compose drill was not run for Phase 5, so run it in Phase 6. The owner's design is at https://claude.ai/artifact/32WPUfjbM7wzUVWrH25twN (theme settled, Decision 53). Prisma blocks an AI agent from running `migrate reset` without the user's consent given after its warning; that block must not be bypassed.
 
 **Scenario coverage (Decision 47):** every Phase 1 scenario, plus the two Phase 0 gaps, is assigned to exactly one work item below (checked by script: 93 scenarios, none unmapped, none moved to a later phase). "Rules for every feature" (`X-*`) apply to every item.
 
@@ -1203,8 +1203,16 @@ Results and limits are in `CONTEXT/hardening_results.md`. Three extra scenarios 
 
 Security review and penetration test fixes, rate limiting, security headers, structured logging and metrics, error tracking, job-queue monitoring (failed and stuck jobs, worker down alerts), live-update connection load test, database indexing review, load tests, accessibility pass, backup and restore drill (database **and** recording storage).
 
-### Phase 12: Production Deployment and Runbook — PENDING
-Choose the hosting target (must be always-on for the worker and live updates; a VPS fits), finish the `deploy.yml` rollout step for `app` and `worker`, production secrets management (provider keys, storage keys, `CREDENTIALS_ENCRYPTION_KEY`), domain and HTTPS (required for browser microphone access), reverse proxy with buffering off for `/api/events/stream`, the recording storage target and its off-server backup (Decision 31), first production seed (first Super Admin) by an operator, monitoring and alerts, rollback procedure, and an operations runbook.
+### Phase 12: Production Deployment and Runbook — IN REVIEW, NOT YET DEPLOYED
+Built on branch `phase-12-deployment` (Decision 69): server Compose file, Caddy, deploy and rollback scripts, first-run tool, encrypted off-server backups, mail test tool, new alerts for missed backups and expiring certificates, and `CONTEXT/runbook.md`. Everything was rehearsed on one machine in production mode with `scripts/drills/deploy-rehearsal.sh`. Nothing has run on the real VPS.
+
+| Scenario | Status |
+|:---|:---|
+| `P12-DEPLOY-01` to `-06`, `-08`, `-09` | Proven in the rehearsal |
+| `P12-DEPLOY-07` HTTPS, microphone, live updates | HTTPS and live updates rehearsed with a local certificate. The microphone needs the real server |
+| `P12-DEPLOY-10` off-server backups, disk alerts | Rehearsed with a local folder in place of Google Drive. Needs the owner's Google account |
+| `P12-DEPLOY-11` certificate or full disk caught first | Alerts tested with invented readings. Whole-server outages need the owner's uptime account |
+| `P12-DEPLOY-12` webhooks | Waits for the WhatsApp and calling providers |
 
 ### Phase 13: WhatsApp Calling Inside the Platform — PENDING
 Needed as an optional channel, about 5% of calls (Decision 68); it waits for provider quotes (`Q-20`). Customers call on WhatsApp and agents answer in the CRM. Confirm the route (buying through a provider is recommended), plug into the existing call adapter, add an on/off setting, permission-request flow, recording and consent handling, and cost review.

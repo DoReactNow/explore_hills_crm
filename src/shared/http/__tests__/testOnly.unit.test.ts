@@ -15,7 +15,7 @@ async function load(appEnv: "test" | "development" | "production") {
   vi.stubEnv("APP_ENV", appEnv);
   vi.stubEnv("APP_HOST", "127.0.0.1");
   vi.stubEnv("APP_PORT", "47215");
-  vi.stubEnv("APP_URL", "http://127.0.0.1:47215");
+  vi.stubEnv("APP_URL", production ? "https://crm.example.com" : "http://127.0.0.1:47215");
   vi.stubEnv("DATABASE_URL", `postgresql://u:p@127.0.0.1:54329/${database}`);
   vi.stubEnv("AUTH_SECRET", "x".repeat(40));
   vi.stubEnv("CREDENTIALS_ENCRYPTION_KEY", Buffer.alloc(32, 1).toString("base64"));

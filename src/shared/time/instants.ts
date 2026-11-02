@@ -26,3 +26,13 @@ export function plusDuration(instant: Date, duration: { hours?: number; days?: n
   const ms = ((duration.days ?? 0) * 24 + (duration.hours ?? 0)) * 3_600_000;
   return instantFromEpochMs(instant.getTime() + ms);
 }
+
+/** Reads the end date in an HTTPS certificate, such as "Jan  2 15:04:05 2027 GMT". */
+export function parseCertificateDate(value: string): Date {
+  const parsed = DateTime.fromFormat(value.replace(/\s+/g, " "), "LLL d HH:mm:ss yyyy 'GMT'", {
+    zone: "utc",
+    locale: "en-US",
+  });
+  if (!parsed.isValid) throw new RangeError(`Not a certificate date: "${value}"`);
+  return parsed.toJSDate();
+}
