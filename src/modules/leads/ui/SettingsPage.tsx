@@ -118,6 +118,8 @@ function StageNameDialog({
   );
 }
 
+const PIPELINE = "Pipeline stages";
+
 export function SettingsPage() {
   const access = usePageAccess("settings:manage");
   const [settings, setSettings] = useState<Setting[] | null>(null);
@@ -126,6 +128,7 @@ export function SettingsPage() {
   const [actionError, setActionError] = useState<FriendlyError | null>(null);
   const [notice, setNotice] = useState("");
   const [editing, setEditing] = useState<StageOption | "new" | null>(null);
+  const [section, setSection] = useState<string | null>(null);
 
   const loadStages = useCallback(async () => {
     const result = await apiRequest<StageOption[]>("/api/settings/stages");
@@ -189,6 +192,11 @@ export function SettingsPage() {
     await loadStages();
   }
 
+  // The stages sit in the pipeline group's section (Settings design); that section opens first.
+  const stagesHome = groups.find((group) => /pipeline/i.test(group)) ?? PIPELINE;
+  const sections = groups.includes(stagesHome) ? groups : [PIPELINE, ...groups];
+  const shown = section && sections.includes(section) ? section : stagesHome;
+
   return (
     <main className={styles.page}>
       <h1 className={styles.title}>Settings</h1>
@@ -198,75 +206,105 @@ export function SettingsPage() {
         </div>
       ) : null}
 
-      <section className={styles.card}>
-        <div className={styles.heading}>
-          <h2 style={{ margin: 0, flex: 1, fontSize: 16 }}>Pipeline stages</h2>
-          <button type="button" className={styles.button} onClick={() => setEditing("new")}>
-            + New stage
-          </button>
-        </div>
-        <span className={styles.muted}>“Unassigned” is about ownership, not a stage.</span>
-        <FormError error={actionError} />
-        {stages.map((stage, index) => (
-          <div key={stage.id} className={styles.stageRow}>
-            <StageChip code={stage.code} name={stage.name} />
-            {!stage.isActive ? <span className={styles.muted}>Switched off</span> : null}
-            <span className="spacer" style={{ flex: 1 }} />
+      <div className={styles.settingsLayout}>
+        <nav aria-label="Settings sections" className={styles.settingsNav}>
+          {sections.map((name) => (
             <button
+              key={name}
               type="button"
-              className={styles.button}
-              aria-label={`Move ${stage.name} up`}
-              disabled={index === 0}
-              onClick={() => moveStage(stage, -1)}
+              className={styles.settingsNavItem}
+              aria-current={shown === name ? "page" : undefined}
+              onClick={() => setSection(name)}
             >
-              ↑
+              {name}
             </button>
-            <button
-              type="button"
-              className={styles.button}
-              aria-label={`Move ${stage.name} down`}
-              disabled={index === stages.length - 1}
-              onClick={() => moveStage(stage, 1)}
-            >
-              ↓
-            </button>
-            <button type="button" className={styles.button} onClick={() => setEditing(stage)}>
-              Rename
-            </button>
-            <button type="button" className={styles.button} onClick={() => toggleStage(stage)}>
-              {stage.isActive ? "Switch off" : "Switch on"}
-            </button>
-            <button
-              type="button"
-              className={`${styles.button} ${styles.danger}`}
-              onClick={() => deleteStage(stage)}
-            >
-              Delete
-            </button>
-          </div>
-        ))}
-      </section>
-
-      {groups.map((group) => (
-        <section key={group} className={styles.card}>
-          <h2 style={{ margin: 0, fontSize: 16 }}>{group}</h2>
-          <div className={styles.settingsGrid}>
-            {settings
-              .filter((setting) => setting.group === group)
-              .map((setting) => (
-                <SettingField
-                  key={setting.key}
-                  setting={setting}
-                  onSaved={() =>
-                    setNotice(
-                      "Saved. This applies to new work; work already running keeps its value.",
-                    )
-                  }
-                />
+          ))}
+        </nav>
+        <div className={styles.settingsBody}>
+          {groups.includes(shown) ? (
+            <section className={styles.card}>
+              <h2 className={styles.sectionTitle}>{shown}</h2>
+              <div className={styles.settingsGrid}>
+                {settings
+                  .filter((setting) => setting.group === shown)
+                  .map((setting) => (
+                    <SettingField
+                      key={setting.key}
+                      setting={setting}
+                      onSaved={() =>
+                        setNotice(
+                          "Saved. This applies to new work; work already running keeps its value.",
+                        )
+                      }
+                    />
+                  ))}
+              </div>
+            </section>
+          ) : null}
+          {shown === stagesHome ? (
+            <section className={styles.card}>
+              <div className={styles.heading}>
+                <h2 className={styles.sectionTitle}>Pipeline stages</h2>
+                <button type="button" className={styles.button} onClick={() => setEditing("new")}>
+                  + New stage
+                </button>
+              </div>
+              <span className={styles.muted}>
+                Use the arrows to reorder. “Unassigned” is about ownership, not a stage.
+              </span>
+              <FormError error={actionError} />
+              {stages.map((stage, index) => (
+                <div key={stage.id} className={styles.stageRow}>
+                  <span className={styles.reorder}>
+                    <button
+                      type="button"
+                      className={styles.reorderButton}
+                      aria-label={`Move ${stage.name} up`}
+                      disabled={index === 0}
+                      onClick={() => moveStage(stage, -1)}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.reorderButton}
+                      aria-label={`Move ${stage.name} down`}
+                      disabled={index === stages.length - 1}
+                      onClick={() => moveStage(stage, 1)}
+                    >
+                      ↓
+                    </button>
+                  </span>
+                  <StageChip code={stage.code} name={stage.name} />
+                  {!stage.isActive ? <span className={styles.muted}>Switched off</span> : null}
+                  <span className="spacer" style={{ flex: 1 }} />
+                  <button
+                    type="button"
+                    className={styles.linkAction}
+                    onClick={() => setEditing(stage)}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.linkAction}
+                    onClick={() => toggleStage(stage)}
+                  >
+                    {stage.isActive ? "Switch off" : "Switch on"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.linkAction} ${styles.linkDanger}`}
+                    onClick={() => deleteStage(stage)}
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
-          </div>
-        </section>
-      ))}
+            </section>
+          ) : null}
+        </div>
+      </div>
 
       {editing ? (
         <StageNameDialog

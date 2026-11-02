@@ -60,7 +60,8 @@ test("an agent accepts a blasted lead, which disappears for the manager's select
 test("a manager reassigns a lead, with a reason (P5-REASSIGN-01, -04)", async ({ page }) => {
   await signIn(page, "MANAGER", "/leads?search=Sample%20Customer%2019");
   await page.getByRole("link", { name: "Sample Customer 19" }).click();
-  await page.getByRole("button", { name: "Reassign…" }).click();
+  await page.getByRole("button", { name: "More actions" }).click();
+  await page.getByRole("menuitem", { name: "Reassign…" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("New owner").selectOption({ index: 1 });
   await expect(dialog.getByRole("button", { name: "Reassign" })).toBeDisabled();

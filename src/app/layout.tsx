@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Instrument_Serif, Noto_Sans, Noto_Sans_Devanagari } from "next/font/google";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
-import { NotificationsLink } from "@/modules/notifications/ui/NotificationsLink";
+import { GlobalSearch } from "@/modules/leads/ui/GlobalSearch";
+import { NotificationsBell } from "@/modules/notifications/ui/NotificationsBell";
 import { SoftphoneProvider } from "@/modules/telephony/ui/SoftphoneProvider";
 import { AppShell } from "@/modules/identity/ui/AppShell";
 import { APP_CONFIG } from "@/shared/config/appConfig";
@@ -40,7 +41,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       className={`${notoSans.variable} ${notoDevanagari.variable} ${instrumentSerif.variable}`}
     >
       <body>
-        <AppShell navExtra={<NotificationsLink />}>
+        <AppShell notifications={<NotificationsBell />} search={<GlobalSearch />}>
           <SoftphoneProvider>{children}</SoftphoneProvider>
         </AppShell>
         <Toaster />

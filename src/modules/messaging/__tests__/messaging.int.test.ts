@@ -156,6 +156,41 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+describe("the inbox list", () => {
+  it("“Mine” shows only chats whose lead this person owns, and carries the trip for the side card", async () => {
+    const [first, second] = [nextNumber(), nextNumber()];
+    await receive(first);
+    await receive(second);
+    const mine = await conversationOf(first);
+    const theirs = await conversationOf(second);
+    const me = await as("ADMIN");
+    const other = await makeUser("AGENT");
+    const mineLead = await prisma.messagingConversation.findUniqueOrThrow({
+      where: { id: mine.id },
+      select: { leadId: true },
+    });
+    const theirLead = await prisma.messagingConversation.findUniqueOrThrow({
+      where: { id: theirs.id },
+      select: { leadId: true },
+    });
+    await assignLead(mineLead.leadId!, me);
+    await assignLead(theirLead.leadId!, other.id);
+    await prisma.leadsLead.update({
+      where: { id: mineLead.leadId! },
+      data: { travellerCount: 4, budgetAmount: "150000" },
+    });
+    const all = await list();
+    expect(all.body?.data.items.map((row) => row.id).sort()).toEqual([mine.id, theirs.id].sort());
+    const only = await list("?mine=true");
+    expect(only.body?.data.items.map((row) => row.id)).toEqual([mine.id]);
+    expect(only.body?.data.total).toBe(1);
+    expect(only.body?.data.items[0].lead).toMatchObject({
+      travellerCount: 4,
+      budgetAmount: "150000",
+    });
+  });
+});
+
 describe("older messages (P6-WORK-06)", () => {
   it("come in pages, with no gaps or repeats", async () => {
     const from = nextNumber();

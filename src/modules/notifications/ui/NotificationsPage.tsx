@@ -2,26 +2,14 @@
 
 // The notifications list. Opening one marks it read; a lead the person can no longer see shows that
 // page's own friendly "not found". Admins and Managers can also choose what they get.
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { apiRequest } from "@/shared/api/client";
 import type { FriendlyError } from "@/shared/api/friendlyError";
 import { usePrincipal } from "@/shared/rbac/usePrincipal";
-import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
-import { formatInstant, parseInstant } from "@/shared/time";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
+import { NotificationList } from "./NotificationList";
 import styles from "./notifications.module.css";
 
-const NOTICES = ["notifications.changed"];
-
-interface Notification {
-  id: string;
-  title: string;
-  body: string;
-  link: string | null;
-  readAt: string | null;
-  createdAt: string;
-}
 interface Preferences {
   inApp: boolean;
   email: boolean;
@@ -117,89 +105,9 @@ function Choices() {
 }
 
 export function NotificationsPage() {
-  const router = useRouter();
-  const [unreadOnly, setUnreadOnly] = useState(true);
-  const [items, setItems] = useState<Notification[] | null>(null);
-  const [unread, setUnread] = useState(0);
-  const [error, setError] = useState<FriendlyError | null>(null);
-
-  const refresh = useCallback(async () => {
-    const result = await apiRequest<{ items: Notification[]; unreadCount: number }>(
-      `/api/notifications?unread=${unreadOnly}`,
-    );
-    if (result.ok) {
-      setItems(result.data.items);
-      setUnread(result.data.unreadCount);
-    } else setError(result.error);
-  }, [unreadOnly]);
-
-  useLiveEvents({ types: NOTICES, onEvent: refresh, onResync: refresh });
-  useEffect(() => {
-    const timer = setTimeout(refresh, 0);
-    return () => clearTimeout(timer);
-  }, [refresh]);
-
-  async function open(item: Notification) {
-    if (!item.readAt) await apiRequest(`/api/notifications/${item.id}/read`, { method: "POST" });
-    if (item.link) router.push(item.link);
-    else void refresh();
-  }
-
-  async function markAll() {
-    await apiRequest("/api/notifications/read-all", { method: "POST" });
-    void refresh();
-  }
-
   return (
     <main className={styles.page}>
-      <div className={styles.head}>
-        <h1 className={styles.title}>Notifications</h1>
-        <button type="button" className={styles.link} onClick={markAll}>
-          Mark all as read
-        </button>
-      </div>
-      <div className={styles.pills}>
-        <button
-          type="button"
-          className={styles.pill}
-          aria-pressed={unreadOnly}
-          onClick={() => setUnreadOnly(true)}
-        >
-          Unread · {unread}
-        </button>
-        <button
-          type="button"
-          className={styles.pill}
-          aria-pressed={!unreadOnly}
-          onClick={() => setUnreadOnly(false)}
-        >
-          All
-        </button>
-      </div>
-      {error ? <ErrorMessage error={error} /> : null}
-      {items?.length === 0 ? (
-        <p className={styles.muted}>Nothing here. You&apos;re all caught up.</p>
-      ) : null}
-      <ul className={styles.list}>
-        {items?.map((item) => (
-          <li key={item.id}>
-            <button
-              type="button"
-              className={`${styles.item} ${item.readAt ? "" : styles.unread}`}
-              onClick={() => open(item)}
-            >
-              <span className={styles.text}>
-                <span className={styles.itemTitle}>{item.title}</span>
-                <span className={styles.body}>{item.body}</span>
-                <span className={styles.when}>
-                  {formatInstant(parseInstant(item.createdAt), "dateTime")}
-                </span>
-              </span>
-              {item.readAt ? null : <span className={styles.dot} aria-label="Unread" />}
-            </button>
-          </li>
-        ))}
-      </ul>
+      <NotificationList />
       <Choices />
     </main>
   );

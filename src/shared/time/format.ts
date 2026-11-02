@@ -3,11 +3,15 @@
 import { DateTime } from "luxon";
 import { APP_CONFIG } from "@/shared/config/appConfig";
 import {
+  addBusinessDays,
   assertBusinessDate,
   businessZone,
+  toBusinessDate,
+  todayBusinessDate,
   type BusinessDate,
   type ZoneOption,
 } from "./businessDate";
+import type { Clock } from "./clock";
 import { DATE_FORMATS, type DateFormatStyle } from "./formats";
 
 const locale = () => APP_CONFIG.locale.locale;
@@ -31,4 +35,17 @@ export function formatBusinessDate(
   return DateTime.fromISO(assertBusinessDate(date), { zone: "utc" })
     .setLocale(locale())
     .toFormat(DATE_FORMATS[style]);
+}
+
+/**
+ * How recent lists show a moment (owner's design): the time if today, "Yesterday", the day and month
+ * this year, or the full date.
+ */
+export function formatRecent(instant: Date, clock: Clock, options: ZoneOption = {}): string {
+  const day = toBusinessDate(instant, options);
+  const today = todayBusinessDate(clock, options);
+  if (day === today) return formatInstant(instant, "time", options);
+  if (day === addBusinessDays(today, -1)) return "Yesterday";
+  if (day.slice(0, 4) === today.slice(0, 4)) return formatInstant(instant, "dayMonth", options);
+  return formatInstant(instant, "date", options);
 }

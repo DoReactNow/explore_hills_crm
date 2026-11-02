@@ -5,6 +5,7 @@ import { AppError } from "@/shared/errors";
 import { assertCan } from "@/shared/rbac/assertCan";
 import {
   businessDateToDbDate,
+  formatBusinessDate,
   systemClock,
   todayBusinessDate,
   toIsoInstant,
@@ -71,16 +72,40 @@ export function createTaskService({
       { principal }: LeadContext,
       leadId: string,
       taskId: string,
-      { completed }: SetTaskInput,
+      input: SetTaskInput,
     ) {
       assertCan(principal, "leads:edit");
       if (!isUuid(leadId) || !isUuid(taskId)) throw notFound();
+      if ("dueDate" in input && input.dueDate < todayBusinessDate(clock)) {
+        throw invalid("dueDate", "Please choose today or a later date.");
+      }
       const scope = await leadScopeOf(principal);
       const now = clock.now();
       return repository.transaction(async (tx) => {
-        if (!(await repository.findLead(tx, leadId, scope))) throw notFound();
+        const lead = await repository.findLead(tx, leadId, scope);
+        if (!lead) throw notFound();
         const task = await repository.findTask(tx, leadId, taskId);
         if (!task) throw notFound();
+        if ("dueDate" in input) {
+          assertNotErased(lead.contact);
+          if (task.completedAt) throw invalid("dueDate", "This follow-up is already done.");
+          if (await repository.setTaskDue(tx, taskId, businessDateToDbDate(input.dueDate))) {
+            await repository.addTimeline(tx, {
+              leadId,
+              kind: "TASK",
+              summary: `Follow-up moved to ${formatBusinessDate(input.dueDate, "date")}: ${task.title}`,
+              refType: "task_snoozed",
+              refId: randomUUID(),
+              actorUserId: principal.userId,
+              occurredAt: now,
+            });
+            await repository.refreshNextFollowUp(tx, leadId);
+            await repository.touchActivity(tx, leadId, now);
+          }
+          const moved = await repository.findTask(tx, leadId, taskId);
+          return toTaskView(moved!);
+        }
+        const { completed } = input;
         const changed = await repository.setTaskCompleted(tx, taskId, completed ? now : null);
         if (changed) {
           await repository.addTimeline(tx, {

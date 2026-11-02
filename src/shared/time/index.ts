@@ -23,5 +23,5 @@ export {
   type ZoneOption,
 } from "./businessDate";
 export { businessDayRange, type InstantRange } from "./range";
-export { formatBusinessDate, formatInstant } from "./format";
+export { formatBusinessDate, formatInstant, formatRecent } from "./format";
 export { DATE_FORMATS, type DateFormatStyle } from "./formats";

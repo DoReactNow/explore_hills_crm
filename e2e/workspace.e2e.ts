@@ -48,7 +48,7 @@ test("a second tab stays up to date without losing what is typed (P6-WORK-03, -0
 
   const note = `Called back ${first.url().slice(-6)} ${performance.now()}`;
   await first.getByLabel("Add a note").fill(note);
-  await first.getByRole("button", { name: "Add note" }).click();
+  await first.getByRole("button", { name: "Save note" }).click();
   await expect(
     second.getByRole("region", { name: "Activity" }).getByText("Note added").first(),
   ).toBeVisible();
@@ -93,7 +93,8 @@ test("a lead reassigned away shows a notice and stops edits, keeping the text (P
 
   await manager.goto("/leads?search=Sample%20Customer%2016");
   await manager.getByRole("link", { name: "Sample Customer 16" }).click();
-  await manager.getByRole("button", { name: "Reassign…" }).click();
+  await manager.getByRole("button", { name: "More actions" }).click();
+  await manager.getByRole("menuitem", { name: "Reassign…" }).click();
   const dialog = manager.getByRole("dialog");
   await dialog.getByLabel("New owner").selectOption({ index: 1 });
   await dialog.getByLabel("Reason").fill("Rebalancing");
@@ -101,7 +102,7 @@ test("a lead reassigned away shows a notice and stops edits, keeping the text (P
 
   await expect(agent.getByText("no longer yours")).toBeVisible();
   await expect(agent.getByLabel("Add a note")).toHaveValue("Do not lose me");
-  await expect(agent.getByRole("button", { name: "Add note" })).toBeDisabled();
+  await expect(agent.getByRole("button", { name: "Save note" })).toBeDisabled();
 });
 
 test("a phone gets the tab bar and the More sheet", async ({ browser }) => {
@@ -113,7 +114,7 @@ test("a phone gets the tab bar and the More sheet", async ({ browser }) => {
   await page.getByLabel("Password", { exact: true }).fill(seededUser("AGENT").password);
   await page.getByRole("button", { name: "Sign in" }).click();
   const tabs = page.getByRole("navigation", { name: "Phone" });
-  await expect(tabs.getByRole("link", { name: "Blast pool" })).toBeVisible();
+  await expect(tabs.getByRole("link", { name: /^Blast/ })).toBeVisible();
   await tabs.getByRole("button", { name: "More" }).click();
   await expect(
     page.getByRole("dialog", { name: "More" }).getByRole("button", { name: "Sign out" }),

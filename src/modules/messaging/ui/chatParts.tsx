@@ -41,8 +41,13 @@ export interface Conversation {
   lead: {
     id: string;
     destination: string | null;
-    stage: { name: string };
-    owner: { name: string } | null;
+    travelStartDate?: string | null;
+    travelEndDate?: string | null;
+    travellerCount?: number | null;
+    budgetAmount?: string | null;
+    nextFollowUpDate?: string | null;
+    stage: { code?: string; name: string };
+    owner: { id?: string; name: string } | null;
   } | null;
 }
 export interface ListItem extends Conversation {

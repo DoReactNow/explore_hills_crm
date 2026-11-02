@@ -592,6 +592,31 @@ describe("follow-ups", () => {
     expect((await setTask(lead.id, task.id, false)).body?.data.completedAt).toBeNull();
   });
 
+  it("snoozing moves an open follow-up and the lead's next date, never a done one", async () => {
+    await as("ADMIN");
+    const lead = (await post(input())).body!.data;
+    const task = (await addTask(lead.id, { title: "Call", dueDate: "2099-02-01" })).body!.data;
+    const snooze = (dueDate: string) =>
+      callRoute<Body, { id: string; taskId: string }>(taskItem.PATCH, {
+        method: "PATCH",
+        path: "/x",
+        params: { id: lead.id, taskId: task.id },
+        body: { dueDate },
+      });
+    const moved = await snooze("2099-02-04");
+    expect(moved.status).toBe(200);
+    expect(moved.body?.data.dueDate).toBe("2099-02-04");
+    expect((await get(lead.id)).body?.data.nextFollowUpDate).toBe("2099-02-04");
+    expect(
+      await prisma.leadsTimelineEntry.count({
+        where: { leadId: lead.id, kind: "TASK", summary: { startsWith: "Follow-up moved" } },
+      }),
+    ).toBe(1);
+    expect((await snooze("2000-01-01")).status).toBe(400); // the past is refused
+    await setTask(lead.id, task.id, true);
+    expect((await snooze("2099-02-10")).status).toBe(400); // a done follow-up stays put
+  });
+
   it("drive the lead's next follow-up, and closing clears it (P3-NOTE-09)", async () => {
     await as("ADMIN");
     const lead = (await post(input())).body!.data;

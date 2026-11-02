@@ -197,7 +197,15 @@ export function TemplatesPage() {
         </button>
       </div>
       {!templates ? <p aria-busy="true">Loading…</p> : null}
-      {templates?.length === 0 ? <p className={styles.muted}>No templates yet.</p> : null}
+      {templates?.length === 0 ? (
+        <p className={styles.emptyList}>
+          <span className={styles.emptyTitle}>No templates yet</span>
+          <span className={styles.muted}>
+            Templates are the only way to message a customer after the 24-hour window closes. Add
+            one and WhatsApp reviews it, usually within a day.
+          </span>
+        </p>
+      ) : null}
       {templates && templates.length > 0 ? (
         <div className={styles.tableWrap}>
           <table className={styles.table}>

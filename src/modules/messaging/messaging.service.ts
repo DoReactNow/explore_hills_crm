@@ -24,7 +24,14 @@ import type { Principal } from "@/shared/rbac/principal";
 import { notify } from "@/modules/notifications";
 import { publishEvent } from "@/shared/realtime/publish";
 import { buildKey, getFileStorage } from "@/shared/storage";
-import { parseInstant, plusDuration, systemClock, toBusinessDate, type Clock } from "@/shared/time";
+import {
+  dbDateToBusinessDate,
+  parseInstant,
+  plusDuration,
+  systemClock,
+  toBusinessDate,
+  type Clock,
+} from "@/shared/time";
 import { getWhatsAppGateway } from "./gateway/registry";
 import {
   GatewayError,
@@ -104,8 +111,19 @@ export function createMessagingService({
     return { open: clock.now().getTime() < closesAt.getTime(), closesAt: closesAt.toISOString() };
   }
 
-  const toConversationView = (row: ConversationRow) => ({
+  const toConversationView = ({ lead, ...row }: ConversationRow) => ({
     ...row,
+    lead: lead
+      ? {
+          ...lead,
+          travelStartDate: lead.travelStartDate ? dbDateToBusinessDate(lead.travelStartDate) : null,
+          travelEndDate: lead.travelEndDate ? dbDateToBusinessDate(lead.travelEndDate) : null,
+          nextFollowUpDate: lead.nextFollowUpDate
+            ? dbDateToBusinessDate(lead.nextFollowUpDate)
+            : null,
+          budgetAmount: lead.budgetAmount?.toString() ?? null,
+        }
+      : null,
     window: windowOf(row.lastInboundAt),
   });
 
@@ -506,7 +524,7 @@ export function createMessagingService({
 
     async listConversations({ principal }: MessagingContext, input: ListConversationsInput) {
       assertCan(principal, "messaging:view");
-      const { page, pageSize, search, unread } = input;
+      const { page, pageSize, search, unread, mine } = input;
       const digits = search?.replace(/\D/g, "") ?? "";
       const { rows, total } = await repository.listConversations({
         scope: await leadScopeOf(principal),
@@ -515,6 +533,7 @@ export function createMessagingService({
         search,
         phoneDigits: digits.length >= 4 ? digits : undefined,
         unreadOnly: unread === "true",
+        ownerId: mine === "true" ? principal.userId : undefined,
       });
       return {
         items: rows.map(({ messages, ...row }) => ({

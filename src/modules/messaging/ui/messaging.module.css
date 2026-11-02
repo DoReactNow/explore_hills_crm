@@ -56,8 +56,8 @@
 }
 .item {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: flex-start;
+  gap: 12px;
   width: 100%;
   padding: 10px 12px;
   border: 1px solid transparent;
@@ -301,6 +301,8 @@
 .empty {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: 10px;
   align-items: center;
   justify-content: center;
   padding: 48px 24px;
@@ -432,9 +434,248 @@
   background: #fcebec;
   color: #a12a33;
 }
+.listHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.searchBox {
+  height: 40px;
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #f1f2f5;
+  color: var(--color-text-subtle);
+}
+.searchBox:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+.segmented {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: #f1f2f5;
+}
+.segment {
+  flex: 1;
+  min-height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.segment[aria-pressed="true"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(16, 19, 24, 0.08);
+}
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.itemBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.itemTop .itemPreview {
+  flex: 1;
+  min-width: 0;
+}
+.whenFresh {
+  color: #146c3b;
+  font-weight: 600;
+}
+.itemMeta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.stageDot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: #64748b;
+}
+.stageDot[data-stage="CONTACTED"] {
+  background: #1468f0;
+}
+.stageDot[data-stage="QUALIFIED"] {
+  background: #7c5ce0;
+}
+.stageDot[data-stage="QUOTED"] {
+  background: #d97706;
+}
+.stageDot[data-stage="WON"] {
+  background: #22a05a;
+}
+.stageDot[data-stage="LOST"] {
+  background: #d9454f;
+}
+.closedTag {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #f1f2f5;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+.emptyList {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 32px 12px;
+  text-align: center;
+}
+.emptyTitle {
+  font-family: var(--font-accent), serif;
+  font-style: italic;
+  font-size: 24px;
+  color: var(--color-primary);
+}
+.backButton {
+  display: none;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.windowOpen,
+.windowClosed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e5f5ec;
+  color: #146c3b;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.windowClosed {
+  background: #fdf1e3;
+  color: #8a4b06;
+}
+.stagePill {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  background: #eef1f5;
+  color: #3d4757;
+  font-size: 12px;
+  font-weight: 600;
+}
+.stagePill[data-stage="CONTACTED"] {
+  background: #eaf2ff;
+  color: #0f57cc;
+}
+.stagePill[data-stage="QUALIFIED"] {
+  background: #f0ebfe;
+  color: #5b34b5;
+}
+.stagePill[data-stage="QUOTED"] {
+  background: #fdf1e3;
+  color: #8a4b06;
+}
+.stagePill[data-stage="WON"] {
+  background: #e5f5ec;
+  color: #146c3b;
+}
+.stagePill[data-stage="LOST"] {
+  background: #fcebec;
+  color: #a12a33;
+}
+.facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+.facts dt {
+  color: var(--color-text-muted);
+}
+.facts dd {
+  margin: 0;
+  font-weight: 500;
+}
+.followUp,
+.followUpLate {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fdf1e3;
+  color: #6e3b04;
+  font-size: 13px;
+}
+.followUpLate {
+  background: #fcebec;
+  color: #8e1f28;
+}
+.sideButton {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.sideButton:hover {
+  background: var(--color-canvas);
+}
 @media (max-width: 1100px) {
   .inbox {
-    grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   }
   .sidePane {
     display: none;
@@ -442,14 +683,58 @@
 }
 @media (max-width: 767px) {
   .inbox {
-    grid-template-columns: minmax(0, 1fr);
+    display: block;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
   }
   .listPane {
+    padding: 0;
     border-right: none;
+    overflow: visible;
+  }
+  .listHead .title {
+    font-size: 28px;
+  }
+  .item {
+    padding: 10px 2px;
+    border-radius: 0;
+    border: none;
     border-bottom: 1px solid #eef0f3;
-    max-height: 40vh;
+  }
+  .item[aria-current="true"] {
+    border-color: #eef0f3;
+  }
+  .chatPane {
+    display: none;
   }
   .hasChat .listPane {
+    display: none;
+  }
+  .hasChat .chatPane {
+    display: flex;
+    margin: -8px -16px -104px;
+    min-height: calc(100vh - 40px);
+  }
+  .hasChat .chatHead {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    flex-wrap: nowrap;
+  }
+  .chatName {
+    min-width: 0;
+  }
+  .chatName .muted {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .backButton {
+    display: inline-flex;
+  }
+  .chatPhone {
     display: none;
   }
   .bubble {

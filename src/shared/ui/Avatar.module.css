@@ -1,0 +1,33 @@
+.avatar {
+  flex: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  line-height: 1;
+}
+.blue {
+  background: #eaf2ff;
+  color: #0f57cc;
+}
+.amber {
+  background: #fdf1e3;
+  color: #8a4b06;
+}
+.green {
+  background: #e5f5ec;
+  color: #146c3b;
+}
+.violet {
+  background: #f0ebfe;
+  color: #5b34b5;
+}
+.rose {
+  background: #fcebec;
+  color: #a12a33;
+}
+.slate {
+  background: #eef1f5;
+  color: #3d4757;
+}

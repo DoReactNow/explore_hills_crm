@@ -37,6 +37,11 @@ const CONVERSATION_SELECT = {
     select: {
       id: true,
       destination: true,
+      travelStartDate: true,
+      travelEndDate: true,
+      travellerCount: true,
+      budgetAmount: true,
+      nextFollowUpDate: true,
       stage: { select: { code: true, name: true } },
       owner: { select: { id: true, name: true } },
     },
@@ -305,9 +310,12 @@ export const messagingRepository = {
     search?: string;
     phoneDigits?: string;
     unreadOnly: boolean;
+    /** Only chats whose lead this person owns ("Mine" in the inbox). */
+    ownerId?: string;
   }) {
     const where: Prisma.MessagingConversationWhereInput = {
       ...visible(query.scope),
+      ...(query.ownerId ? { AND: [{ lead: { ownerUserId: query.ownerId } }] } : {}),
       ...(query.unreadOnly ? { unreadCount: { gt: 0 } } : {}),
       ...(query.search
         ? {

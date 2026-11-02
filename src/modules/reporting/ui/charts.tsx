@@ -1,4 +1,5 @@
 // Small charts with one series. Each mark's value shows on hover, and a screen reader gets it as text.
+import { businessWeekday } from "@/shared/time";
 import styles from "./reporting.module.css";
 
 export function DayBars({
@@ -52,5 +53,36 @@ export function RowBars({ rows }: { rows: ReadonlyArray<{ label: string; count: 
         </div>
       ))}
     </>
+  );
+}
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const weekdayOf = (day: string) => WEEKDAYS[businessWeekday(day)] ?? day;
+
+/** A week of daily counts as labelled columns (Dash-Agent design): value above, weekday below. */
+export function DayColumns({
+  label,
+  rows,
+}: {
+  label: string;
+  rows: ReadonlyArray<{ day: string; count: number }>;
+}) {
+  const top = Math.max(1, ...rows.map((row) => row.count));
+  const description = rows.map((row) => `${weekdayOf(row.day)}: ${row.count}`).join(", ");
+  return (
+    <div className={styles.columnsChart} role="img" aria-label={`${label}. ${description}`}>
+      {rows.map((row, index) => (
+        <div key={row.day} className={styles.column} title={`${weekdayOf(row.day)}: ${row.count}`}>
+          <span className={styles.columnValue}>{row.count}</span>
+          <span className={styles.columnTrack}>
+            <span
+              className={index === rows.length - 1 ? styles.columnFillNow : styles.columnFill}
+              style={{ height: `${Math.max(row.count ? 4 : 0, (row.count / top) * 100)}%` }}
+            />
+          </span>
+          <span className={styles.columnDay}>{weekdayOf(row.day)}</span>
+        </div>
+      ))}
+    </div>
   );
 }

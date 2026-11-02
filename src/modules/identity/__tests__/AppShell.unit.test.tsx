@@ -71,6 +71,70 @@ describe("AppShell", () => {
     expect(container.textContent).toBe("");
   });
 
+  it("names and orders the menu by role, with admin pages under their own heading", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) =>
+        path === "/api/auth/me"
+          ? me(["dashboard:view-own", "leads:view-own", "messaging:view", "leads:claim"])
+          : respond(200, { data: { items: [], total: 0, counts: { overdue: 0, today: 0 } } }),
+      ),
+    );
+    const agent = render(
+      <AppShell onSignedOut={vi.fn()}>
+        <p>page</p>
+      </AppShell>,
+    );
+    await screen.findByText("Tara Singh");
+    const main = screen.getByRole("navigation", { name: "Main" });
+    const labels = [...main.querySelectorAll("a")].map((link) => link.textContent);
+    expect(labels.slice(0, 5)).toEqual([
+      "My leads",
+      "Blast pool",
+      "Inbox",
+      "Follow-ups",
+      "My numbers",
+    ]);
+    expect(screen.queryByText("Admin", { selector: "div" })).toBeNull();
+    agent.unmount();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) =>
+        path === "/api/auth/me"
+          ? me(["dashboard:view-all", "leads:view-all", "users:edit", "audit:view"])
+          : respond(200, { data: { items: [], total: 0, counts: { overdue: 0, today: 0 } } }),
+      ),
+    );
+    render(
+      <AppShell onSignedOut={vi.fn()}>
+        <p>page</p>
+      </AppShell>,
+    );
+    await screen.findByText("Tara Singh");
+    expect(screen.getByRole("link", { name: "Dashboard" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Leads" })).toBeTruthy();
+    expect(screen.getByText("Admin", { selector: "div" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Audit" })).toBeTruthy();
+  });
+
+  it("shows a waiting count beside the inbox", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) =>
+        path === "/api/auth/me"
+          ? me(["messaging:view"])
+          : respond(200, { data: { items: [], total: path.includes("unread=true") ? 7 : 0 } }),
+      ),
+    );
+    render(
+      <AppShell onSignedOut={vi.fn()}>
+        <p>page</p>
+      </AppShell>,
+    );
+    expect(await screen.findByLabelText("7 waiting")).toBeTruthy();
+  });
+
   it("signed out, shows a sign-in link that returns to this page", async () => {
     pathname = "/diagnostics";
     vi.stubGlobal(

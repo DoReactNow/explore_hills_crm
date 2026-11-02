@@ -8,6 +8,7 @@ import {
   dbDateToBusinessDate,
   formatBusinessDate,
   formatInstant,
+  formatRecent,
   isBusinessDate,
   parseBusinessLocalDateTime,
   parseInstant,
@@ -133,5 +134,19 @@ describe("instants", () => {
     expect(iso(parseInstant("2027-01-01T05:30:00+05:30"))).toBe("2027-01-01T00:00:00.000Z");
     expect(() => parseInstant("2027-01-01T10:00:00")).toThrow(/instant/i);
     expect(() => parseInstant("yesterday")).toThrow(/instant/i);
+  });
+});
+
+describe("formatRecent", () => {
+  // 2 Nov 2026, 9:00 pm in Kolkata
+  const clock = createTestClock("2026-11-02T15:30:00.000Z");
+  it("shows the time today, Yesterday, the day this year, the full date before", () => {
+    expect(formatRecent(parseInstant("2026-11-02T03:05:00.000Z"), clock)).toBe("8:35 am");
+    expect(formatRecent(parseInstant("2026-11-01T10:00:00.000Z"), clock)).toBe("Yesterday");
+    expect(formatRecent(parseInstant("2026-10-27T10:00:00.000Z"), clock)).toBe("27 Oct");
+    expect(formatRecent(parseInstant("2025-12-31T10:00:00.000Z"), clock)).toBe("31 Dec 2025");
+  });
+  it("uses the business day, not UTC's: 1 am in Kolkata is still today", () => {
+    expect(formatRecent(parseInstant("2026-11-01T19:30:00.000Z"), clock)).toBe("1:00 am");
   });
 });

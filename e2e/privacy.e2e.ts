@@ -57,7 +57,7 @@ test("an Admin reads and filters the audit trail, with nothing to edit (P10-AUDV
 test("an Agent can't open the audit trail or privacy pages (P10-AUDV-01)", async ({ page }) => {
   await signIn(page, "AGENT", "/audit");
   await expect(page.getByRole("heading", { name: "Audit trail" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Audit trail" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Audit", exact: true })).toHaveCount(0);
   await page.goto("/privacy");
   await expect(page.getByRole("heading", { name: "Customer privacy" })).toHaveCount(0);
 });

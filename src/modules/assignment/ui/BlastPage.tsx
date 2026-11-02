@@ -10,6 +10,7 @@ import { usePageAccess } from "@/shared/rbac/usePrincipal";
 import { useLiveEvents } from "@/shared/realtime/useLiveEvents";
 import { parseInstant, systemClock } from "@/shared/time";
 import { ErrorMessage } from "@/shared/ui/ErrorMessage";
+import { Icon } from "@/shared/ui/Icon";
 import styles from "./assignment.module.css";
 
 const NOTICES = ["assignment.poolChanged"];
@@ -144,19 +145,24 @@ export function BlastPage() {
 
   return (
     <main className={styles.page}>
-      <div>
-        <h1 className={styles.headline}>
-          {open} {open === 1 ? "lead" : "leads"} up for <span className={styles.accent}>grabs</span>
-        </h1>
+      <div className={styles.blastHead}>
         <span className={styles.muted}>
           First to accept gets the lead · you have room for {pool?.room ?? 0} more
         </span>
+        <h1 className={styles.headline}>
+          {open} {open === 1 ? "lead" : "leads"} up for <span className={styles.accent}>grabs</span>
+        </h1>
       </div>
       {error ? <ErrorMessage error={error} /> : null}
       {pool && cards.length === 0 ? (
-        <p className={styles.muted}>
-          Nothing to accept right now. New offers appear here on their own.
-        </p>
+        <div className={styles.blastEmpty}>
+          <span className={styles.blastEmptyIcon} aria-hidden="true">
+            <Icon name="blast" size={28} />
+          </span>
+          <p className={styles.muted}>
+            Nothing to accept right now. New offers appear here on their own.
+          </p>
+        </div>
       ) : null}
       <div className={styles.grid}>
         {cards.map((offer) => {
@@ -216,6 +222,11 @@ export function BlastPage() {
           );
         })}
       </div>
+      {cards.length > 0 ? (
+        <p className={`${styles.muted} ${styles.blastFoot}`}>
+          New leads slide in at the end, so cards never move under your cursor.
+        </p>
+      ) : null}
     </main>
   );
 }

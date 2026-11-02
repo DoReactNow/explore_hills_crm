@@ -36,6 +36,7 @@ export const listConversationsSchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(50),
   search: z.string().trim().max(200).optional(),
   unread: z.enum(["true", "false"]).optional(),
+  mine: z.enum(["true", "false"]).optional(),
 });
 export type ListConversationsInput = z.output<typeof listConversationsSchema>;
 
