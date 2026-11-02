@@ -38,4 +38,4 @@ Status of what India's Digital Personal Data Protection Act needs from this prod
 
 - [ ] The real calling adapter must delete the provider's copy of an erased recording, and honour withdrawn recording consent at the provider (Phase 7, step 7)
 - [ ] Set a backup expiry, and after any restore run erasure again for customers erased since that backup (Phase 12)
-- [ ] Review who has access in production (Phase 11)
+- [ ] Review who has access in production (moved from Phase 11 to Phase 12, because production doesn't exist yet)

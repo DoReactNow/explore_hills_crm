@@ -28,6 +28,8 @@ jobs:
         run: npm run guard:files
       - name: Lint
         run: npm run lint
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
 
   typecheck:
     runs-on: ubuntu-latest
@@ -55,6 +57,10 @@ jobs:
         run: npm run build
       - name: Build worker and tools
         run: npm run build:worker && npm run build:tools
+      - name: No secrets in what browsers receive
+        run: cp .env.test.example .env.test && npm run check:built-output
+      - name: Test-only routes are unreachable in production
+        run: npm run check:production-surface
       - uses: actions/upload-artifact@v7
         with:
           name: next-build

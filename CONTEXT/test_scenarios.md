@@ -27,7 +27,7 @@ The catalogue of normal, failure, race, permission, time and cross-module cases,
 | Phase 8 | 16 |
 | Phase 9 | 22 |
 | Phase 10 | 17 |
-| Phase 11 | 14 |
+| Phase 11 | 17 |
 | Phase 12 | 12 |
 | Phase 13 | 4 |
 
@@ -774,6 +774,9 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P11-OBS-05** Load tests show the agreed speed at realistic data and user numbers, and slow queries are indexed.
 - **P11-OBS-06** A two-instance setup does not double-run jobs, and live events reach users on either instance.
 - **P11-OBS-07** Accessibility checks pass on every main screen.
+- **P11-SEC-08** Reusing another chat's client reference when sending never returns that chat's message (found by the attack tests).
+- **P11-OBS-08** The database dropping idle connections never ends the app or worker process (found by the restart drill).
+- **P11-OBS-09** A Super Admin receives system alerts, even though the role passes checks without holding the grant (found by the alert tests).
 
 ---
 
@@ -796,7 +799,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 
 ---
 
-## Phase 13: Future: WhatsApp calling (only if chosen)
+## Phase 13: WhatsApp calling (planned, Decision 68)
 
 ### WhatsApp calling
 
@@ -804,7 +807,7 @@ These apply to every new endpoint, screen, job and table. A phase plan does not 
 - **P13-WACALL-02** Calling permission from the customer is requested and recorded before any call, and refused otherwise.
 - **P13-WACALL-03** A customer's WhatsApp call rings the lead's owner, or follows the same fallback rules.
 - **P13-WACALL-04** The feature can be switched off without affecting ordinary calls.
-- **Q-20 (needs an answer):** Which of the three routes in Decision 18, and at what cost?
+- **Q-20 (partly answered, Decision 68):** The feature is needed. Buying through a provider is recommended; the route and cost are confirmed once quotes arrive.
 
 ---
 
@@ -831,4 +834,4 @@ Collected from the sections above. Answer a phase's questions before planning it
 | Q-17 | 8 | Answered (Decision 63) |
 | Q-18 | 10 | How long must messages, recordings and audit records be kept? Are the proposed defaults right? |
 | Q-19 | 10 | What is the exact DPDP wording and process, confirmed by a legal adviser? |
-| Q-20 | 13 | Which of the three routes in Decision 18, and at what cost? |
+| Q-20 | 13 | Partly answered: needed, buying through a provider recommended; route and cost await quotes (Decision 68) |

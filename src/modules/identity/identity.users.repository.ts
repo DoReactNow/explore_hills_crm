@@ -240,6 +240,20 @@ export const userRepository = {
     });
   },
 
+  /** The same, plus the Super Admin, whose role passes every check without holding the grant. */
+  listActiveWhoCan(code: string) {
+    return getPrisma().identityUser.findMany({
+      where: {
+        status: "ACTIVE",
+        role: {
+          OR: [{ bypassesAccess: true }, { permissions: { some: { permission: { code } } } }],
+        },
+      },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+  },
+
   /** Everyone above a person: their reporting chain, and whoever manages their teams, all the way up. */
   async managersAbove(userId: string): Promise<string[]> {
     const rows = await getPrisma().$queryRaw<Array<{ id: string }>>`

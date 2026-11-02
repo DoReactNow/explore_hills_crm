@@ -51,6 +51,7 @@ export const listManagersAbove = (userId: string) => userRepository.managersAbov
 
 /** Active people holding a permission, such as those who can see every lead. */
 export const listHolders = (code: string) => userRepository.listActiveHolders(code, "all");
+export const listPeopleWhoCan = (code: string) => userRepository.listActiveWhoCan(code);
 
 /** Email address and status, only for sending a notification. */
 export const getNotifiableUser = (id: string) => userRepository.getUser(id);

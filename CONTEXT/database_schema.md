@@ -842,6 +842,47 @@ model SystemWorkerHeartbeat {
   @@map("system_worker_heartbeats")
 }
 
+// system — PHASE 11. One row per limit and caller, so limits hold across instances (Decision 67).
+model SystemRateLimit {
+  key         String   @id
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int      @default(0)
+
+  @@index([windowStart])
+  @@map("system_rate_limits")
+}
+
+// monitoring — PHASE 11 (Decision 67). A partial unique index allows one open row per code.
+model MonitoringAlert {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  code       String
+  detail     String
+  openedAt   DateTime  @db.Timestamptz(3)
+  lastSeenAt DateTime  @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+
+  @@index([openedAt])
+  @@map("monitoring_alerts")
+}
+
+// monitoring — PHASE 11. Errors grouped by what went wrong, one row per hour, personal data masked.
+// Kept 30 days; resolved alerts 90 days.
+model MonitoringError {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  fingerprint   String
+  hourStart     DateTime @db.Timestamptz(3)
+  name          String
+  message       String
+  source        String
+  count         Int      @default(1)
+  lastSeenAt    DateTime @db.Timestamptz(3)
+  lastRequestId String?
+
+  @@unique([fingerprint, hourStart])
+  @@index([hourStart])
+  @@map("monitoring_errors")
+}
+
 // system — PHASE 3 onward (first used by assignment timeouts, SLA and retention)
 model SystemSetting {
   key             String        @id                                 // e.g. "assignment.timeoutMinutes"

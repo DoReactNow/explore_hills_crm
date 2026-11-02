@@ -273,7 +273,7 @@ export function DashboardPage() {
           {data.agents.length === 0 ? (
             <span className={styles.muted}>No leads for anyone in this period.</span>
           ) : (
-            <div className={styles.tableWrap}>
+            <div className={styles.tableWrap} tabIndex={0} role="region" aria-label="Agents">
               <table className={styles.table}>
                 <thead>
                   <tr>

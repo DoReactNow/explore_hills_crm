@@ -86,7 +86,7 @@
   border: none;
   background: none;
   padding: 0;
-  color: var(--color-primary);
+  color: var(--color-primary-hover);
   font: inherit;
   cursor: pointer;
   text-decoration: underline;

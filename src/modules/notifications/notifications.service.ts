@@ -45,6 +45,8 @@ export interface NotifyInput {
   key: string;
   body: string;
   link?: string;
+  /** Sent from here instead of by a job, because the problem may be that jobs aren't running. */
+  urgent?: boolean;
 }
 
 /** An SLA looks back this far, so very old leads don't all fire when the feature first runs. */
@@ -79,6 +81,47 @@ export function createNotificationService({
   email = getEmailSender,
   push = getPushSender,
 }: Deps = {}) {
+  async function sendEmail(notificationId: string): Promise<void> {
+    const row = await repository.findById(notificationId);
+    if (!row) return;
+    const user = await getNotifiableUser(row.userId);
+    if (user?.status !== "ACTIVE") return;
+    const link = row.link ? `\n\n${new URL(row.link, getEnv().APP_URL).toString()}` : "";
+    try {
+      await email().send({
+        to: user.email,
+        subject: row.title,
+        text: `${row.body}${link}`,
+      });
+    } catch (error) {
+      if (error instanceof PermanentDeliveryError) {
+        logger.warn("an email address refused a notification", { notificationId });
+        return;
+      }
+      throw error;
+    }
+  }
+
+  /** An expired browser subscription is removed, and the others still get theirs. */
+  async function sendPush(notificationId: string): Promise<void> {
+    const row = await repository.findById(notificationId);
+    if (!row) return;
+    const message = { title: row.title, body: row.body, link: row.link };
+    let failure: unknown = null;
+    for (const subscription of await repository.subscriptionsOf(row.userId)) {
+      try {
+        await push().send(subscription, message);
+      } catch (error) {
+        if (error instanceof PermanentDeliveryError) {
+          await repository.removeExpired(subscription.endpoint);
+        } else {
+          failure = error;
+        }
+      }
+    }
+    if (failure) throw failure;
+  }
+
   async function notifyOne(userId: string, input: NotifyInput): Promise<void> {
     const user = await getUserSummary(userId);
     if (user?.status !== "ACTIVE") return;
@@ -91,7 +134,8 @@ export function createNotificationService({
     const made = await repository.transaction(async (tx) => {
       await repository.lockUser(tx, userId);
       if (await repository.hasKey(tx, userId, input.key)) return null;
-      const group = await repository.findGroupable(tx, userId, input.kind, since);
+      const group =
+        "ungrouped" in kind ? null : await repository.findGroupable(tx, userId, input.kind, since);
       if (group) {
         const groupCount = group.groupCount + 1;
         await repository.update(tx, group.id, {
@@ -122,6 +166,11 @@ export function createNotificationService({
     );
     // Only the first of a group goes out, so email and push can't flood anyone either.
     if (!made.fresh) return;
+    if (input.urgent) {
+      if (kind.email && (preference?.email ?? true)) await sendEmail(made.id);
+      if (kind.push && (preference?.push ?? true)) await sendPush(made.id);
+      return;
+    }
     const queue = await getJobQueue();
     if (kind.email && (preference?.email ?? true)) {
       await queue.enqueue(sendEmailRef, { notificationId: made.id }, { singletonKey: made.id });
@@ -208,46 +257,9 @@ export function createNotificationService({
     },
 
     /** A bad address fails only its own email; anything else is retried by the job. */
-    async sendEmail(notificationId: string): Promise<void> {
-      const row = await repository.findById(notificationId);
-      if (!row) return;
-      const user = await getNotifiableUser(row.userId);
-      if (user?.status !== "ACTIVE") return;
-      const link = row.link ? `\n\n${new URL(row.link, getEnv().APP_URL).toString()}` : "";
-      try {
-        await email().send({
-          to: user.email,
-          subject: row.title,
-          text: `${row.body}${link}`,
-        });
-      } catch (error) {
-        if (error instanceof PermanentDeliveryError) {
-          logger.warn("an email address refused a notification", { notificationId });
-          return;
-        }
-        throw error;
-      }
-    },
+    sendEmail,
 
-    /** An expired browser subscription is removed, and the others still get theirs. */
-    async sendPush(notificationId: string): Promise<void> {
-      const row = await repository.findById(notificationId);
-      if (!row) return;
-      const message = { title: row.title, body: row.body, link: row.link };
-      let failure: unknown = null;
-      for (const subscription of await repository.subscriptionsOf(row.userId)) {
-        try {
-          await push().send(subscription, message);
-        } catch (error) {
-          if (error instanceof PermanentDeliveryError) {
-            await repository.removeExpired(subscription.endpoint);
-          } else {
-            failure = error;
-          }
-        }
-      }
-      if (failure) throw failure;
-    },
+    sendPush,
 
     /**
      * First-reply clocks: the owner hears at the deadline, and managers at twice the target. Each fires

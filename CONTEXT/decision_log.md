@@ -311,7 +311,7 @@ The original idea was a call-routing platform on WhatsApp calling. The confirmed
 ### Decision 18: WhatsApp Calling Inside the Platform Is Deferred
 
 **Date:** 2026-10-28
-**Status:** Accepted (deferred; revisit in a later phase)
+**Status:** Amended by Decision 68 (no longer deferred; planned as Phase 13)
 
 #### Decision
 Not built now. When added, there are three routes: buy calling through a WhatsApp provider and log calls via API (cheapest), build a call gateway and media layer (full control, much larger build), or a hybrid. The call adapter is designed so any route plugs in without CRM changes.
@@ -1246,3 +1246,36 @@ Staff sign in with an email and password. Decision 4 requires the principal and 
 - **Data export** is a JSON file of everything held about the customer. Media files and recordings are listed, not attached.
 - **Backups:** erasure can't reach backups. Erased data leaves when a backup expires, so Phase 12 must set a backup expiry, and a restore must be followed by erasing again.
 - **Logs:** personal fields are redacted by name, and phone numbers and emails are masked inside any text, including error messages.
+
+---
+
+### Decision 67: Hardening Rules for Phase 11
+
+**Date:** 2026-11-01
+**Status:** Accepted (the speed target, alert channel, error tracking and penetration test were chosen by the owner).
+
+#### Decision
+- **Speed target:** with 30 users online, 100,000 leads and 1 million messages, 95% of screens and requests answer within 1 second, and reports within 3 seconds. The 5-second report limit in Decision 65 stays as the hard ceiling in tests.
+- **Alerts** go to the Super Admin and everyone holding `system:view-diagnostics`, in-app and by email, and are also logged. One open alert per problem, so a long outage doesn't send repeats. If the whole app or server is down it can't alert anyone, so Phase 12's outside monitoring covers that.
+- **Error tracking** is built in, at no cost. Errors are grouped and counted on the Diagnostics screen, with personal data masked, and a spike raises an alert. No outside service receives error details.
+- **Penetration test:** repeatable automated attack tests now. These are not an independent test; the owner can still hire one before go-live.
+- **Content security:** pages get a fresh nonce on every request, so all pages render dynamically. Inline styles stay allowed, because React writes them into the page; scripts do not.
+- **Rate limits** are counted in the database, so they hold across several app instances. They are declared on each sensitive route, and counted per person, or per address when nobody is signed in.
+- **Connections:** each process keeps at most `DATABASE_POOL_MAX` (default 10) in its main pool, 2 for publishing live updates, 1 for listening, and 2 (app) or 5 (worker) for jobs. At the agreed size two app instances and two workers peaked at 30 of the database's 100.
+- **Indexes:** the load test found no query over 100 ms at the agreed size, so none were added. The full-table reads it did find are the planner's choice and took about 15 ms; they grow with the data, so repeat the test before the data grows much further.
+- **Worker image:** the worker no longer carries Next.js or React. A scan test fails if its code ever imports them.
+- **Backups:** `scripts/ops/backup.sh` and `restore.sh` cover the database and local files. Scheduling and off-server copies are Phase 12, once hosting is chosen (Decisions 31 and 66 still apply).
+- **Not built:** errors in the browser aren't tracked, only those on the server and in the worker. Nothing on this server can report that the server itself is down, or watch a database on another machine; Phase 12's outside monitoring covers both. Moved to Phase 12: reviewing who has access in production, and a request-size limit at the reverse proxy.
+
+---
+
+### Decision 68: Regular Calls by Browser; WhatsApp Calling Is a Planned Optional Channel
+
+**Date:** 2026-11-01
+**Status:** Accepted (chosen by the owner; amends Decision 18). The route is a recommendation the owner has not objected to, and it and the cost stay open under `Q-20` until provider quotes arrive.
+
+#### Decision
+- **Regular calls:** about 95% of calls use the regular phone network. Agents handle them in the browser with a headset, as in Decision 24. "Call via my phone" stays the fallback.
+- **WhatsApp calling:** about 5% of calls. Customers can call on WhatsApp and agents answer in the CRM. It is needed, so Phase 13 is planned, no longer deferred. It has an on/off setting that does not affect regular calls.
+- **Recommended route:** buy calling through a WhatsApp provider, using the existing telephony layer. A custom media layer is not worth building for this share of calls.
+- **Provider quotes** must confirm: customer-to-business calling in India, answering in a browser, whether and with what permission agents can call customers, recording and its download, and all prices. Ask about calling when comparing the WhatsApp messaging providers (Decision 19), because one provider for both is simpler.

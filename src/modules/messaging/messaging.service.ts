@@ -157,7 +157,7 @@ export function createMessagingService({
       id?: string;
     },
   ) {
-    const existing = await repository.findByClientRef(null, data.clientRef);
+    const existing = await repository.findByClientRef(null, data.clientRef, conversation.id);
     if (existing) return toMessageView(existing);
     const now = clock.now();
     let message: MessageRow;
@@ -197,8 +197,10 @@ export function createMessagingService({
     } catch (error) {
       // A double click: the other request inserted it first.
       if ((error as { code?: unknown }).code === "P2002") {
-        const winner = await repository.findByClientRef(null, data.clientRef);
+        const winner = await repository.findByClientRef(null, data.clientRef, conversation.id);
         if (winner) return toMessageView(winner);
+        // The reference belongs to another chat, whose message this person may not see.
+        throw invalid("clientRef", "Please try sending that again.");
       }
       throw error;
     }
@@ -621,7 +623,7 @@ export function createMessagingService({
           `That file is too big. The limit for this type is ${type.sendLimitMb} MB.`,
         );
       }
-      const existing = await repository.findByClientRef(null, clientRef);
+      const existing = await repository.findByClientRef(null, clientRef, conversation.id);
       if (existing) return toMessageView(existing);
       const messageId = randomUUID();
       const key = buildKey({

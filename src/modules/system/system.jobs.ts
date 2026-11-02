@@ -1,6 +1,7 @@
 // Background jobs of the system module. The test-only probe job proves the queue, retries and delayed
 // jobs, and the worker registers it only when APP_ENV=test.
 import { z } from "zod";
+import { sweepRateLimits } from "@/shared/http/rateLimit";
 import { defineJob, type AnyJobDefinition, type JobSchedule } from "@/shared/jobs";
 import { runFileDeletions } from "./system.fileDeletion";
 
@@ -13,9 +14,19 @@ const deleteFilesJob = defineJob({
   },
 });
 
-export const systemJobs: AnyJobDefinition[] = [deleteFilesJob];
+const sweepRateLimitsJob = defineJob({
+  name: "system.sweepRateLimits",
+  payload: z.object({}),
+  retry: { limit: 1, delaySeconds: 60, backoff: false },
+  handler: async () => {
+    await sweepRateLimits();
+  },
+});
+
+export const systemJobs: AnyJobDefinition[] = [deleteFilesJob, sweepRateLimitsJob];
 export const systemSchedules: JobSchedule[] = [
   { job: deleteFilesJob, cron: "*/5 * * * *", payload: {} },
+  { job: sweepRateLimitsJob, cron: "17 * * * *", payload: {} },
 ];
 
 const probeRuns = new Map<string, number>();

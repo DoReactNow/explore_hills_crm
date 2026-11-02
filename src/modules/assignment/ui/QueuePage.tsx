@@ -644,37 +644,43 @@ export function QueuePage() {
           </div>
           <div role="table" aria-label="Unassigned enquiries" className={styles.table}>
             <div role="row" className={`${styles.row} ${styles.head}`}>
-              <span />
-              <span>Customer</span>
-              <span>Enquiry</span>
-              <span>Destination</span>
-              <span>Budget</span>
-              <span>Source</span>
-              <span>Waiting</span>
+              <span role="columnheader" aria-label="Select" />
+              <span role="columnheader">Customer</span>
+              <span role="columnheader">Enquiry</span>
+              <span role="columnheader">Destination</span>
+              <span role="columnheader">Budget</span>
+              <span role="columnheader">Source</span>
+              <span role="columnheader">Waiting</span>
             </div>
             {!queue ? (
-              <p aria-busy="true" className={styles.muted}>
-                Loading…
-              </p>
+              <div role="row">
+                <p role="cell" aria-busy="true" className={styles.muted}>
+                  Loading…
+                </p>
+              </div>
             ) : null}
             {queue?.items.length === 0 ? (
-              <p className={styles.muted} style={{ padding: 16 }}>
-                The queue is clear. New enquiries appear here as they arrive.
-              </p>
+              <div role="row">
+                <p role="cell" className={styles.muted} style={{ padding: 16 }}>
+                  The queue is clear. New enquiries appear here as they arrive.
+                </p>
+              </div>
             ) : null}
             {queue?.items.map((lead) => {
               const minutes = minutesWaiting(lead.createdAt);
               const name = lead.contact.name ?? "Unnamed customer";
               return (
                 <div role="row" key={lead.id} className={styles.row}>
-                  <input
-                    type="checkbox"
-                    aria-label={`Select ${name}`}
-                    disabled={Boolean(lead.poolEntryId)}
-                    checked={allSelected ? !lead.poolEntryId : selected.includes(lead.id)}
-                    onChange={() => toggle(lead.id)}
-                  />
-                  <span className={styles.cell}>
+                  <span role="cell">
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${name}`}
+                      disabled={Boolean(lead.poolEntryId)}
+                      checked={allSelected ? !lead.poolEntryId : selected.includes(lead.id)}
+                      onChange={() => toggle(lead.id)}
+                    />
+                  </span>
+                  <span role="cell" className={styles.cell}>
                     <Link className={styles.name} href={`/leads/${lead.id}`}>
                       {name}
                     </Link>
@@ -695,19 +701,20 @@ export function QueuePage() {
                       </>
                     ) : null}
                   </span>
-                  <span className={`${styles.cell} ${styles.hideOnPhone}`}>
+                  <span role="cell" className={`${styles.cell} ${styles.hideOnPhone}`}>
                     {lead.enquiry ?? "—"}
                   </span>
-                  <span className={`${styles.cell} ${styles.hideOnPhone}`}>
+                  <span role="cell" className={`${styles.cell} ${styles.hideOnPhone}`}>
                     {lead.destination ?? "—"}
                   </span>
-                  <span className={`${styles.cell} ${styles.hideOnPhone}`}>
+                  <span role="cell" className={`${styles.cell} ${styles.hideOnPhone}`}>
                     {lead.budgetAmount ? rupees(lead.budgetAmount) : "—"}
                   </span>
-                  <span className={`${styles.cell} ${styles.hideOnPhone}`}>
+                  <span role="cell" className={`${styles.cell} ${styles.hideOnPhone}`}>
                     <span className={styles.chip}>{SOURCES[lead.source] ?? lead.source}</span>
                   </span>
                   <span
+                    role="cell"
                     className={
                       minutes >= sla ? styles.late : minutes >= sla / 2 ? styles.soon : styles.muted
                     }

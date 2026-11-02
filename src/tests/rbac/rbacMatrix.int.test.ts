@@ -9,6 +9,7 @@ import * as me from "@/app/api/auth/me/route";
 import * as signIn from "@/app/api/auth/sign-in/route";
 import * as signOut from "@/app/api/auth/sign-out/route";
 import * as diagnostics from "@/app/api/diagnostics/route";
+import * as monitoring from "@/app/api/monitoring/route";
 import * as stream from "@/app/api/events/stream/route";
 import * as health from "@/app/api/health/route";
 import * as fail from "@/app/api/test-support/fail/route";
@@ -145,6 +146,7 @@ const CASES: Case[] = [
   { method: "GET", path: "/api/auth/me", handler: me.GET, allowed: EVERYONE },
   { method: "GET", path: "/api/events/stream", handler: stream.GET, allowed: EVERYONE },
   { method: "GET", path: "/api/diagnostics", handler: diagnostics.GET, allowed: ADMINS },
+  { method: "GET", path: "/api/monitoring", handler: monitoring.GET, allowed: ADMINS },
   { method: "GET", path: "/api/users", handler: collection.GET, allowed: USERS_VIEW },
   { method: "POST", path: "/api/users", handler: collection.POST, allowed: ADMINS, body: {} },
   {

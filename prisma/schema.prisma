@@ -221,6 +221,17 @@ model SystemFileDeletion {
   @@map("system_file_deletions")
 }
 
+// Owner: system. One row per limit and caller, counted in the database so it holds across instances
+// (Decision 67). Old rows are swept by a job.
+model SystemRateLimit {
+  key         String   @id
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int      @default(0)
+
+  @@index([windowStart])
+  @@map("system_rate_limits")
+}
+
 // Owner: system. Written by the worker every few seconds; read by diagnostics.
 model SystemWorkerHeartbeat {
   workerId   String   @id // hostname + process id
@@ -902,4 +913,35 @@ model NotificationsPushSubscription {
 
   @@index([userId])
   @@map("notifications_push_subscriptions")
+}
+
+// Owner: monitoring. A problem someone should know about (Decision 67). A partial unique index allows
+// one open row per code, which also keeps several app instances from raising it twice.
+model MonitoringAlert {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  code       String
+  detail     String
+  openedAt   DateTime  @db.Timestamptz(3)
+  lastSeenAt DateTime  @db.Timestamptz(3)
+  resolvedAt DateTime? @db.Timestamptz(3)
+
+  @@index([openedAt])
+  @@map("monitoring_alerts")
+}
+
+// Owner: monitoring. Errors grouped by what went wrong, one row per hour, with personal data masked.
+model MonitoringError {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  fingerprint   String
+  hourStart     DateTime @db.Timestamptz(3)
+  name          String
+  message       String
+  source        String
+  count         Int      @default(1)
+  lastSeenAt    DateTime @db.Timestamptz(3)
+  lastRequestId String?
+
+  @@unique([fingerprint, hourStart])
+  @@index([hourStart])
+  @@map("monitoring_errors")
 }

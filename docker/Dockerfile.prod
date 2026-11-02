@@ -25,6 +25,12 @@ FROM base AS prod-deps
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
+# The worker's bundle needs none of the web framework (see dist/worker.js's imports), which is most of
+# the image. A scan test keeps this list honest, and the drill starts the result.
+FROM prod-deps AS worker-deps
+RUN rm -rf node_modules/next node_modules/@next node_modules/@img node_modules/sharp \
+    node_modules/react node_modules/react-dom
+
 FROM deps AS builder
 COPY . .
 RUN npm run db:generate \
@@ -59,7 +65,7 @@ CMD ["node", "server.js"]
 
 FROM base AS worker
 ENV NODE_ENV=production
-COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=worker-deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY --from=builder /app/dist/worker.js ./dist/worker.js
 RUN mkdir -p /app/storage && chown node:node /app/storage
